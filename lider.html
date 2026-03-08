@@ -577,15 +577,19 @@
         
         document.getElementById('relData').valueAsDate = new Date();
         
-       try {
-            // --- NOVA BUSCA HÍBRIDA (Membros no Supabase, Resto no Google) ---
-            
-            // 1. Busca os membros voando no Supabase
+        // --- 1. BLOCO DO SUPABASE (Membros) Isolado ---
+        try {
             dadosMembros = await lerSupabase('membros'); 
             document.getElementById('badge-total-membros').innerText = dadosMembros.length;
             renderizarMembros(dadosMembros);
+        } catch (erroSupabase) {
+            console.error("Erro no Supabase:", erroSupabase);
+            document.getElementById('gridMembros').innerHTML = '<p style="text-align:center; color:red; padding: 20px;">Não foi possível carregar os membros. Verifique o console.</p>';
+        }
 
-            // 2. Busca o resto no Google (por enquanto)
+        // --- 2. BLOCO DO GOOGLE (Células, Palavras, Agenda) Isolado ---
+        try {
+            // Busca o resto no Google
             const res = await fetchGoogle('buscarDadosIniciais');
             dadosCelulas = res.celulas;
             renderizarCelulas(res.celulas);
@@ -606,6 +610,15 @@
                 renderizarAgenda([]);
             }
 
+            // Busca Versículo do Dia
+            carregarVersiculoDoDia();
+            
+        } catch(erroGoogle) {
+            console.log("Erro ao carregar dados do Google:", erroGoogle);
+        } finally {
+            if(icon) icon.classList.remove('fa-spin');
+        }
+      }
             // Busca Versículo do Dia
           carregarVersiculoDoDia();
             /*try {
