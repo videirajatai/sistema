@@ -161,9 +161,11 @@
               </h4>
             <button onclick="abrirAdicionarMembro()" style="background: var(--success-text); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><i class="fas fa-plus"></i> Novo</button>
           </div>
-          <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-
-              
+              <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <input type="text" id="inputBusca" placeholder="🔍 Buscar por nome..." onkeyup="filtrarMembros()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc; outline:none;">
+              <select id="filtroCelula" onchange="filtrarMembros()" style="padding:10px; border-radius:8px; border:1px solid #ccc; outline:none; background:white; margin-left:10px;">
+                  <option value="">Todas as Células</option>
+              </select>
           </div>
         </div>
         <div id="gridMembros" class="member-grid"></div>
@@ -256,27 +258,28 @@
     </div>
     
 
-    <div id="modalAdicionarMembro" class="modal-overlay hidden" onclick="fecharModal('modalAdicionarMembro')">
+    <div id="modalEditarMembro" class="modal-overlay hidden" onclick="fecharModal('modalEditarMembro')">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <button class="btn-close-modal" onclick="fecharModal('modalAdicionarMembro')">&times;</button>
-            <h3 style="color:var(--success-text); margin-top:10px; margin-bottom:20px;">Adicionar Novo Membro</h3>
-            <form id="formAdicionarMembro">
-                <div class="form-group"><label>Nome</label><input type="text" id="addMembroNome" required></div>
+            <button class="btn-close-modal" onclick="fecharModal('modalEditarMembro')">&times;</button>
+            <h3 style="color:var(--primary); margin-top:10px; margin-bottom:20px;">Editar Membro</h3>
+            <form id="formEditarMembro">
+                <input type="hidden" id="editMembroId">
+                <div class="form-group"><label>Nome</label><input type="text" id="editMembroNome" required></div>
                 <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="addMembroNasc"></div>
-                    <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="addMembroTel" placeholder="Ex: 64999999999"></div>
+                    <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="editMembroNasc"></div>
+                    <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="editMembroTel" placeholder="Ex: 64999999999"></div>
                 </div>
-                <div class="form-group"><label>Célula</label><select id="addMembroCelula" required></select></div>
-                <div class="form-group"><label>Categoria</label><select id="addMembroCat"><option>Frequentador</option><option>Membro</option><option>Líder</option></select></div>
+                <div class="form-group"><label>Célula</label><select id="editMembroCelula" required></select></div>
+                <div class="form-group"><label>Categoria</label><select id="editMembroCat"><option>Frequentador</option><option>Membro</option><option>Líder</option></select></div>
                 
                 <label style="margin-top:15px; display:block; font-weight:bold; color:var(--text-light);">Passos de Fé</label>
                 <div class="check-grid">
-                    <label class="check-option"><input type="checkbox" id="addMembroBatizado"><span class="checkmark">Batismo</span></label>
-                    <label class="check-option"><input type="checkbox" id="addMembroCursao"><span class="checkmark">Cursão</span></label>
-                    <label class="check-option"><input type="checkbox" id="addMembroCtl"><span class="checkmark">CTL</span></label>
-                    <label class="check-option"><input type="checkbox" id="addMembroEncontro"><span class="checkmark">Encontro</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroBatizado"><span class="checkmark">Batismo</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroCursao"><span class="checkmark">Cursão</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroCtl"><span class="checkmark">CTL</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroEncontro"><span class="checkmark">Encontro</span></label>
                 </div>
-                <button type="submit" id="btnSalvarNovoMembro" class="btn-save" style="background: var(--success-text);">Cadastrar Membro</button>
+                <button type="submit" id="btnSalvarEdicaoMembro" class="btn-save">Salvar Alterações</button>
             </form>
         </div>
     </div>
@@ -860,12 +863,26 @@
           { id: "apocalipse", nome: "Apocalipse", caps: 22 }
       ];
 
-      function abrirBiblia() {
+      async function abrirBiblia() {
           document.getElementById('painel-biblia').classList.add('aberto');
-          const overlay = document.getElementById('biblia-overlay');
-          overlay.style.display = 'block';
+          const overlay = document.getElementById('biblia-overlay'); 
+          overlay.style.display = 'block'; 
           setTimeout(() => overlay.style.opacity = '1', 10);
-          iniciarBiblia(); 
+          
+          iniciarBiblia(); // Preenche a lista com todos os livros
+
+          const conteudo = document.getElementById('biblia-conteudo');
+          // Se for a primeira vez que abre, já força carregar Gênesis 1
+          if (conteudo.innerText.includes("começar a leitura") || conteudo.innerText.includes("Selecione")) {
+              const selectLivro = document.getElementById('biblia-livro');
+              const selectCapitulo = document.getElementById('biblia-capitulo');
+              
+              selectLivro.value = "genesis"; // Crava Gênesis
+              atualizarCapitulos();          // Gera os 50 capítulos
+              selectCapitulo.value = "1";    // Crava o capítulo 1
+              
+              carregarCapitulo(); // Manda buscar o texto
+          }
       }
 
       function fecharBiblia() {
@@ -876,28 +893,31 @@
       }
 
       function iniciarBiblia() {
-          const selectLivro = document.getElementById('biblia-livro');
-          selectLivro.innerHTML = '<option value="">Selecione o Livro</option>';
+          const selectLivro = document.getElementById('biblia-livro'); 
+          if(selectLivro.options.length > 0) return; // Evita recarregar a lista
+
+          // Preenche a lista de forma nativa e segura
+          selectLivro.options.length = 0; 
           dadosBiblia.forEach((livro, index) => {
-              let option = document.createElement('option');
-              option.value = livro.id;
-              option.text = livro.nome;
-              if (index >= 39) option.style.fontWeight = "bold"; 
-              selectLivro.appendChild(option);
+              let opt = new Option(livro.nome, livro.id);
+              if (index >= 39) opt.style.fontWeight = "bold"; // Novo Testamento em negrito
+              selectLivro.options.add(opt);
           });
       }
 
       function atualizarCapitulos() {
           const selectLivro = document.getElementById('biblia-livro');
           const selectCapitulo = document.getElementById('biblia-capitulo');
-          selectCapitulo.innerHTML = '<option value="">Capítulo</option>';
-          if (selectLivro.value === "") { selectCapitulo.disabled = true; return; }
-          const livroEscolhido = dadosBiblia.find(l => l.id === selectLivro.value);
-          for (let i = 1; i <= livroEscolhido.caps; i++) {
-              let option = document.createElement('option');
-              option.value = i; option.text = i; selectCapitulo.appendChild(option);
+          
+          selectCapitulo.options.length = 0; // Limpa os capítulos anteriores
+          
+          const livro = dadosBiblia.find(l => l.id === selectLivro.value);
+          if (livro) {
+              for (let i = 1; i <= livro.caps; i++) {
+                  selectCapitulo.options.add(new Option(i, i));
+              }
+              selectCapitulo.disabled = false;
           }
-          selectCapitulo.disabled = false;
       }
 
       async function carregarCapitulo() {
