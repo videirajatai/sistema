@@ -701,11 +701,15 @@ function mudarSecao(s) {
 // ==========================================
 // MÓDULO: MEMBROS
 // ==========================================
+// ==========================================
+// MÓDULO: MEMBROS
+// ==========================================
 function renderizarMembros(lista) {
     const grid = document.getElementById('gridMembros');
     grid.innerHTML = '';
     const ativos = lista.filter(m => m.status !== 'Arquivado');
-    document.getElementById('totalMembros').innerText = ativos.length;
+    const badge = document.getElementById('totalMembros');
+    if(badge) badge.innerText = ativos.length;
 
     ativos.forEach(m => {
         grid.innerHTML += `
@@ -719,10 +723,10 @@ function renderizarMembros(lista) {
             <div class="card-info"><i class="fas fa-network-wired"></i> ${m.celula || 'S/ Célula'}</div>
             <div class="card-info"><i class="fas fa-phone"></i> ${m.telefone || '-'}</div>
             <div class="status-row">
-                <div class="status-pill ${m.batizado?'active':''}"><i class="fas fa-water"></i> Batismo</div>
-                <div class="status-pill ${m.cursao?'active':''}"><i class="fas fa-book"></i> Cursão</div>
-                <div class="status-pill ${m.ctl?'active':''}"><i class="fas fa-graduation-cap"></i> CTL</div>
-                <div class="status-pill ${m.encontro?'active':''}"><i class="fas fa-fire"></i> Encontro</div>
+                <div class="status-pill ${m.batismo === 'Sim' ? 'active':''}"><i class="fas fa-water"></i> Batismo</div>
+                <div class="status-pill ${m.cursao === 'Sim' ? 'active':''}"><i class="fas fa-book"></i> Cursão</div>
+                <div class="status-pill ${m.ctl === 'Sim' ? 'active':''}"><i class="fas fa-graduation-cap"></i> CTL</div>
+                <div class="status-pill ${m.encontro === 'Sim' ? 'active':''}"><i class="fas fa-fire"></i> Encontro</div>
             </div>
             <div class="card-actions">
                 <button onclick="editarMembro('${m.id}')" class="btn-card"><i class="fas fa-edit"></i> Editar</button>
@@ -751,10 +755,11 @@ function editarMembro(id) {
     document.getElementById('selectCelulas').value = m.celula || '';
     document.getElementById('campoCategoria').value = m.categoria || 'Membro';
     
-    document.getElementById('checkBat').checked = m.batizado === true || m.batizado === 'Sim';
-    document.getElementById('checkCur').checked = m.cursao === true || m.cursao === 'Sim';
-    document.getElementById('checkCtl').checked = m.ctl === true || m.ctl === 'Sim';
-    document.getElementById('checkDiz').checked = m.encontro === true || m.encontro === 'Sim';
+    // Marca os checkboxes se no banco estiver escrito "Sim"
+    document.getElementById('checkBat').checked = m.batismo === 'Sim';
+    document.getElementById('checkCur').checked = m.cursao === 'Sim';
+    document.getElementById('checkCtl').checked = m.ctl === 'Sim';
+    document.getElementById('checkDiz').checked = m.encontro === 'Sim';
     
     mudarSecao('cadastro');
 }
@@ -772,23 +777,33 @@ document.getElementById('formMembro').onsubmit = async function(e) {
         celula: document.getElementById('selectCelulas').value,
         telefone: document.getElementById('campoTel').value,
         status: 'Ativo',
-        batizado: document.getElementById('checkBat').checked,
-        cursao: document.getElementById('checkCur').checked,
-        ctl: document.getElementById('checkCtl').checked,
-        encontro: document.getElementById('checkDiz').checked
+        
+        // Converte o Checkbox (true/false) para Texto ("Sim"/"Não")
+        batismo: document.getElementById('checkBat').checked ? 'Sim' : 'Não',
+        cursao: document.getElementById('checkCur').checked ? 'Sim' : 'Não',
+        ctl: document.getElementById('checkCtl').checked ? 'Sim' : 'Não',
+        encontro: document.getElementById('checkDiz').checked ? 'Sim' : 'Não'
     };
     
-    id ? await atualizarSupabase('membros', id, dados) : await inserirSupabase('membros', dados);
-    await carregarTudo();
-    btn.innerText = "Salvar"; btn.disabled = false;
-    mudarSecao('lista');
+    try {
+        id ? await atualizarSupabase('membros', id, dados) : await inserirSupabase('membros', dados);
+        // Recarrega os dados pra mostrar atualizado na tela
+        dadosMembros = await lerSupabase('membros'); 
+        renderizarMembros(dadosMembros);
+        mudarSecao('lista');
+    } catch(err) {
+        alert("Erro ao salvar membro. Verifique o console.");
+        console.error(err);
+    } finally {
+        btn.innerText = "Salvar"; btn.disabled = false;
+    }
 };
 
 function filtrarMembros() {
     const txt = document.getElementById('inputBusca').value.toLowerCase();
     const cel = document.getElementById('filtroCelula').value.toLowerCase();
     document.querySelectorAll('.member-card').forEach(c => {
-        if(!c.hasAttribute('data-nome')) return; // Garante que não afeta os cards de agenda
+        if(!c.hasAttribute('data-nome')) return;
         const n = c.getAttribute('data-nome');
         const cc = c.getAttribute('data-celula');
         c.style.display = (n.includes(txt) && (cel === "" || cc === cel)) ? "flex" : "none";
@@ -799,7 +814,8 @@ function filtrarMembros() {
 async function arquivar(id) {
     if(confirm("Arquivar membro?")) {
         await atualizarSupabase('membros', id, { status: 'Arquivado' });
-        await carregarTudo();
+        dadosMembros = await lerSupabase('membros'); 
+        renderizarMembros(dadosMembros);
     }
 }
 
@@ -825,14 +841,16 @@ function carregarArquivados() {
 
 async function restaurarMembro(id) {
     await atualizarSupabase('membros', id, { status: 'Ativo' });
-    await carregarTudo();
+    dadosMembros = await lerSupabase('membros'); 
+    renderizarMembros(dadosMembros);
     carregarArquivados();
 }
 
 async function excluirMembroFisico(id) {
     if(confirm("ATENÇÃO: Isso vai excluir o membro para sempre. Continuar?")) {
         await deletarSupabase('membros', id);
-        await carregarTudo();
+        dadosMembros = await lerSupabase('membros'); 
+        renderizarMembros(dadosMembros);
         carregarArquivados();
     }
 }
