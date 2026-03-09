@@ -603,31 +603,38 @@
     <div id="biblia-overlay" onclick="fecharBiblia()"></div>
 
 
-    <script>
-    // ==========================================
+<script>
+// ==========================================
 // CONFIGURAÇÃO SUPABASE
 // ==========================================
-const SB_URL = 'SUA_URL_DO_SUPABASE'; 
-const SB_KEY = 'SUA_KEY_DO_SUPABASE';
+const SB_URL = 'https://ryvfogmfpjyamgqsltks.supabase.co'; 
+const SB_KEY = 'sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q';
 
-let dadosMembros = [], dadosCelulas = [], dadosFinanceiro = [], dadosAgenda = [];
+let dadosMembros = [], dadosCelulas = [], dadosFinanceiro = [], dadosAgenda = [], dadosPalavras = [], dadosRelatorios = [];
 
 // ==========================================
-// FUNÇÕES CORE (COMUNICAÇÃO)
+// FUNÇÕES CORE (COMUNICAÇÃO SEGURA)
 // ==========================================
 async function lerSupabase(tabela, query = "*") {
-    const res = await fetch(`${SB_URL}/rest/v1/${tabela}?select=${query}`, {
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-    });
-    return res.ok ? await res.json() : [];
+    try {
+        const res = await fetch(`${SB_URL}/rest/v1/${tabela}?select=${query}`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        if (!res.ok) throw new Error(`Tabela ${tabela} não encontrada ou erro de permissão.`);
+        return await res.json();
+    } catch (e) {
+        console.warn(e);
+        return []; // Retorna vazio para não "quebrar" o restante do painel
+    }
 }
 
 async function inserirSupabase(tabela, dados) {
-    await fetch(`${SB_URL}/rest/v1/${tabela}`, {
+    const res = await fetch(`${SB_URL}/rest/v1/${tabela}`, {
         method: 'POST',
         headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(dados)
     });
+    if (!res.ok) alert(`Erro ao inserir em ${tabela}. Verifique as colunas no Supabase.`);
 }
 
 async function atualizarSupabase(tabela, id, dados) {
@@ -648,35 +655,44 @@ async function deletarSupabase(tabela, id) {
 // ==========================================
 // INICIALIZAÇÃO E NAVEGAÇÃO
 // ==========================================
-window.onload = carregarTudo;
+window.onload = function() {
+    iniciarBiblia(); // Já deixa a bíblia pronta
+    carregarTudo();
+};
 
 async function carregarTudo() {
     const icon = document.getElementById('iconRefresh');
     if(icon) icon.classList.add('fa-spin');
     
     try {
-        // Carrega as 4 tabelas principais em paralelo
-        [dadosMembros, dadosCelulas, dadosFinanceiro, dadosAgenda] = await Promise.all([
-            lerSupabase('membros'),
-            lerSupabase('celulas'),
-            lerSupabase('financeiro'),
-            lerSupabase('agenda')
-        ]);
+        // Carrega todas as tabelas. Se alguma der erro, retorna [] e não trava as outras
+        dadosMembros = await lerSupabase('membros');
+        dadosCelulas = await lerSupabase('celulas');
+        dadosFinanceiro = await lerSupabase('financeiro');
+        dadosAgenda = await lerSupabase('agenda');
 
         renderizarMembros(dadosMembros);
         renderizarCelulas();
         renderizarFinanceiro();
         renderizarAgenda();
         atualizarSelectCelulas();
-    } catch(e) { console.error("Erro no load:", e); }
+    } catch(e) { console.error("Erro no load geral:", e); }
     finally { if(icon) icon.classList.remove('fa-spin'); }
 }
 
 function mudarSecao(s) {
-    document.querySelectorAll('.section-container, .full-modal').forEach(el => el.classList.add('hidden'));
-    const target = document.getElementById('secao-'+s) || document.getElementById(s);
+    // Esconde todas as seções
+    ['lista','celulas','financeiro','arquivo','sugestoes','relatorios','agenda','cadastro-agenda','palavras','nova-palavra','cadastro','form-celula'].forEach(id => {
+        const el = document.getElementById('secao-'+id);
+        if(el) el.classList.add('hidden');
+    });
+    document.getElementById('modal-ver-relatorio').classList.add('hidden');
+    
+    // Mostra a selecionada
+    const target = document.getElementById('secao-'+s);
     if(target) target.classList.remove('hidden');
 
+    // Atualiza botões do menu
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('btn-'+s);
     if(btn) btn.classList.add('active');
@@ -689,7 +705,7 @@ function renderizarMembros(lista) {
     const grid = document.getElementById('gridMembros');
     grid.innerHTML = '';
     const ativos = lista.filter(m => m.status !== 'Arquivado');
-    document.getElementById('badge-total-membros').innerText = ativos.length;
+    document.getElementById('totalMembros').innerText = ativos.length;
 
     ativos.forEach(m => {
         grid.innerHTML += `
@@ -702,31 +718,84 @@ function renderizarMembros(lista) {
             </div>
             <div class="card-info"><i class="fas fa-network-wired"></i> ${m.celula || 'S/ Célula'}</div>
             <div class="card-info"><i class="fas fa-phone"></i> ${m.telefone || '-'}</div>
+            <div class="status-row">
+                <div class="status-pill ${m.batizado?'active':''}"><i class="fas fa-water"></i> Batismo</div>
+                <div class="status-pill ${m.cursao?'active':''}"><i class="fas fa-book"></i> Cursão</div>
+                <div class="status-pill ${m.ctl?'active':''}"><i class="fas fa-graduation-cap"></i> CTL</div>
+                <div class="status-pill ${m.encontro?'active':''}"><i class="fas fa-fire"></i> Encontro</div>
+            </div>
             <div class="card-actions">
                 <button onclick="editarMembro('${m.id}')" class="btn-card"><i class="fas fa-edit"></i> Editar</button>
                 <button onclick="arquivar('${m.id}')" class="btn-card" style="color:red"><i class="fas fa-archive"></i></button>
-                <a href="https://wa.me/55${(m.telefone||'').replace(/\D/g,'')}" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://wa.me/55${(m.telefone||'').replace(/\D/g,'')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>
             </div>
         </div>`;
     });
 }
 
+function novoCadastro() {
+    document.getElementById('formMembro').reset();
+    document.getElementById('idMembro').value = "";
+    document.getElementById('tituloForm').innerText = "Cadastro de Membro";
+    mudarSecao('cadastro');
+}
+
+function editarMembro(id) {
+    const m = dadosMembros.find(x => x.id == id);
+    if(!m) return;
+    document.getElementById('idMembro').value = m.id;
+    document.getElementById('tituloForm').innerText = "Editar Membro";
+    document.getElementById('campoNome').value = m.nome || '';
+    document.getElementById('campoNasc').value = m.nascimento || '';
+    document.getElementById('campoTel').value = m.telefone || '';
+    document.getElementById('selectCelulas').value = m.celula || '';
+    document.getElementById('campoCategoria').value = m.categoria || 'Membro';
+    
+    document.getElementById('checkBat').checked = m.batizado === true || m.batizado === 'Sim';
+    document.getElementById('checkCur').checked = m.cursao === true || m.cursao === 'Sim';
+    document.getElementById('checkCtl').checked = m.ctl === true || m.ctl === 'Sim';
+    document.getElementById('checkDiz').checked = m.encontro === true || m.encontro === 'Sim';
+    
+    mudarSecao('cadastro');
+}
+
 document.getElementById('formMembro').onsubmit = async function(e) {
     e.preventDefault();
+    const btn = document.getElementById('btnSalvar');
+    btn.innerText = "Salvando..."; btn.disabled = true;
+
     const id = document.getElementById('idMembro').value;
     const dados = {
-        nome: this.nome.value, nascimento: this.nascimento.value,
-        categoria: this.categoria.value, celula: this.celula.value,
-        telefone: this.telefone.value, status: 'Ativo',
-        batizado: this.batizado.checked, cursao: this.cursao.checked,
-        ctl: this.ctl.checked, encontro: this.encontro.checked,
-        dizimista: this.dizimista.checked
+        nome: document.getElementById('campoNome').value,
+        nascimento: document.getElementById('campoNasc').value,
+        categoria: document.getElementById('campoCategoria').value,
+        celula: document.getElementById('selectCelulas').value,
+        telefone: document.getElementById('campoTel').value,
+        status: 'Ativo',
+        batizado: document.getElementById('checkBat').checked,
+        cursao: document.getElementById('checkCur').checked,
+        ctl: document.getElementById('checkCtl').checked,
+        encontro: document.getElementById('checkDiz').checked
     };
+    
     id ? await atualizarSupabase('membros', id, dados) : await inserirSupabase('membros', dados);
     await carregarTudo();
+    btn.innerText = "Salvar"; btn.disabled = false;
     mudarSecao('lista');
 };
 
+function filtrarMembros() {
+    const txt = document.getElementById('inputBusca').value.toLowerCase();
+    const cel = document.getElementById('filtroCelula').value.toLowerCase();
+    document.querySelectorAll('.member-card').forEach(c => {
+        if(!c.hasAttribute('data-nome')) return; // Garante que não afeta os cards de agenda
+        const n = c.getAttribute('data-nome');
+        const cc = c.getAttribute('data-celula');
+        c.style.display = (n.includes(txt) && (cel === "" || cc === cel)) ? "flex" : "none";
+    });
+}
+
+// Arquivo Morto
 async function arquivar(id) {
     if(confirm("Arquivar membro?")) {
         await atualizarSupabase('membros', id, { status: 'Arquivado' });
@@ -734,99 +803,267 @@ async function arquivar(id) {
     }
 }
 
+function carregarArquivados() {
+    mudarSecao('arquivo');
+    const tb = document.getElementById('corpoArquivo');
+    const arquivados = dadosMembros.filter(m => m.status === 'Arquivado');
+    if(arquivados.length === 0) {
+        tb.innerHTML = '<tr><td colspan="3" align="center">Nenhum membro arquivado.</td></tr>';
+        return;
+    }
+    tb.innerHTML = arquivados.map(m => `
+        <tr>
+            <td><small>${m.nascimento || '-'}</small></td>
+            <td><b>${m.nome}</b><br><small>${m.celula}</small></td>
+            <td>
+                <button onclick="restaurarMembro('${m.id}')" class="btn-card" style="color:green; margin-bottom:5px;"><i class="fas fa-undo"></i></button>
+                <button onclick="excluirMembroFisico('${m.id}')" class="btn-card" style="color:red;"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function restaurarMembro(id) {
+    await atualizarSupabase('membros', id, { status: 'Ativo' });
+    await carregarTudo();
+    carregarArquivados();
+}
+
+async function excluirMembroFisico(id) {
+    if(confirm("ATENÇÃO: Isso vai excluir o membro para sempre. Continuar?")) {
+        await deletarSupabase('membros', id);
+        await carregarTudo();
+        carregarArquivados();
+    }
+}
+
+function filtrarTabela(idTabela) {
+    const input = document.getElementById(idTabela === 'tabelaArquivo' ? 'inputBuscaArquivo' : 'inputBusca');
+    const filter = input.value.toLowerCase();
+    const trs = document.getElementById(idTabela).querySelectorAll("tbody tr");
+    trs.forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(filter) ? "" : "none";
+    });
+}
+
 // ==========================================
 // MÓDULO: CÉLULAS
 // ==========================================
+function atualizarSelectCelulas() {
+    const html = '<option value="">Selecione a Célula</option>' + 
+                 dadosCelulas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+    const s1 = document.getElementById('filtroCelula');
+    const s2 = document.getElementById('selectCelulas');
+    if(s1) s1.innerHTML = '<option value="">Todas as Células</option>' + html;
+    if(s2) s2.innerHTML = html;
+}
+
 function renderizarCelulas() {
     const corpo = document.getElementById('corpoCelulas');
     corpo.innerHTML = dadosCelulas.map(c => `
         <tr>
             <td><b>${c.nome}</b><br><small>${c.endereco||''}</small></td>
-            <td>${c.lider}</td>
+            <td>${c.lider || '-'}</td>
+            <td>${c.dia_horario || '-'}</td>
             <td>
-                <button onclick="editarCelula('${c.id}')" class="btn-card"><i class="fas fa-edit"></i></button>
+                <button onclick="editarCelula('${c.id}')" class="btn-card" style="margin-bottom:5px;"><i class="fas fa-edit"></i></button>
                 <button onclick="deletarCelula('${c.id}')" class="btn-card" style="color:red"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`).join('');
 }
 
-document.getElementById('formNovaCelula').onsubmit = async function(e) {
+function novaCelula() {
+    document.getElementById('formCelula').reset();
+    document.getElementById('nomeOriginalCelula').value = ""; // Usado como ID
+    document.getElementById('tituloFormCelula').innerText = "Nova Célula";
+    mudarSecao('form-celula');
+}
+
+function editarCelula(id) {
+    const c = dadosCelulas.find(x => x.id == id);
+    if(!c) return;
+    document.getElementById('nomeOriginalCelula').value = c.id; // Guardando o ID
+    document.getElementById('tituloFormCelula').innerText = "Editar Célula";
+    document.getElementById('celNome').value = c.nome || '';
+    // Como o selectLider estava vazio no HTML, preenchemos com os membros
+    preencherLideresCelulas();
+    document.getElementById('celLider').value = c.lider || '';
+    document.getElementById('celDia').value = c.dia_horario || '';
+    document.getElementById('celEndereco').value = c.endereco || '';
+    mudarSecao('form-celula');
+}
+
+function preencherLideresCelulas() {
+    const sel = document.getElementById('celLider');
+    sel.innerHTML = '<option value="">Selecione o Líder</option>' + 
+                    dadosMembros.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+}
+
+document.getElementById('formCelula').onsubmit = async function(e) {
     e.preventDefault();
-    const id = document.getElementById('idCelula').value;
+    const id = document.getElementById('nomeOriginalCelula').value; // Pegando o ID
     const dados = {
         nome: document.getElementById('celNome').value,
         lider: document.getElementById('celLider').value,
         dia_horario: document.getElementById('celDia').value,
-        endereco: document.getElementById('celEnd').value
+        endereco: document.getElementById('celEndereco').value
     };
     id ? await atualizarSupabase('celulas', id, dados) : await inserirSupabase('celulas', dados);
     await carregarTudo();
     mudarSecao('celulas');
 };
 
+async function deletarCelula(id) {
+    if(confirm("Excluir esta célula?")) {
+        await deletarSupabase('celulas', id);
+        await carregarTudo();
+    }
+}
+
 // ==========================================
 // MÓDULO: FINANCEIRO
 // ==========================================
+function mudarTabFin(tab, btn) {
+    document.getElementById('tab-lancamento').classList.add('hidden');
+    document.getElementById('tab-extrato').classList.add('hidden');
+    document.getElementById('tab-'+tab).classList.remove('hidden');
+    
+    const botoes = btn.parentElement.querySelectorAll('.nav-btn');
+    botoes.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function atualizarCategorias() {
+    const tipo = document.getElementById('finTipo').value;
+    const cat = document.getElementById('finCategoria');
+    if(tipo === 'Entrada') {
+        cat.innerHTML = '<option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option><option value="Outros">Outros</option>';
+    } else {
+        cat.innerHTML = '<option value="Água/Luz">Água/Luz</option><option value="Aluguel">Aluguel</option><option value="Manutenção">Manutenção</option><option value="Eventos">Eventos</option><option value="Outros">Outros</option>';
+    }
+    atualizarCampos();
+}
+
+function atualizarCampos() {
+    const cat = document.getElementById('finCategoria').value;
+    const descInput = document.getElementById('finDescricaoInput');
+    const memSelect = document.getElementById('finMembroSelect');
+    const lbl = document.getElementById('lblDescricao');
+
+    if(cat === 'Dízimo' || cat === 'Oferta') {
+        lbl.innerText = "Nome do Membro";
+        descInput.classList.add('hidden');
+        memSelect.classList.remove('hidden');
+        descInput.required = false;
+        memSelect.required = true;
+        
+        memSelect.innerHTML = '<option value="">Selecione o membro...</option>' + 
+                              dadosMembros.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+    } else {
+        lbl.innerText = "Descrição da Despesa/Entrada";
+        memSelect.classList.add('hidden');
+        descInput.classList.remove('hidden');
+        memSelect.required = false;
+        descInput.required = true;
+    }
+}
+
 function renderizarFinanceiro() {
-    const corpo = document.getElementById('corpoFinanceiro');
-    let saldo = 0;
+    const corpo = document.getElementById('corpoFin');
+    let saldo = 0, entradas = 0, saidas = 0;
+    
     corpo.innerHTML = dadosFinanceiro.map(f => {
         const valor = parseFloat(f.valor || 0);
-        f.tipo === 'Entrada' ? saldo += valor : saldo -= valor;
+        if(f.tipo === 'Entrada') { entradas += valor; saldo += valor; }
+        else { saidas += valor; saldo -= valor; }
+        
         return `
         <tr>
             <td>${f.data}</td>
-            <td>${f.descricao}</td>
-            <td style="color:${f.tipo==='Entrada'?'green':'red'}">R$ ${valor.toFixed(2)}</td>
-            <td><button onclick="deletarFinanceiro('${f.id}')" class="btn-card"><i class="fas fa-times"></i></button></td>
+            <td><b>${f.descricao}</b><br><small>${f.categoria || ''}</small></td>
+            <td style="color:${f.tipo==='Entrada'?'green':'red'}">R$ ${valor.toFixed(2)}
+                <br><button onclick="deletarFinanceiro('${f.id}')" style="background:none; border:none; color:#ccc; font-size:0.7rem; cursor:pointer;">[Excluir]</button>
+            </td>
         </tr>`;
     }).join('');
-    document.getElementById('saldoTotal').innerText = `R$ ${saldo.toFixed(2)}`;
+    
+    document.getElementById('finSaldo').innerText = `R$ ${saldo.toFixed(2)}`;
+    document.getElementById('finEntrada').innerText = `R$ ${entradas.toFixed(2)}`;
+    document.getElementById('finSaida').innerText = `R$ ${saidas.toFixed(2)}`;
 }
 
 document.getElementById('formFinanceiro').onsubmit = async function(e) {
     e.preventDefault();
+    const btn = document.getElementById('btnSalvarFin');
+    btn.disabled = true; btn.innerText = "Salvando...";
+    
+    const cat = document.getElementById('finCategoria').value;
+    let descricaoFinal = "";
+    if(cat === 'Dízimo' || cat === 'Oferta') {
+        descricaoFinal = document.getElementById('finMembroSelect').value;
+    } else {
+        descricaoFinal = document.getElementById('finDescricaoInput').value;
+    }
+
     const dados = {
-        data: this.fData.value,
-        descricao: this.fDesc.value,
-        valor: this.fValor.value,
-        tipo: this.fTipo.value
+        data: document.getElementById('finData').value,
+        tipo: document.getElementById('finTipo').value,
+        categoria: cat,
+        descricao: descricaoFinal,
+        valor: parseFloat(this.valor.value)
     };
+    
     await inserirSupabase('financeiro', dados);
     this.reset();
     await carregarTudo();
+    btn.disabled = false; btn.innerText = "Registrar Movimentação";
+    mudarTabFin('extrato', document.querySelectorAll('.nav-btn')[3]); // Muda pra aba extrato
 };
 
 async function deletarFinanceiro(id) {
-    if(confirm("Excluir registro financeiro?")) {
+    if(confirm("Excluir este lançamento financeiro?")) {
         await deletarSupabase('financeiro', id);
         await carregarTudo();
     }
+}
+
+function recalcularFinanceiro() {
+    // Se quiser implementar filtro por mês, basta filtrar o array dadosFinanceiro e chamar renderizarFinanceiro(arrayFiltrado)
 }
 
 // ==========================================
 // MÓDULO: AGENDA
 // ==========================================
 function renderizarAgenda() {
-    const grid = document.getElementById('gridAgenda');
+    const grid = document.getElementById('listaAgenda');
+    if(dadosAgenda.length === 0) {
+        grid.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1;">Nenhum evento agendado.</p>';
+        return;
+    }
+    
     grid.innerHTML = dadosAgenda.map(a => `
         <div class="member-card">
             <div style="display:flex; justify-content:space-between;">
-                <b>${a.evento}</b>
-                <span class="cat-badge">${a.data}</span>
+                <b style="color:var(--primary);">${a.evento}</b>
+                <span class="cat-badge">${a.data.split('-').reverse().join('/')}</span>
             </div>
-            <p><i class="fas fa-clock"></i> ${a.hora} | <i class="fas fa-map-marker-alt"></i> ${a.local}</p>
-            <button onclick="deletarAgenda('${a.id}')" class="btn-card" style="color:red"><i class="fas fa-trash"></i> Excluir</button>
+            <p style="font-size:0.85rem; margin:8px 0;"><i class="fas fa-info-circle"></i> ${a.observacao || '-'}</p>
+            <div class="status-row">
+                <span class="status-pill">${a.categoria}</span>
+                <span class="status-pill ${a.tipo === 'Gratuito' ? 'active' : ''}">${a.tipo}</span>
+            </div>
+            <button onclick="deletarAgenda('${a.id}')" class="btn-card" style="color:red; margin-top:10px;"><i class="fas fa-trash"></i> Excluir Evento</button>
         </div>`).join('');
 }
 
 document.getElementById('formAgenda').onsubmit = async function(e) {
     e.preventDefault();
     const dados = {
-        data: this.agData.value,
-        hora: this.agHora.value,
-        evento: this.agEvento.value,
-        local: this.agLocal.value
+        data: document.getElementById('agendaData').value,
+        evento: document.getElementById('agendaDesc').value,
+        observacao: document.getElementById('agendaObs').value,
+        tipo: document.getElementById('agendaTipo').value,
+        categoria: document.getElementById('agendaCat').value
     };
     await inserirSupabase('agenda', dados);
     await carregarTudo();
@@ -834,7 +1071,7 @@ document.getElementById('formAgenda').onsubmit = async function(e) {
 };
 
 async function deletarAgenda(id) {
-    if(confirm("Excluir evento?")) {
+    if(confirm("Excluir evento da agenda?")) {
         await deletarSupabase('agenda', id);
         await carregarTudo();
     }
@@ -850,9 +1087,9 @@ async function carregarSugestoes() {
     const dados = await lerSupabase('sugestoes');
     corpo.innerHTML = dados.reverse().map(s => `
         <tr>
-            <td><small>${s.data}</small></td>
+            <td style="width:100px;"><small>${s.data}</small></td>
             <td>${s.texto || s.mensagem}</td>
-        </tr>`).join('') || '<tr><td colspan="2">Nenhum pedido.</td></tr>';
+        </tr>`).join('') || '<tr><td colspan="2" align="center">Nenhum pedido.</td></tr>';
 }
 
 // ==========================================
@@ -860,223 +1097,250 @@ async function carregarSugestoes() {
 // ==========================================
 async function carregarRelatorios() {
     mudarSecao('relatorios');
-    const corpo = document.getElementById('corpoRelatorios');
-    corpo.innerHTML = '<tr><td colspan="3">Buscando relatórios...</td></tr>';
-    const dados = await lerSupabase('relatorios_celula'); // Nome da tabela de relatórios
-    corpo.innerHTML = dados.map(r => `
-        <tr>
-            <td>${r.data_reuniao}</td>
-            <td>${r.celula}</td>
-            <td><button onclick="verRelatorio('${r.id}')" class="btn-card">Ver</button></td>
-        </tr>`).join('');
+    const lista = document.getElementById('listaRelatorios');
+    lista.innerHTML = '<p style="text-align:center;">Buscando relatórios...</p>';
+    dadosRelatorios = await lerSupabase('relatorios'); 
+    
+    // Atualiza o select de filtro baseado nas células que enviaram
+    const celulasUnicas = [...new Set(dadosRelatorios.map(r => r.celula))];
+    document.getElementById('filtroRelCelula').innerHTML = '<option value="">Todas as Células</option>' + 
+        celulasUnicas.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    renderizarRelatorios(dadosRelatorios);
 }
 
-async function verRelatorio(id) {
-    const res = await lerSupabase('relatorios_celula', `id.eq.${id}`);
-    const r = res[0];
+function renderizarRelatorios(dados) {
+    const lista = document.getElementById('listaRelatorios');
+    if(dados.length === 0) {
+        lista.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório encontrado.</p>';
+        return;
+    }
+    
+    lista.innerHTML = dados.map(r => `
+        <div class="report-list-item" onclick="verRelatorio('${r.id}')">
+            <div>
+                <b style="color:var(--primary); display:block;">Célula: ${r.celula}</b>
+                <small style="color:#777;"><i class="far fa-calendar-alt"></i> ${r.data_reuniao}</small>
+            </div>
+            <i class="fas fa-chevron-right" style="color:#ccc;"></i>
+        </div>
+    `).join('');
+}
+
+function filtrarRelatorios() {
+    const sel = document.getElementById('filtroRelCelula').value;
+    if(sel === "") { renderizarRelatorios(dadosRelatorios); } 
+    else { renderizarRelatorios(dadosRelatorios.filter(r => r.celula === sel)); }
+}
+
+function verRelatorio(id) {
+    const r = dadosRelatorios.find(x => x.id == id);
     if(!r) return;
     document.getElementById('modal-ver-relatorio').classList.remove('hidden');
-    document.getElementById('detalheRelatorio').innerHTML = `
-        <p><b>Célula:</b> ${r.celula}</p>
-        <p><b>Líder:</b> ${r.lider}</p>
-        <p><b>Membros:</b> ${r.presentes_membros} | <b>Visitantes:</b> ${r.presentes_visitantes}</p>
-        <p><b>Oferta:</b> R$ ${r.oferta}</p>
-        <hr>
-        <p><b>Notas:</b> ${r.observacoes || 'Nenhuma'}</p>
-    `;
+    
+    document.getElementById('relCelula').innerText = r.celula;
+    document.getElementById('relData').innerText = r.data_reuniao;
+    document.getElementById('relTotal').innerText = (parseInt(r.presentes_membros||0) + parseInt(r.presentes_visitantes||0));
+    
+    document.getElementById('relPalavra').innerText = r.palavra || '-';
+    document.getElementById('relLouvor').innerText = r.louvor || '-';
+    document.getElementById('relLanche').innerText = r.lanche || '-';
+    document.getElementById('relGelo').innerText = r.quebra_gelo || '-';
+    
+    document.getElementById('relLista').innerHTML = (r.nomes_presentes || 'Não preenchido').replace(/\n/g, '<br>');
+    document.getElementById('relObs').innerText = r.observacoes || 'Sem observações adicionais.';
 }
 
 // ==========================================
-// UTILITÁRIOS E BÍBLIA (GITHUB)
-//==========================================
-function atualizarSelectCelulas() {
-    const html = '<option value="">Selecione a Célula</option>' + 
-                 dadosCelulas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-    const s1 = document.getElementById('filtroCelula');
-    const s2 = document.getElementById('celulaMembroForm');
-    if(s1) s1.innerHTML = '<option value="">Todas</option>' + html;
-    if(s2) s2.innerHTML = html;
+// MÓDULO: PALAVRAS
+// ==========================================
+async function carregarPalavras() {
+    mudarSecao('palavras');
+    document.getElementById('listaPalavras').innerHTML = '<p align="center">Carregando palavras...</p>';
+    dadosPalavras = await lerSupabase('palavras');
+    
+    if(dadosPalavras.length === 0) {
+        document.getElementById('listaPalavras').innerHTML = '<p align="center" style="color:#999;">Nenhuma palavra cadastrada.</p>';
+        return;
+    }
+
+    document.getElementById('listaPalavras').innerHTML = dadosPalavras.map(p => `
+        <div class="word-list-item" onclick="abrirModalPalavra('${p.id}')">
+            <div>
+                <div class="word-date">${p.data}</div>
+                <div class="word-theme">${p.tema}</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color:#ccc;"></i>
+        </div>`).join('');
 }
 
-// Bíblia Offcanvas (GitHub)
+function novaPalavra() {
+    document.getElementById('formPalavra').reset();
+    mudarSecao('nova-palavra');
+}
+
+document.getElementById('formPalavra').onsubmit = async function(e) {
+    e.preventDefault();
+    const dados = {
+        data: this.data.value,
+        tema: this.tema.value,
+        link_youtube: this.link.value,
+        texto: this.texto.value
+    };
+    await inserirSupabase('palavras', dados);
+    await carregarPalavras();
+};
+
+function abrirModalPalavra(id) {
+    const p = dadosPalavras.find(x => x.id == id);
+    if(!p) return;
+    document.getElementById('modalTitulo').innerText = p.tema;
+    document.getElementById('modalDataPalavra').innerText = "Data: " + p.data;
+    document.getElementById('modalTexto').innerText = p.texto;
+    
+    const btnTube = document.getElementById('btnLinkYoutube');
+    if(p.link_youtube && p.link_youtube.includes('http')) {
+        btnTube.href = p.link_youtube;
+        btnTube.classList.remove('hidden');
+    } else {
+        btnTube.classList.add('hidden');
+    }
+    document.getElementById('modalPalavra').classList.remove('hidden');
+}
+
+function fecharModal(e) {
+    if(e && e.target !== document.getElementById('modalPalavra') && !e.target.classList.contains('btn-close-modal')) return;
+    document.getElementById('modalPalavra').classList.add('hidden');
+}
+
+
+// ==========================================
+// BÍBLIA (GITHUB) & VERSÍCULO
+// ==========================================
+const dadosBiblia = [
+    { id: "genesis", nome: "Gênesis", caps: 50 }, { id: "exodo", nome: "Êxodo", caps: 40 }, 
+    { id: "levitico", nome: "Levítico", caps: 27 }, { id: "numeros", nome: "Números", caps: 36 }, 
+    { id: "deuteronomio", nome: "Deuteronômio", caps: 34 }, { id: "josue", nome: "Josué", caps: 24 }, 
+    { id: "juizes", nome: "Juízes", caps: 21 }, { id: "rute", nome: "Rute", caps: 4 }, 
+    { id: "1samuel", nome: "1 Samuel", caps: 31 }, { id: "2samuel", nome: "2 Samuel", caps: 24 }, 
+    { id: "1reis", nome: "1 Reis", caps: 22 }, { id: "2reis", nome: "2 Reis", caps: 25 }, 
+    { id: "1cronicas", nome: "1 Crônicas", caps: 29 }, { id: "2cronicas", nome: "2 Crônicas", caps: 36 }, 
+    { id: "esdras", nome: "Esdras", caps: 10 }, { id: "neemias", nome: "Neemias", caps: 13 }, 
+    { id: "ester", nome: "Ester", caps: 10 }, { id: "jo", nome: "Jó", caps: 42 }, 
+    { id: "salmos", nome: "Salmos", caps: 150 }, { id: "proverbios", nome: "Provérbios", caps: 31 }, 
+    { id: "eclesiastes", nome: "Eclesiastes", caps: 12 }, { id: "cantares", nome: "Cantares", caps: 8 }, 
+    { id: "isaias", nome: "Isaías", caps: 66 }, { id: "jeremias", nome: "Jeremias", caps: 52 }, 
+    { id: "lamentacoes", nome: "Lamentações", caps: 5 }, { id: "ezequiel", nome: "Ezequiel", caps: 48 }, 
+    { id: "daniel", nome: "Daniel", caps: 12 }, { id: "oseias", nome: "Oseias", caps: 14 }, 
+    { id: "joel", nome: "Joel", caps: 3 }, { id: "amos", nome: "Amós", caps: 9 }, 
+    { id: "obadias", nome: "Obadias", caps: 1 }, { id: "jonas", nome: "Jonas", caps: 4 }, 
+    { id: "miqueias", nome: "Miqueias", caps: 7 }, { id: "naum", nome: "Naum", caps: 3 }, 
+    { id: "habacuque", nome: "Habacuque", caps: 3 }, { id: "sofonias", nome: "Sofonias", caps: 3 }, 
+    { id: "ageu", nome: "Ageu", caps: 2 }, { id: "zacarias", nome: "Zacarias", caps: 14 }, 
+    { id: "malaquias", nome: "Malaquias", caps: 4 },
+    { id: "mateus", nome: "Mateus", caps: 28 }, { id: "marcos", nome: "Marcos", caps: 16 }, 
+    { id: "lucas", nome: "Lucas", caps: 24 }, { id: "joao", nome: "João", caps: 21 }, 
+    { id: "atos", nome: "Atos", caps: 28 }, { id: "romanos", nome: "Romanos", caps: 16 }, 
+    { id: "1corintios", nome: "1 Coríntios", caps: 16 }, { id: "2corintios", nome: "2 Coríntios", caps: 13 }, 
+    { id: "galatas", nome: "Gálatas", caps: 6 }, { id: "efesios", nome: "Efésios", caps: 6 }, 
+    { id: "filipenses", nome: "Filipenses", caps: 4 }, { id: "colossenses", nome: "Colossenses", caps: 4 }, 
+    { id: "1tessalonicenses", nome: "1 Tessalonicenses", caps: 5 }, { id: "2tessalonicenses", nome: "2 Tessalonicenses", caps: 3 }, 
+    { id: "1timoteo", nome: "1 Timóteo", caps: 6 }, { id: "2timoteo", nome: "2 Timóteo", caps: 4 }, 
+    { id: "tito", nome: "Tito", caps: 3 }, { id: "filemon", nome: "Filemom", caps: 1 }, 
+    { id: "hebreus", nome: "Hebreus", caps: 13 }, { id: "tiago", nome: "Tiago", caps: 5 }, 
+    { id: "1pedro", nome: "1 Pedro", caps: 5 }, { id: "2pedro", nome: "2 Pedro", caps: 3 }, 
+    { id: "1joao", nome: "1 João", caps: 5 }, { id: "2joao", nome: "2 João", caps: 1 }, 
+    { id: "3joao", nome: "3 João", caps: 1 }, { id: "judas", nome: "Judas", caps: 1 }, 
+    { id: "apocalipse", nome: "Apocalipse", caps: 22 }
+];
+
+function iniciarBiblia() {
+    const selectLivro = document.getElementById('biblia-livro');
+    if(!selectLivro) return;
+    selectLivro.innerHTML = '<option value="">Selecione o Livro</option>';
+    dadosBiblia.forEach((livro, index) => {
+        let option = document.createElement('option');
+        option.value = livro.id;
+        option.text = livro.nome;
+        if (index >= 39) option.style.fontWeight = "bold"; 
+        selectLivro.appendChild(option);
+    });
+}
+
 function abrirBiblia() {
-    document.getElementById('biblia-offcanvas').classList.add('aberto');
-    document.getElementById('biblia-overlay').style.display = 'block';
+    document.getElementById('painel-biblia').classList.add('aberto');
+    const overlay = document.getElementById('biblia-overlay');
+    overlay.style.display = 'block';
+    setTimeout(() => overlay.style.opacity = '1', 10);
 }
+
 function fecharBiblia() {
-    document.getElementById('biblia-offcanvas').classList.remove('aberto');
-    document.getElementById('biblia-overlay').style.display = 'none';
+    document.getElementById('painel-biblia').classList.remove('aberto');
+    const overlay = document.getElementById('biblia-overlay');
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 300);
 }
-      
 
-      // ==========================================
-      // FUNÇÕES DA BÍBLIA & VERSÍCULO
-      // ==========================================
-      const dadosBiblia = [
-          { id: "genesis", nome: "Gênesis", caps: 50 }, { id: "exodo", nome: "Êxodo", caps: 40 }, 
-          { id: "levitico", nome: "Levítico", caps: 27 }, { id: "numeros", nome: "Números", caps: 36 }, 
-          { id: "deuteronomio", nome: "Deuteronômio", caps: 34 }, { id: "josue", nome: "Josué", caps: 24 }, 
-          { id: "juizes", nome: "Juízes", caps: 21 }, { id: "rute", nome: "Rute", caps: 4 }, 
-          { id: "1samuel", nome: "1 Samuel", caps: 31 }, { id: "2samuel", nome: "2 Samuel", caps: 24 }, 
-          { id: "1reis", nome: "1 Reis", caps: 22 }, { id: "2reis", nome: "2 Reis", caps: 25 }, 
-          { id: "1cronicas", nome: "1 Crônicas", caps: 29 }, { id: "2cronicas", nome: "2 Crônicas", caps: 36 }, 
-          { id: "esdras", nome: "Esdras", caps: 10 }, { id: "neemias", nome: "Neemias", caps: 13 }, 
-          { id: "ester", nome: "Ester", caps: 10 }, { id: "jo", nome: "Jó", caps: 42 }, 
-          { id: "salmos", nome: "Salmos", caps: 150 }, { id: "proverbios", nome: "Provérbios", caps: 31 }, 
-          { id: "eclesiastes", nome: "Eclesiastes", caps: 12 }, { id: "cantares", nome: "Cantares", caps: 8 }, 
-          { id: "isaias", nome: "Isaías", caps: 66 }, { id: "jeremias", nome: "Jeremias", caps: 52 }, 
-          { id: "lamentacoes", nome: "Lamentações", caps: 5 }, { id: "ezequiel", nome: "Ezequiel", caps: 48 }, 
-          { id: "daniel", nome: "Daniel", caps: 12 }, { id: "oseias", nome: "Oseias", caps: 14 }, 
-          { id: "joel", nome: "Joel", caps: 3 }, { id: "amos", nome: "Amós", caps: 9 }, 
-          { id: "obadias", nome: "Obadias", caps: 1 }, { id: "jonas", nome: "Jonas", caps: 4 }, 
-          { id: "miqueias", nome: "Miqueias", caps: 7 }, { id: "naum", nome: "Naum", caps: 3 }, 
-          { id: "habacuque", nome: "Habacuque", caps: 3 }, { id: "sofonias", nome: "Sofonias", caps: 3 }, 
-          { id: "ageu", nome: "Ageu", caps: 2 }, { id: "zacarias", nome: "Zacarias", caps: 14 }, 
-          { id: "malaquias", nome: "Malaquias", caps: 4 },
-          // NOVO TESTAMENTO
-          { id: "mateus", nome: "Mateus", caps: 28 }, { id: "marcos", nome: "Marcos", caps: 16 }, 
-          { id: "lucas", nome: "Lucas", caps: 24 }, { id: "joao", nome: "João", caps: 21 }, 
-          { id: "atos", nome: "Atos", caps: 28 }, { id: "romanos", nome: "Romanos", caps: 16 }, 
-          { id: "1corintios", nome: "1 Coríntios", caps: 16 }, { id: "2corintios", nome: "2 Coríntios", caps: 13 }, 
-          { id: "galatas", nome: "Gálatas", caps: 6 }, { id: "efesios", nome: "Efésios", caps: 6 }, 
-          { id: "filipenses", nome: "Filipenses", caps: 4 }, { id: "colossenses", nome: "Colossenses", caps: 4 }, 
-          { id: "1tessalonicenses", nome: "1 Tessalonicenses", caps: 5 }, { id: "2tessalonicenses", nome: "2 Tessalonicenses", caps: 3 }, 
-          { id: "1timoteo", nome: "1 Timóteo", caps: 6 }, { id: "2timoteo", nome: "2 Timóteo", caps: 4 }, 
-          { id: "tito", nome: "Tito", caps: 3 }, { id: "filemon", nome: "Filemom", caps: 1 }, 
-          { id: "hebreus", nome: "Hebreus", caps: 13 }, { id: "tiago", nome: "Tiago", caps: 5 }, 
-          { id: "1pedro", nome: "1 Pedro", caps: 5 }, { id: "2pedro", nome: "2 Pedro", caps: 3 }, 
-          { id: "1joao", nome: "1 João", caps: 5 }, { id: "2joao", nome: "2 João", caps: 1 }, 
-          { id: "3joao", nome: "3 João", caps: 1 }, { id: "judas", nome: "Judas", caps: 1 }, 
-          { id: "apocalipse", nome: "Apocalipse", caps: 22 }
-      ];
+function atualizarCapitulos() {
+    const selectLivro = document.getElementById('biblia-livro');
+    const selectCapitulo = document.getElementById('biblia-capitulo');
+    
+    selectCapitulo.innerHTML = '<option value="">Capítulo</option>';
+    if (selectLivro.value === "") {
+        selectCapitulo.disabled = true;
+        return;
+    }
 
-      async function carregarVersiculoDoDia() {
-          const versiculosNT = [
-              "rm/8/28", "jo/3/16", "fp/4/13", "mt/11/28", "rm/12/2",
-              "gl/2/20", "ef/2/8", "fp/4/6", "cl/3/14", "2tm/1/7",
-              "hb/11/1", "tg/1/5", "1pe/5/7", "1jo/4/8", "ap/3/20",
-              "mt/6/33", "mc/11/24", "lc/1/37", "jo/14/6", "at/1/8",
-              "rm/5/8", "1co/13/4", "2co/5/17", "gl/5/22", "ef/6/11",
-              "fp/1/6", "cl/1/15", "1ts/5/16", "hb/12/2", "tg/4/8", "1pe/2/9"
-          ];
+    const livroEscolhido = dadosBiblia.find(l => l.id === selectLivro.value);
+    for (let i = 1; i <= livroEscolhido.caps; i++) {
+        let option = document.createElement('option');
+        option.value = i;
+        option.text = i;
+        selectCapitulo.appendChild(option);
+    }
+    selectCapitulo.disabled = false;
+}
 
-          const diaHoje = new Date().getDate(); 
-          const referenciaEscolhida = versiculosNT[diaHoje - 1]; 
+async function carregarCapitulo() {
+    const selectLivro = document.getElementById('biblia-livro');
+    const inputCapitulo = document.getElementById('biblia-capitulo');
+    const conteudo = document.getElementById('biblia-conteudo');
+    
+    const livro = selectLivro.value; 
+    const capitulo = inputCapitulo.value; 
 
-          try {
-              const resposta = await fetch(`https://www.abibliadigital.com.br/api/verses/ara/${referenciaEscolhida}`);
-              const dados = await resposta.json();
+    if (!livro || !capitulo) {
+        alert("Por favor, selecione um livro e o capítulo.");
+        return;
+    }
 
-              document.getElementById('texto-versiculo-dia').innerText = `"${dados.text}"`;
-              document.getElementById('ref-versiculo-dia').innerText = `- ${dados.book.name} ${dados.chapter}:${dados.number}`;
-          } catch (erro) {
-              document.getElementById('texto-versiculo-dia').innerText = '"Tudo posso naquele que me fortalece."';
-              document.getElementById('ref-versiculo-dia').innerText = "- Filipenses 4:13";
-          }
-      }
+    conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Lendo do GitHub...</p>";
+    
+    try {
+        const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livro}/${capitulo}.json`;
+        const resposta = await fetch(urlGithub);
+        if (!resposta.ok) throw new Error("Capítulo não encontrado");
+        
+        const versiculos = await resposta.json();
+        
+        conteudo.innerHTML = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${selectLivro.options[selectLivro.selectedIndex].text} ${capitulo}</h3>`;
+        
+        versiculos.forEach(v => {
+            let blocoHTML = `<div style="margin-bottom: 15px;">`;
+            if (v.title) {
+                blocoHTML += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
+            }
+            blocoHTML += `<p style="margin: 0; text-align: justify;">
+                            <sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>
+                            ${v.content}
+                          </p></div>`;
+            conteudo.innerHTML += blocoHTML;
+        });
 
-      function abrirBiblia() {
-          document.getElementById('painel-biblia').classList.add('aberto');
-          const overlay = document.getElementById('biblia-overlay');
-          overlay.style.display = 'block';
-          setTimeout(() => overlay.style.opacity = '1', 10);
-          
-          iniciarBiblia(); 
-      }
-
-      function fecharBiblia() {
-          document.getElementById('painel-biblia').classList.remove('aberto');
-          const overlay = document.getElementById('biblia-overlay');
-          overlay.style.opacity = '0';
-          setTimeout(() => overlay.style.display = 'none', 300);
-      }
-      
-      function iniciarBiblia() {
-          const selectLivro = document.getElementById('biblia-livro');
-          selectLivro.innerHTML = '<option value="">Selecione o Livro</option>';
-
-          dadosBiblia.forEach((livro, index) => {
-              let option = document.createElement('option');
-              option.value = livro.id;
-              option.text = livro.nome;
-              
-              if (index >= 39) {
-                  option.style.fontWeight = "bold"; 
-              }
-              
-              selectLivro.appendChild(option);
-          });
-      }
-
-      function atualizarCapitulos() {
-          const selectLivro = document.getElementById('biblia-livro');
-          const selectCapitulo = document.getElementById('biblia-capitulo');
-          
-          selectCapitulo.innerHTML = '<option value="">Capítulo</option>';
-          
-          if (selectLivro.value === "") {
-              selectCapitulo.disabled = true;
-              return;
-          }
-
-          const livroEscolhido = dadosBiblia.find(l => l.id === selectLivro.value);
-          
-          for (let i = 1; i <= livroEscolhido.caps; i++) {
-              let option = document.createElement('option');
-              option.value = i;
-              option.text = i;
-              selectCapitulo.appendChild(option);
-          }
-          
-          selectCapitulo.disabled = false;
-      }
-
-      
-      async function carregarCapitulo() {
-          const selectLivro = document.getElementById('biblia-livro');
-          const inputCapitulo = document.getElementById('biblia-capitulo');
-          const conteudo = document.getElementById('biblia-conteudo');
-          
-          const livro = selectLivro.value; // ex: genesis
-          const capitulo = inputCapitulo.value; // ex: 1
-
-          if (!livro || !capitulo) {
-              alert("Por favor, selecione um livro e o capítulo.");
-              return;
-          }
-
-          conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Lendo do GitHub...</p>";
-          
-          try {
-              // --- A MÁGICA ACONTECE AQUI ---
-              // Substitua 'SEU_USUARIO' e 'SEU_REPO' pelos seus dados do GitHub
-              const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livro}/${capitulo}.json`;
-              
-              const resposta = await fetch(urlGithub);
-              if (!resposta.ok) throw new Error("Capítulo não encontrado");
-              
-              const versiculos = await resposta.json();
-              
-              // Monta o texto na tela
-              conteudo.innerHTML = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${selectLivro.options[selectLivro.selectedIndex].text} ${capitulo}</h3>`;
-              
-              versiculos.forEach(v => {
-                  let blocoHTML = `<div style="margin-bottom: 15px;">`;
-                  if (v.title) {
-                      blocoHTML += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
-                  }
-                  blocoHTML += `<p style="margin: 0; text-align: justify;">
-                                  <sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>
-                                  ${v.content}
-                                </p></div>`;
-                  conteudo.innerHTML += blocoHTML;
-              });
-
-          } catch (e) {
-              console.error(e);
-              conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;">Erro ao carregar do GitHub. Verifique a conexão ou se o arquivo existe no repositório.</p>`;
-          }
-      }
+    } catch (e) {
+        conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;">Erro ao carregar do GitHub. Verifique a conexão ou se o arquivo existe no repositório.</p>`;
+    }
+}
     </script>
   </body>
 </html>
