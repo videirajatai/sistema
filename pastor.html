@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
       .container { max-width: 900px; margin: 0 auto; padding: 15px 15px; }
 
@@ -603,353 +604,359 @@
     <div id="biblia-overlay" onclick="fecharBiblia()"></div>
 
     <script>
-      const API_URL = sessionStorage.getItem('urlApi');
-      let dadosMembros = [], dadosCelulas = [], dadosFinanceiros = [], lideres = [], dadosRelatorios = [], listaPalavras = [], listaAgenda = [];
       
-      window.onload = function() {
-          const hoje = new Date();
-          const campoData = document.getElementById('finData'); if(campoData) campoData.valueAsDate = hoje;
-          const filtroMes = document.getElementById('filtroMesFin'); if(filtroMes) filtroMes.value = hoje.toISOString().slice(0, 7);
-          carregarTudo();
-      }
+      // ==========================================
+// CONFIGURAÇÃO SUPABASE
+// ==========================================
+const supabaseUrl = 'https://SEU_PROJETO.supabase.co'; // SUBSTITUA AQUI
+const supabaseKey = 'SUA_CHAVE_ANON'; // SUBSTITUA AQUI
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-      async function fetchGoogle(action, payload = {}) {
-        payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
-          try {
-              let res = await fetch(API_URL, {
-                  method: 'POST',
-                  body: JSON.stringify({ action: action, payload: payload })
-              });
-              let json = await res.json();
-              if (json.status === "sucesso") return json.dados || json.mensagem;
-              else throw new Error(json.mensagem);
-          } catch(e) {
-              console.error(e); alert("Erro na API: " + e.message); throw e;
-          }
-      }
+// Variáveis Globais
+let dadosMembros = [], dadosCelulas = [], dadosFinanceiros = [], lideres = [], dadosRelatorios = [], listaPalavras = [], listaAgenda = [];
 
-      async function carregarTudo() {
-        const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
-        try {
-            const res = await fetchGoogle('buscarDadosIniciais');
-            dadosMembros = res.membros; dadosCelulas = res.celulas; lideres = res.lideres;
-            document.getElementById('totalMembros').innerText = res.total;
-            renderizarCards(res.membros); renderizarCelulas(res.celulas);
-            preencherSelects(res.celulas); preencherSelectMembrosFin(res.membros);
-            carregarFinanceiro();
+window.onload = function() {
+    const hoje = new Date();
+    const campoData = document.getElementById('finData'); if(campoData) campoData.valueAsDate = hoje;
+    const filtroMes = document.getElementById('filtroMesFin'); if(filtroMes) filtroMes.value = hoje.toISOString().slice(0, 7);
+    carregarTudo();
+}
 
-            try {
-                listaAgenda = await fetchGoogle('buscarAgenda') || [];
-                renderizarAgenda(listaAgenda);
-            } catch(e) {
-                renderizarAgenda([]);
-            }
+// ==========================================
+// CARREGAMENTO GERAL (Substitui buscarDadosIniciais)
+// ==========================================
+async function carregarTudo() {
+    const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
+    try {
+        // Busca paralela para ser mais rápido
+        const [resMembros, resCelulas, resAgenda] = await Promise.all([
+            supabase.from('membros').select('*').eq('arquivado', false).order('nome', { ascending: true }),
+            supabase.from('celulas').select('*'),
+            supabase.from('agenda').select('*')
+        ]);
 
-            // Busca Versículo do Dia
-            carregarVersiculoDoDia();
+        if (resMembros.error) throw resMembros.error;
+        if (resCelulas.error) throw resCelulas.error;
 
-        } catch(e) { console.error(e); } finally { if(icon) icon.classList.remove('fa-spin'); }
-      }
+        dadosMembros = resMembros.data || [];
+        dadosCelulas = resCelulas.data || [];
+        listaAgenda = resAgenda.data || [];
+        
+        // Extrai líderes únicos baseado na categoria 'Líder' ou 'Pastor'
+        lideres = [...new Set(dadosMembros.filter(m => m.categoria === 'Líder' || m.categoria === 'Pastor').map(m => m.nome))];
 
-      function renderizarCards(lista) {
-        const grid = document.getElementById('gridMembros'); grid.innerHTML = '';
-        const check = (val) => (val === 'Sim' || val === true) ? 'active' : '';
-        const formatData = (d) => { if(!d)return''; if(d.includes('/')) return d; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}`:d; };
+        document.getElementById('totalMembros').innerText = dadosMembros.length;
+        
+        renderizarCards(dadosMembros); 
+        renderizarCelulas(dadosCelulas);
+        preencherSelects(dadosCelulas); 
+        preencherSelectMembrosFin(dadosMembros);
+        renderizarAgenda(listaAgenda);
+        
+        carregarFinanceiro();
+        carregarVersiculoDoDia();
 
-        lista.forEach(m => {
-          let nome=m[1], categoria=m[2], celula=m[3]||'-', tel=String(m[4]||'');
-          let telClean = tel.replace(/\D/g, '');
-          let btnZap = (telClean.length > 8) ? `<a href="https://wa.me/55${telClean}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : `<button disabled class="btn-card" style="opacity:0.3;">Sem nº</button>`;
-          let nasc = m[10] ? `<span style="font-size:0.8rem; margin-left:auto; color:#999;"><i class="fas fa-birthday-cake"></i> ${formatData(m[10])}</span>` : '';
+    } catch(e) { 
+        console.error("Erro ao carregar dados:", e); 
+        alert("Erro de conexão com o banco de dados.");
+    } finally { 
+        if(icon) icon.classList.remove('fa-spin'); 
+    }
+}
 
-          grid.innerHTML += `
-            <div class="member-card" data-nome="${nome.toLowerCase()}" data-celula="${celula.toLowerCase()}">
-               <div class="card-header"><h4 class="card-name">${nome}</h4><span class="cat-badge ${categoria}">${categoria}</span></div>
-               <div class="card-info"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${nasc}</div>
-               <div class="status-row">
-                  <div class="status-pill ${check(m[6])}">Batismo</div>
-                  <div class="status-pill ${check(m[7])}">Cursão</div>
-                  <div class="status-pill ${check(m[8])}">CTL</div>
-                  <div class="status-pill ${check(m[9])}">Encontro</div>
-               </div>
-               <div class="card-actions">
-                  ${btnZap}
-                  <button onclick="editarMembro('${m[0]}')" class="btn-card" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                  <button onclick="arquivar('${m[0]}', '${m[1]}')" class="btn-card" title="Arquivar" style="color:var(--danger-text);"><i class="fas fa-archive"></i></button>
-               </div>
-            </div>`;
-        });
-      }
+// ==========================================
+// RENDERIZAÇÃO E NAVEGAÇÃO
+// ==========================================
+function mudarSecao(s) {
+    ['lista','celulas','financeiro','arquivo','cadastro','form-celula','sugestoes', 'relatorios', 'modal-ver-relatorio', 'palavras', 'nova-palavra', 'agenda', 'cadastro-agenda'].forEach(id => {
+        const el = document.getElementById('secao-'+id) || document.getElementById(id);
+        if(el) el.classList.add('hidden');
+    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if(s === 'modal-ver-relatorio') { document.getElementById(s).classList.remove('hidden'); }
+    else { document.getElementById('secao-'+s).classList.remove('hidden'); const btn = document.getElementById('btn-'+s); if(btn) btn.classList.add('active'); }
+}
 
-      function mudarSecao(s) {
-        ['lista','celulas','financeiro','arquivo','cadastro','form-celula','sugestoes', 'relatorios', 'modal-ver-relatorio', 'palavras', 'nova-palavra', 'agenda', 'cadastro-agenda'].forEach(id => {
-            const el = document.getElementById('secao-'+id) || document.getElementById(id);
-            if(el) el.classList.add('hidden');
-        });
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        if(s === 'modal-ver-relatorio') { document.getElementById(s).classList.remove('hidden'); }
-        else { document.getElementById('secao-'+s).classList.remove('hidden'); const btn = document.getElementById('btn-'+s); if(btn) btn.classList.add('active'); }
-      }
+function renderizarCards(lista) {
+    const grid = document.getElementById('gridMembros'); grid.innerHTML = '';
+    const check = (val) => (val === 'Sim' || val === true) ? 'active' : '';
+    const formatData = (d) => { if(!d)return''; if(d.includes('/')) return d; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}`:d; };
 
-      // --- PALAVRAS ---
-      async function carregarPalavras() {
-         mudarSecao('palavras');
-         const div = document.getElementById('listaPalavras'); div.innerHTML = '<p style="text-align:center;">Carregando...</p>';
-         try { const p = await fetchGoogle('buscarPalavras'); listaPalavras = p.reverse(); renderizarPalavras(listaPalavras); } catch(e){}
-      }
-      function renderizarPalavras(lista) {
-          const div = document.getElementById('listaPalavras'); div.innerHTML = '';
-          if(!lista || lista.length === 0) { div.innerHTML = '<p style="text-align:center; color:#999;">Vazio.</p>'; return; }
-          lista.forEach((p, index) => {
-              let dataF = p[0]; try { if(p[0].includes('-')) { const dp=p[0].split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
-              div.innerHTML += `<div class="word-list-item" onclick="abrirPalavra(${index})"><div><div class="word-date"><i class="far fa-calendar-alt"></i> ${dataF}</div><div class="word-theme">${p[1]}</div></div><i class="fas fa-chevron-right" style="color:var(--text-light);"></i></div>`;
-          });
-      }
-      function abrirPalavra(index) {
-          const p = listaPalavras[index]; document.getElementById('modalTitulo').innerText = p[1];
-          let dataF = p[0]; try { if(p[0].includes('-')) { const dp=p[0].split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
-          document.getElementById('modalDataPalavra').innerText = dataF; document.getElementById('modalTexto').innerText = p[2];
-          const btn = document.getElementById('btnLinkYoutube');
-          if (p[3] && p[3].trim() !== "") { btn.href = p[3]; btn.classList.remove('hidden'); } else { btn.classList.add('hidden'); }
-          document.getElementById('modalPalavra').classList.remove('hidden');
-      }
-      function novaPalavra() { document.getElementById('formPalavra').reset(); document.getElementById('palavraData').valueAsDate = new Date(); mudarSecao('nova-palavra'); }
-      function fecharModal(e) { if(e === null || e.target.id === 'modalPalavra') document.getElementById('modalPalavra').classList.add('hidden'); }
-      document.getElementById('formPalavra').onsubmit = async function(e) {
-          e.preventDefault(); const btn = document.getElementById('btnSalvarPalavra'); btn.disabled = true; btn.innerText = "Salvando...";
-          try {
-              const res = await fetchGoogle('salvarPalavra', { data: this.data.value, tema: this.tema.value, texto: this.texto.value, link: this.link.value });
-              alert(res); carregarPalavras();
-          } finally { btn.disabled = false; btn.innerText = "Publicar"; }
-      };
+    lista.forEach(m => {
+        let btnZap = (m.telefone && m.telefone.replace(/\D/g, '').length > 8) ? `<a href="https://wa.me/55${m.telefone.replace(/\D/g, '')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : `<button disabled class="btn-card" style="opacity:0.3;">Sem nº</button>`;
+        let nasc = m.nascimento ? `<span style="font-size:0.8rem; margin-left:auto; color:#999;"><i class="fas fa-birthday-cake"></i> ${formatData(m.nascimento)}</span>` : '';
 
-      // --- AGENDA COM EDITAR E EXCLUIR ---
-      function renderizarAgenda(lista) {
-         const div = document.getElementById('listaAgenda');
-         div.innerHTML = '';
-         
-         if(!lista || lista.length === 0) {
-             div.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1; margin-top:20px;">Nenhum evento na agenda.</p>';
-             return;
-         }
+        grid.innerHTML += `
+        <div class="member-card" data-nome="${(m.nome||'').toLowerCase()}" data-celula="${(m.celula||'-').toLowerCase()}">
+            <div class="card-header"><h4 class="card-name">${m.nome}</h4><span class="cat-badge ${m.categoria}">${m.categoria}</span></div>
+            <div class="card-info"><i class="fas fa-users" style="color:#bbb;"></i> ${m.celula||'-'} ${nasc}</div>
+            <div class="status-row">
+                <div class="status-pill ${check(m.batizado)}">Batismo</div>
+                <div class="status-pill ${check(m.cursao)}">Cursão</div>
+                <div class="status-pill ${check(m.ctl)}">CTL</div>
+                <div class="status-pill ${check(m.encontro)}">Encontro</div>
+            </div>
+            <div class="card-actions">
+                ${btnZap}
+                <button onclick="editarMembro('${m.id}')" class="btn-card" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                <button onclick="arquivar('${m.id}', '${m.nome}')" class="btn-card" title="Arquivar" style="color:var(--danger-text);"><i class="fas fa-archive"></i></button>
+            </div>
+        </div>`;
+    });
+}
 
-         let listaComIndex = lista.map((item, index) => {
-             return { originalIndex: index, data: item };
-         });
+// ==========================================
+// CRUD MEMBROS
+// ==========================================
+function novoCadastro() { document.getElementById('formMembro').reset(); document.getElementById('idMembro').value=''; mudarSecao('cadastro'); }
 
-         listaComIndex.sort((a, b) => {
-             const parseDate = (d) => {
-                 if(!d) return 0;
-                 if(d.includes('-')) { const p = d.split('-'); return new Date(p[0], p[1]-1, p[2]).getTime(); }
-                 if(d.includes('/')) { const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); }
-                 return new Date(d).getTime();
-             };
-             return parseDate(a.data[0]) - parseDate(b.data[0]); 
-         });
+function editarMembro(id) { 
+    const m = dadosMembros.find(i => i.id == id); if(!m) return; 
+    document.getElementById('idMembro').value = m.id; 
+    document.getElementById('campoNome').value = m.nome; 
+    document.getElementById('campoNasc').value = m.nascimento; 
+    document.getElementById('campoTel').value = m.telefone; 
+    document.getElementById('selectCelulas').value = m.celula; 
+    document.getElementById('campoCategoria').value = m.categoria; 
+    document.getElementById('checkBat').checked = (m.batizado === 'Sim' || m.batizado === true); 
+    document.getElementById('checkCur').checked = (m.cursao === 'Sim' || m.cursao === true); 
+    document.getElementById('checkCtl').checked = (m.ctl === 'Sim' || m.ctl === true); 
+    document.getElementById('checkDiz').checked = (m.encontro === 'Sim' || m.encontro === true); 
+    mudarSecao('cadastro'); 
+}
 
-         listaComIndex.forEach((obj) => {
-             let a = obj.data;
-             let originalIndex = obj.originalIndex;
-             let dataF = a[0];
-             try { if(a[0].includes('-')) { const dp=a[0].split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+document.getElementById('formMembro').onsubmit = async function(e) { 
+    e.preventDefault(); const id = document.getElementById('idMembro').value; const btn = document.getElementById('btnSalvar'); btn.disabled=true; btn.innerText="Salvando...";
+    const d = { 
+        nome: this.nome.value, nascimento: this.nascimento.value || null, categoria: this.categoria.value, 
+        celula: this.celula.value, telefone: this.telefone.value, 
+        batizado: this.batizado.checked, cursao: this.cursao.checked, ctl: this.ctl.checked, encontro: this.encontro.checked,
+        arquivado: false
+    }; 
+    try { 
+        if(id) await supabase.from('membros').update(d).eq('id', id); 
+        else await supabase.from('membros').insert([d]); 
+        mudarSecao('lista'); carregarTudo(); 
+    } catch(err) { console.error(err); alert("Erro ao salvar."); } finally { btn.disabled=false; btn.innerText="Salvar"; }
+};
 
-             let corCategoria = '#555';
-             if(a[4] === 'RL') corCategoria = '#0056b3';
-             else if(a[4] === 'GOOGLE AGENDA') corCategoria = 'var(--primary)';
-             else if(a[4] === 'KIDS') corCategoria = '#b58900';
+async function arquivar(id, n) { if(confirm(`Arquivar ${n}?`)) { try{ await supabase.from('membros').update({arquivado: true, data_arquivamento: new Date()}).eq('id', id); carregarTudo(); } catch(e){console.error(e);} } }
+async function restaurar(id) { if(confirm("Restaurar?")) { try{ await supabase.from('membros').update({arquivado: false}).eq('id', id); mudarSecao('lista'); carregarTudo(); } catch(e){console.error(e);} } }
 
-             let corTipo = (a[3] === 'Pago') ? '#dc3545' : 'var(--success-text)';
+// ==========================================
+// CRUD CÉLULAS
+// ==========================================
+function renderizarCelulas(l) { const c = document.getElementById('corpoCelulas'); c.innerHTML=''; l.forEach(i => c.innerHTML += `<tr><td>${i.nome}</td><td>${i.lider}</td><td>${i.dia}</td><td align="center"><button onclick="editarCelula('${i.id}')" style="background:none;border:none;color:orange;cursor:pointer;"><i class="fas fa-edit"></i></button></td></tr>`); }
 
-             div.innerHTML += `
-             <div class="member-card">
-                 <div class="card-header">
-                     <h4 class="card-name" style="color: var(--text-main); font-size: 1rem;"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
-                     <span class="cat-badge" style="background:${corCategoria}; color:white; border:none;">${a[4]||'Sem Categoria'}</span>
-                 </div>
-                 <div style="font-size: 1rem; font-weight: 700; color: #333; margin-top: 5px;">${a[1]||''}</div>
-                 <div style="font-size: 0.85rem; color: #666; margin-top: 5px; min-height: 20px;">${a[2]||''}</div>
-                 
-                 <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; display:flex; justify-content:space-between; align-items:center;">
-                     <span style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background: #f9f9f9; color: ${corTipo}; font-weight: bold; border: 1px solid #ddd;">
-                         <i class="fas fa-info-circle"></i> -> ${a[3]||''}
-                     </span>
-                     <div>
-                         
-                     </div>
-                 </div>
-             </div>`;
-         });
-      }
+function novaCelula() { document.getElementById('formCelula').reset(); document.getElementById('nomeOriginalCelula').value = ""; document.getElementById('tituloFormCelula').innerText = "Nova Célula"; const s = document.getElementById('celLider'); s.innerHTML = '<option value="">Selecione...</option>'; lideres.forEach(l => s.innerHTML += `<option value="${l}">${l}</option>`); mudarSecao('form-celula'); }
 
-// <button onclick="editarAgenda(${originalIndex})" style="background:none; border:none; color:orange; cursor:pointer; margin-right:8px;" title="Editar"><i class="fas fa-edit"></i></button>
-// <button onclick="excluirAgenda(${originalIndex})" style="background:none; border:none; color:var(--danger-text); cursor:pointer;" title="Excluir"><i class="fas fa-trash"></i></button>
-      
-      
-      function novaAgenda() {
-          document.getElementById('formAgenda').reset();
-          document.getElementById('indexAgenda').value = "";
-          document.getElementById('tituloFormAgenda').innerText = "Cadastrar Evento na Agenda";
-          mudarSecao('cadastro-agenda');
-      }
+function editarCelula(id) { 
+    const c = dadosCelulas.find(x => x.id == id); if(!c) return; 
+    document.getElementById('nomeOriginalCelula').value = c.id; // Usando ID como ref
+    document.getElementById('celNome').value = c.nome; document.getElementById('celDia').value = c.dia; document.getElementById('celEndereco').value = c.endereco; 
+    const s = document.getElementById('celLider'); s.innerHTML = '<option value="">Selecione...</option>'; 
+    lideres.forEach(l => { let opt = document.createElement('option'); opt.value = l; opt.text = l; if(l === c.lider) opt.selected = true; s.appendChild(opt); }); 
+    document.getElementById('tituloFormCelula').innerText = "Editar Célula"; mudarSecao('form-celula'); 
+}
 
-      function editarAgenda(index) {
-          const a = listaAgenda[index];
-          if(!a) return;
-          
-          document.getElementById('indexAgenda').value = index;
-          
-          let dataA = a[0];
-          if (dataA.includes('/')) {
-             const p = dataA.split('/');
-             dataA = `${p[2]}-${p[1]}-${p[0]}`; 
-          }
-          
-          document.getElementById('agendaData').value = dataA;
-          document.getElementById('agendaDesc').value = a[1];
-          document.getElementById('agendaObs').value = a[2];
-          document.getElementById('agendaTipo').value = a[3];
-          document.getElementById('agendaCat').value = a[4];
-          
-          document.getElementById('tituloFormAgenda').innerText = "Editar Evento";
-          mudarSecao('cadastro-agenda');
-      }
+document.getElementById('formCelula').onsubmit = async function(e) { 
+    e.preventDefault(); const btn = document.getElementById('btnSalvarCelula'); btn.disabled=true; btn.innerText="Salvando...";
+    const id = this.nomeOriginal.value;
+    const dados = { nome: this.nome.value, lider: this.lider.value, dia: this.dia.value, endereco: this.endereco.value }; 
+    try { 
+        if(id) await supabase.from('celulas').update(dados).eq('id', id);
+        else await supabase.from('celulas').insert([dados]);
+        mudarSecao('celulas'); carregarTudo(); 
+    } catch(err) { console.error(err); } finally { btn.disabled=false; btn.innerText="Salvar"; }
+};
 
-      async function excluirAgenda(index) {
-          if(!confirm("Tem certeza que deseja excluir este evento permanentemente?")) return;
-          try {
-              const res = await fetchGoogle('excluirAgenda', { index: index });
-              alert(res);
-              carregarTudo(); 
-          } catch(e) {
-              console.error(e);
-          }
-      }
+// ==========================================
+// AGENDA
+// ==========================================
+function renderizarAgenda(lista) {
+    const div = document.getElementById('listaAgenda'); div.innerHTML = '';
+    if(!lista || lista.length === 0) { div.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1; margin-top:20px;">Nenhum evento na agenda.</p>'; return; }
 
-      document.getElementById('formAgenda').onsubmit = async function(e) {
-         e.preventDefault(); 
-         const btn = document.getElementById('btnSalvarAgenda'); btn.disabled = true; btn.innerText="Salvando...";
-         
-         const indexOriginal = document.getElementById('indexAgenda').value;
-         const d = { 
-            dataEvento: this.dataEvento.value, 
-            descricao: this.descricao.value, 
-            observacao: this.observacao.value, 
-            tipo: this.tipo.value, 
-            categoria: this.categoria.value 
-         };
-         
-         try {
-             if (indexOriginal !== "") {
-                 const resposta = await fetchGoogle('editarAgenda', { index: indexOriginal, dados: d });
-                 alert(resposta);
-             } else {
-                 const resposta = await fetchGoogle('salvarAgenda', d);
-                 alert(resposta);
-             }
-             this.reset();
-             mudarSecao('agenda');
-             carregarTudo();
-         } catch(err) {
-             console.error(err);
-         } finally {
-             btn.disabled = false; btn.innerText="Salvar Evento";
-         }
-      };
+    lista.sort((a, b) => new Date(a.data_evento) - new Date(b.data_evento));
 
-      // --- SUGESTOES ---
-      async function carregarSugestoes() {
-        mudarSecao('sugestoes'); const corpo = document.getElementById('corpoSugestoes'); corpo.innerHTML = '<tr><td colspan="2" align="center">Carregando...</td></tr>';
-        try {
-            const dados = await fetchGoogle('buscarSugestoes'); corpo.innerHTML = '';
-            if(!dados || dados.length === 0) { corpo.innerHTML = '<tr><td colspan="2" align="center">Vazio.</td></tr>'; return; }
-            dados.reverse().forEach(row => { let d = String(row[0]); if(d.length > 16) d = d.substring(0, 16); corpo.innerHTML += `<tr><td style="width:130px; font-size:0.8rem; color:#666;">${d}</td><td style="font-weight:500;">${row[1]}</td></tr>`; });
-        } catch(e){} 
-      }
+    lista.forEach((a) => {
+        let dataF = a.data_evento; try { if(a.data_evento.includes('-')) { const dp=a.data_evento.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+        let corCategoria = a.categoria === 'RL' ? '#0056b3' : (a.categoria === 'GOOGLE AGENDA' ? 'var(--primary)' : '#b58900');
+        let corTipo = (a.tipo === 'Pago') ? '#dc3545' : 'var(--success-text)';
 
-      // --- RELATÓRIOS ---
-      async function carregarRelatorios() {
-        mudarSecao('relatorios'); const divLista = document.getElementById('listaRelatorios'); divLista.innerHTML = '<p align="center">Carregando...</p>';
-        const sel = document.getElementById('filtroRelCelula'); sel.innerHTML = '<option value="">Todas as Células</option>';
-        dadosCelulas.forEach(c => sel.innerHTML += `<option value="${c[0]}">${c[0]}</option>`);
-        try { dadosRelatorios = await fetchGoogle('buscarRelatorios'); filtrarRelatorios(); } catch(e){}
-      }
-      function filtrarRelatorios() {
-         const divLista = document.getElementById('listaRelatorios'); divLista.innerHTML = '';
-         const celulaFiltro = document.getElementById('filtroRelCelula').value.toLowerCase();
-         if(!dadosRelatorios || dadosRelatorios.length === 0) { divLista.innerHTML = '<p align="center">Vazio.</p>'; return; }
-         const listaFiltrada = dadosRelatorios.filter(r => { return celulaFiltro === "" || String(r[1]).toLowerCase().includes(celulaFiltro); });
-         if(listaFiltrada.length === 0) { divLista.innerHTML = '<p align="center">Vazio.</p>'; return; }
-         listaFiltrada.reverse().forEach((r) => {
-             const index = dadosRelatorios.indexOf(r); let dataExibicao = String(r[0]); if(dataExibicao.length > 10) dataExibicao = dataExibicao.substring(0,10);
-             divLista.innerHTML += `<div class="report-list-item" onclick="verRelatorio(${index})"><div style="display:flex; flex-direction:column; gap:4px;"><span style="font-weight:bold; color:var(--text-main); font-size:0.95rem;">${r[1]}</span><span style="font-size:0.8rem; color:var(--text-light);"><i class="far fa-calendar-alt"></i> ${dataExibicao}</span></div><div style="color:var(--accent);"><i class="fas fa-chevron-right"></i></div></div>`;
-         });
-      }
-      function verRelatorio(index) {
-         const item = dadosRelatorios[index]; let dataF = String(item[0]); if(dataF.length>10) dataF = dataF.substring(0,10);
-         document.getElementById('relData').innerText = dataF; document.getElementById('relCelula').innerText = item[1];
-         let lista = String(item[2] || ""); let contagem = lista.split(',').filter(x => x.trim().length > 0).length; if(contagem === 0 && lista.length > 2) contagem = 1;
-         document.getElementById('relTotal').innerText = contagem; document.getElementById('relLista').innerText = lista || "-";
-         document.getElementById('relGelo').innerText = item[3] || "-"; document.getElementById('relPalavra').innerText = item[4] || "-";
-         document.getElementById('relLanche').innerText = item[6] || "-"; document.getElementById('relLouvor').innerText = item[7] || "-";
-         document.getElementById('relObs').innerText = item[8] || "Sem observações."; mudarSecao('modal-ver-relatorio');
-      }
+        div.innerHTML += `
+        <div class="member-card">
+            <div class="card-header"><h4 class="card-name"><i class="far fa-calendar-alt"></i> ${dataF}</h4><span class="cat-badge" style="background:${corCategoria}; color:white; border:none;">${a.categoria||'Sem Categoria'}</span></div>
+            <div style="font-size: 1rem; font-weight: 700; color: #333; margin-top: 5px;">${a.descricao||''}</div>
+            <div style="font-size: 0.85rem; color: #666; margin-top: 5px; min-height: 20px;">${a.observacao||''}</div>
+            <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background: #f9f9f9; color: ${corTipo}; font-weight: bold; border: 1px solid #ddd;"><i class="fas fa-info-circle"></i> -> ${a.tipo||''}</span>
+                <div>
+                    <button onclick="editarAgenda('${a.id}')" style="background:none; border:none; color:orange; cursor:pointer; margin-right:8px;" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button onclick="excluirAgenda('${a.id}')" style="background:none; border:none; color:var(--danger-text); cursor:pointer;" title="Excluir"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    });
+}
 
-      // --- ARQUIVO ---
-      async function carregarArquivados() { 
-        mudarSecao('arquivo'); const corpo = document.getElementById('corpoArquivo'); corpo.innerHTML = '<tr><td colspan="3" align="center">Carregando...</td></tr>';
-        try {
-            const d = await fetchGoogle('buscarArquivados'); corpo.innerHTML=''; 
-            if (!d || d.length === 0) { corpo.innerHTML = '<tr><td colspan="3" align="center">Vazio.</td></tr>'; return; }
-            d.forEach(r => { let dataF = String(r[0]); if(dataF.length > 10) dataF = dataF.substring(0,10); corpo.innerHTML += `<tr><td>${dataF}</td><td>${r[2]}</td><td><button onclick="restaurar('${r[1]}')" style="color:var(--success-text);border:none;background:none; cursor:pointer;"><i class="fas fa-undo"></i></button></td></tr>`; }); 
-        } catch(e){}
-      }
+function novaAgenda() { document.getElementById('formAgenda').reset(); document.getElementById('indexAgenda').value = ""; document.getElementById('tituloFormAgenda').innerText = "Cadastrar Evento"; mudarSecao('cadastro-agenda'); }
 
-      // --- FINANCEIRO BÁSICO ---
-      async function carregarFinanceiro() { try { dadosFinanceiros = await fetchGoogle('buscarFinanceiro'); recalcularFinanceiro(); } catch(e){} }
-      function recalcularFinanceiro() { const mes = document.getElementById('filtroMesFin').value; let ent = 0, sai = 0, fil = []; dadosFinanceiros.forEach(r => { if(r[0].startsWith(mes)){ let v=parseFloat(r[4]); if(r[1]==='Entrada')ent+=v; else sai+=v; fil.push(r); }}); const fmt = (v) => v.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); document.getElementById('finSaldo').innerText = fmt(ent - sai); document.getElementById('finEntrada').innerText = fmt(ent); document.getElementById('finSaida').innerText = fmt(sai); renderizarExtrato(fil); }
-      function renderizarExtrato(lista) { const corpo = document.getElementById('corpoFin'); corpo.innerHTML = ''; const fmt = (v) => parseFloat(v).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); lista.reverse().forEach(l => { let c = l[1] === 'Entrada' ? 'var(--success-text)' : 'var(--danger-text)'; corpo.innerHTML += `<tr><td>${l[0].split('-')[2]}/${l[0].split('-')[1]}</td><td>${l[3]}</td><td style="font-weight:bold; color:${c};">${fmt(l[4])}</td></tr>`; }); }
-      function mudarTabFin(tab, btn) { document.getElementById('tab-lancamento').classList.add('hidden'); document.getElementById('tab-extrato').classList.add('hidden'); document.getElementById('tab-'+tab).classList.remove('hidden'); btn.parentNode.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-      function atualizarCategorias() { const t = document.getElementById('finTipo').value; const c = document.getElementById('finCategoria'); c.innerHTML = t === 'Saída' ? '<option value="Despesa Fixa">Despesa Fixa</option><option value="Eventual">Eventual</option><option value="Manutenção">Manutenção</option>' : '<option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option>'; atualizarCampos(); }
-      function atualizarCampos() { const t = document.getElementById('finTipo').value, c = document.getElementById('finCategoria').value, m = document.getElementById('finMembroSelect'), d = document.getElementById('finDescricaoInput'); if(t==='Entrada' && c==='Dízimo'){ m.classList.remove('hidden'); d.classList.add('hidden'); } else { m.classList.add('hidden'); d.classList.remove('hidden'); } }
-      function preencherSelectMembrosFin(m) { const s = document.getElementById('finMembroSelect'); s.innerHTML = '<option value="">Membro...</option>'; [...m].sort((a,b)=>a[1].localeCompare(b[1])).forEach(i => s.innerHTML += `<option value="${i[1]}">${i[1]}</option>`); }
+function editarAgenda(id) {
+    const a = listaAgenda.find(x => x.id == id); if(!a) return;
+    document.getElementById('indexAgenda').value = a.id;
+    document.getElementById('agendaData').value = a.data_evento; document.getElementById('agendaDesc').value = a.descricao; document.getElementById('agendaObs').value = a.observacao; document.getElementById('agendaTipo').value = a.tipo; document.getElementById('agendaCat').value = a.categoria;
+    document.getElementById('tituloFormAgenda').innerText = "Editar Evento"; mudarSecao('cadastro-agenda');
+}
 
-      document.getElementById('formFinanceiro').onsubmit = async function(e) { 
-          e.preventDefault(); const btn = document.getElementById('btnSalvarFin'); btn.disabled=true; btn.innerText="Salvando..."; 
-          let desc = (this.tipo.value==='Entrada' && this.categoria.value==='Dízimo') ? this.membro.value : this.descricao.value; 
-          const d = { tipo: this.tipo.value, categoria: this.categoria.value, descricao: desc, valor: this.valor.value, data: this.data.value, metodo: this.metodo.value }; 
-          try {
-              await fetchGoogle('salvarTransacao', d);
-              alert("Registrado!"); this.reset(); document.getElementById('finData').valueAsDate = new Date(); 
-              carregarFinanceiro(); atualizarCategorias(); 
-          } finally { btn.disabled=false; btn.innerText="Registrar Movimentação"; }
-      }
+async function excluirAgenda(id) { if(!confirm("Excluir evento?")) return; try { await supabase.from('agenda').delete().eq('id', id); carregarTudo(); } catch(e) { console.error(e); } }
 
-      // --- UTILITÁRIOS E SUBMITS ---
-      function filtrarMembros() { const b = document.getElementById('inputBusca').value.toLowerCase(), c = document.getElementById('filtroCelula').value.toLowerCase(); document.querySelectorAll('.member-card').forEach(card => { const match = card.getAttribute('data-nome').includes(b) && (c==="" || card.getAttribute('data-celula').includes(c)); card.style.display = match ? 'flex' : 'none'; }); }
-      function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'), s3 = document.getElementById('celLider'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Todas</option>'; s3.innerHTML='<option value="">Selecione...</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; s2.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; }); lideres.forEach(l => s3.innerHTML += `<option value="${l}">${l}</option>`); }
-      function editarMembro(id) { const m = dadosMembros.find(i => i[0] == id); if(!m) return; document.getElementById('idMembro').value = m[0]; document.getElementById('campoNome').value = m[1]; document.getElementById('campoNasc').value = m[10]; document.getElementById('campoTel').value = m[4]; document.getElementById('selectCelulas').value = m[3]; document.getElementById('campoCategoria').value = m[2]; document.getElementById('checkBat').checked = (m[6]==='Sim'); document.getElementById('checkCur').checked = (m[7]==='Sim'); document.getElementById('checkCtl').checked = (m[8]==='Sim'); document.getElementById('checkDiz').checked = (m[9]==='Sim'); mudarSecao('cadastro'); }
-      function novoCadastro() { document.getElementById('formMembro').reset(); document.getElementById('idMembro').value=''; mudarSecao('cadastro'); }
-      
-      document.getElementById('formMembro').onsubmit = async function(e) { 
-          e.preventDefault(); const id = document.getElementById('idMembro').value; const btn = document.getElementById('btnSalvar'); btn.disabled=true; btn.innerText="Salvando...";
-          const d = { nome: this.nome.value, nascimento: this.nascimento.value, categoria: this.categoria.value, celula: this.celula.value, telefone: this.telefone.value, batizado: this.batizado.checked?"Sim":"Não", cursao: this.cursao.checked?"Sim":"Não", ctl: this.ctl.checked?"Sim":"Não", encontro: this.encontro.checked?"Sim":"Não" }; 
-          try { if(id) await fetchGoogle('editarMembro', {id: id, dados: d}); else await fetchGoogle('salvarMembro', d); mudarSecao('lista'); carregarTudo(); } finally { btn.disabled=false; btn.innerText="Salvar"; }
-      };
-      
-      function renderizarCelulas(l) { const c = document.getElementById('corpoCelulas'); c.innerHTML=''; l.forEach((i, x) => c.innerHTML += `<tr><td>${i[0]}</td><td>${i[1]}</td><td>${i[2]}</td><td align="center"><button onclick="editarCelula(${x})" style="background:none;border:none;color:orange;cursor:pointer;"><i class="fas fa-edit"></i></button></td></tr>`); }
-      function novaCelula() { document.getElementById('formCelula').reset(); document.getElementById('nomeOriginalCelula').value = ""; document.getElementById('tituloFormCelula').innerText = "Nova Célula"; const s = document.getElementById('celLider'); s.innerHTML = '<option value="">Selecione...</option>'; lideres.forEach(l => s.innerHTML += `<option value="${l}">${l}</option>`); mudarSecao('form-celula'); }
-      function editarCelula(index) { const c = dadosCelulas[index]; if(!c) return; document.getElementById('nomeOriginalCelula').value = c[0]; document.getElementById('celNome').value = c[0]; document.getElementById('celDia').value = c[2]; document.getElementById('celEndereco').value = c[3]; const s = document.getElementById('celLider'); s.innerHTML = '<option value="">Selecione...</option>'; lideres.forEach(l => { let opt = document.createElement('option'); opt.value = l; opt.text = l; if(l === c[1]) opt.selected = true; s.appendChild(opt); }); document.getElementById('tituloFormCelula').innerText = "Editar Célula"; mudarSecao('form-celula'); }
-      
-      document.getElementById('formCelula').onsubmit = async function(e) { 
-          e.preventDefault(); const btn = document.getElementById('btnSalvarCelula'); btn.disabled=true; btn.innerText="Salvando...";
-          const dados = { nomeOriginal: this.nomeOriginal.value, nome: this.nome.value, lider: this.lider.value, dia: this.dia.value, endereco: this.endereco.value }; 
-          try { const res = await fetchGoogle('salvarCelula', dados); alert(res); mudarSecao('celulas'); carregarTudo(); } finally { btn.disabled=false; btn.innerText="Salvar"; }
-      };
-      
-      async function arquivar(id, n) { if(confirm(`Arquivar ${n}?`)) { try{ await fetchGoogle('arquivarMembro', {id:id}); carregarTudo(); } catch(e){} } }
-      async function restaurar(id) { if(confirm("Restaurar?")) { try{ await fetchGoogle('restaurarMembro', {id:id}); mudarSecao('lista'); carregarTudo(); } catch(e){} } }
-      function filtrarTabela(id) { const b = document.getElementById('inputBuscaArquivo').value.toLowerCase(); const rows = document.getElementById('corpoArquivo').getElementsByTagName('tr'); for(let r of rows) r.style.display = r.innerText.toLowerCase().includes(b)?'':'none'; }
+document.getElementById('formAgenda').onsubmit = async function(e) {
+    e.preventDefault(); const btn = document.getElementById('btnSalvarAgenda'); btn.disabled = true; btn.innerText="Salvando...";
+    const id = document.getElementById('indexAgenda').value;
+    const d = { data_evento: this.dataEvento.value, descricao: this.descricao.value, observacao: this.observacao.value, tipo: this.tipo.value, categoria: this.categoria.value };
+    try {
+        if (id) await supabase.from('agenda').update(d).eq('id', id);
+        else await supabase.from('agenda').insert([d]);
+        this.reset(); mudarSecao('agenda'); carregarTudo();
+    } catch(err) { console.error(err); } finally { btn.disabled = false; btn.innerText="Salvar Evento"; }
+};
 
+// ==========================================
+// PALAVRAS
+// ==========================================
+async function carregarPalavras() {
+    mudarSecao('palavras'); const div = document.getElementById('listaPalavras'); div.innerHTML = '<p style="text-align:center;">Carregando...</p>';
+    try { const {data} = await supabase.from('palavras').select('*').order('data_palavra', { ascending: false }); listaPalavras = data||[]; renderizarPalavras(listaPalavras); } catch(e){}
+}
+function renderizarPalavras(lista) {
+    const div = document.getElementById('listaPalavras'); div.innerHTML = '';
+    if(!lista || lista.length === 0) { div.innerHTML = '<p style="text-align:center; color:#999;">Vazio.</p>'; return; }
+    lista.forEach((p, index) => {
+        let dataF = p.data_palavra; try { if(dataF.includes('-')) { const dp=dataF.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+        div.innerHTML += `<div class="word-list-item" onclick="abrirPalavra(${index})"><div><div class="word-date"><i class="far fa-calendar-alt"></i> ${dataF}</div><div class="word-theme">${p.tema}</div></div><i class="fas fa-chevron-right" style="color:var(--text-light);"></i></div>`;
+    });
+}
+function abrirPalavra(index) {
+    const p = listaPalavras[index]; document.getElementById('modalTitulo').innerText = p.tema;
+    let dataF = p.data_palavra; try { if(dataF.includes('-')) { const dp=dataF.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+    document.getElementById('modalDataPalavra').innerText = dataF; document.getElementById('modalTexto').innerText = p.texto;
+    const btn = document.getElementById('btnLinkYoutube');
+    if (p.link && p.link.trim() !== "") { btn.href = p.link; btn.classList.remove('hidden'); } else { btn.classList.add('hidden'); }
+    document.getElementById('modalPalavra').classList.remove('hidden');
+}
+function novaPalavra() { document.getElementById('formPalavra').reset(); document.getElementById('palavraData').valueAsDate = new Date(); mudarSecao('nova-palavra'); }
+function fecharModal(e) { if(e === null || e.target.id === 'modalPalavra') document.getElementById('modalPalavra').classList.add('hidden'); }
+
+document.getElementById('formPalavra').onsubmit = async function(e) {
+    e.preventDefault(); const btn = document.getElementById('btnSalvarPalavra'); btn.disabled = true; btn.innerText = "Salvando...";
+    try {
+        await supabase.from('palavras').insert([{ data_palavra: this.data.value, tema: this.tema.value, texto: this.texto.value, link: this.link.value }]);
+        carregarPalavras();
+    } catch(err){ console.error(err); } finally { btn.disabled = false; btn.innerText = "Publicar"; }
+};
+
+// ==========================================
+// FINANCEIRO
+// ==========================================
+async function carregarFinanceiro() { try { const {data} = await supabase.from('financeiro').select('*'); dadosFinanceiros = data||[]; recalcularFinanceiro(); } catch(e){console.error(e);} }
+
+function recalcularFinanceiro() { 
+    const mes = document.getElementById('filtroMesFin').value; let ent = 0, sai = 0, fil = []; 
+    dadosFinanceiros.forEach(r => { 
+        if(r.data_movimento && r.data_movimento.startsWith(mes)){ 
+            let v = parseFloat(r.valor); 
+            if(r.tipo === 'Entrada') ent += v; else sai += v; 
+            fil.push(r); 
+        }
+    }); 
+    const fmt = (v) => v.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); 
+    document.getElementById('finSaldo').innerText = fmt(ent - sai); document.getElementById('finEntrada').innerText = fmt(ent); document.getElementById('finSaida').innerText = fmt(sai); renderizarExtrato(fil); 
+}
+
+function renderizarExtrato(lista) { 
+    const corpo = document.getElementById('corpoFin'); corpo.innerHTML = ''; const fmt = (v) => parseFloat(v).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); 
+    lista.sort((a,b) => new Date(b.data_movimento) - new Date(a.data_movimento)).forEach(l => { 
+        let c = l.tipo === 'Entrada' ? 'var(--success-text)' : 'var(--danger-text)'; 
+        let dataF = l.data_movimento ? `${l.data_movimento.split('-')[2]}/${l.data_movimento.split('-')[1]}` : '';
+        corpo.innerHTML += `<tr><td>${dataF}</td><td>${l.descricao}</td><td style="font-weight:bold; color:${c};">${fmt(l.valor)}</td></tr>`; 
+    }); 
+}
+
+function mudarTabFin(tab, btn) { document.getElementById('tab-lancamento').classList.add('hidden'); document.getElementById('tab-extrato').classList.add('hidden'); document.getElementById('tab-'+tab).classList.remove('hidden'); btn.parentNode.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+function atualizarCategorias() { const t = document.getElementById('finTipo').value; const c = document.getElementById('finCategoria'); c.innerHTML = t === 'Saída' ? '<option value="Despesa Fixa">Despesa Fixa</option><option value="Eventual">Eventual</option><option value="Manutenção">Manutenção</option>' : '<option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option>'; atualizarCampos(); }
+function atualizarCampos() { const t = document.getElementById('finTipo').value, c = document.getElementById('finCategoria').value, m = document.getElementById('finMembroSelect'), d = document.getElementById('finDescricaoInput'); if(t==='Entrada' && c==='Dízimo'){ m.classList.remove('hidden'); d.classList.add('hidden'); } else { m.classList.add('hidden'); d.classList.remove('hidden'); } }
+function preencherSelectMembrosFin(m) { const s = document.getElementById('finMembroSelect'); s.innerHTML = '<option value="">Membro...</option>'; [...m].sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(i => s.innerHTML += `<option value="${i.nome}">${i.nome}</option>`); }
+
+document.getElementById('formFinanceiro').onsubmit = async function(e) { 
+    e.preventDefault(); const btn = document.getElementById('btnSalvarFin'); btn.disabled=true; btn.innerText="Salvando..."; 
+    let desc = (this.tipo.value==='Entrada' && this.categoria.value==='Dízimo') ? this.membro.value : this.descricao.value; 
+    const d = { tipo: this.tipo.value, categoria: this.categoria.value, descricao: desc, valor: this.valor.value, data_movimento: this.data.value, metodo: this.metodo.value }; 
+    try {
+        await supabase.from('financeiro').insert([d]);
+        alert("Registrado!"); this.reset(); document.getElementById('finData').valueAsDate = new Date(); 
+        carregarFinanceiro(); atualizarCategorias(); 
+    } catch(err) { console.error(err); } finally { btn.disabled=false; btn.innerText="Registrar Movimentação"; }
+}
+
+// ==========================================
+// OUTROS: SUGESTÕES, ARQUIVO E RELATÓRIOS
+// ==========================================
+async function carregarSugestoes() {
+    mudarSecao('sugestoes'); const corpo = document.getElementById('corpoSugestoes'); corpo.innerHTML = '<tr><td colspan="2" align="center">Carregando...</td></tr>';
+    try {
+        const {data} = await supabase.from('sugestoes').select('*').order('data_envio', { ascending: false }); corpo.innerHTML = '';
+        if(!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="2" align="center">Vazio.</td></tr>'; return; }
+        data.forEach(row => { let d = String(row.data_envio); if(d.length > 16) d = d.substring(0, 16); corpo.innerHTML += `<tr><td style="width:130px; font-size:0.8rem; color:#666;">${d}</td><td style="font-weight:500;">${row.mensagem}</td></tr>`; });
+    } catch(e){console.error(e);} 
+}
+
+async function carregarArquivados() { 
+    mudarSecao('arquivo'); const corpo = document.getElementById('corpoArquivo'); corpo.innerHTML = '<tr><td colspan="3" align="center">Carregando...</td></tr>';
+    try {
+        const {data} = await supabase.from('membros').select('*').eq('arquivado', true); corpo.innerHTML=''; 
+        if (!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="3" align="center">Vazio.</td></tr>'; return; }
+        data.forEach(r => { let dataF = r.data_arquivamento ? String(r.data_arquivamento).substring(0,10) : ''; corpo.innerHTML += `<tr><td>${dataF}</td><td>${r.nome}</td><td><button onclick="restaurar('${r.id}')" style="color:var(--success-text);border:none;background:none; cursor:pointer;"><i class="fas fa-undo"></i></button></td></tr>`; }); 
+    } catch(e){console.error(e);}
+}
+
+async function carregarRelatorios() {
+    mudarSecao('relatorios'); const divLista = document.getElementById('listaRelatorios'); divLista.innerHTML = '<p align="center">Carregando...</p>';
+    const sel = document.getElementById('filtroRelCelula'); sel.innerHTML = '<option value="">Todas as Células</option>';
+    dadosCelulas.forEach(c => sel.innerHTML += `<option value="${c.nome}">${c.nome}</option>`);
+    try { const {data} = await supabase.from('relatorios').select('*').order('data_reuniao', { ascending: false }); dadosRelatorios = data||[]; filtrarRelatorios(); } catch(e){console.error(e);}
+}
+
+function filtrarRelatorios() {
+    const divLista = document.getElementById('listaRelatorios'); divLista.innerHTML = '';
+    const celulaFiltro = document.getElementById('filtroRelCelula').value.toLowerCase();
+    if(!dadosRelatorios || dadosRelatorios.length === 0) { divLista.innerHTML = '<p align="center">Vazio.</p>'; return; }
+    const listaFiltrada = dadosRelatorios.filter(r => celulaFiltro === "" || String(r.celula).toLowerCase().includes(celulaFiltro));
+    if(listaFiltrada.length === 0) { divLista.innerHTML = '<p align="center">Vazio.</p>'; return; }
+    listaFiltrada.forEach((r) => {
+        const index = dadosRelatorios.indexOf(r); let dataExibicao = r.data_reuniao ? String(r.data_reuniao).substring(0,10) : '';
+        divLista.innerHTML += `<div class="report-list-item" onclick="verRelatorio(${index})"><div style="display:flex; flex-direction:column; gap:4px;"><span style="font-weight:bold; color:var(--text-main); font-size:0.95rem;">${r.celula}</span><span style="font-size:0.8rem; color:var(--text-light);"><i class="far fa-calendar-alt"></i> ${dataExibicao}</span></div><div style="color:var(--accent);"><i class="fas fa-chevron-right"></i></div></div>`;
+    });
+}
+
+function verRelatorio(index) {
+    const item = dadosRelatorios[index]; let dataF = item.data_reuniao ? String(item.data_reuniao).substring(0,10) : '';
+    document.getElementById('relData').innerText = dataF; document.getElementById('relCelula').innerText = item.celula;
+    let lista = String(item.presentes || ""); let contagem = lista.split(',').filter(x => x.trim().length > 0).length; if(contagem === 0 && lista.length > 2) contagem = 1;
+    document.getElementById('relTotal').innerText = contagem; document.getElementById('relLista').innerText = lista || "-";
+    document.getElementById('relGelo').innerText = item.quebra_gelo || "-"; document.getElementById('relPalavra').innerText = item.palavra || "-";
+    document.getElementById('relLanche').innerText = item.lanche || "-"; document.getElementById('relLouvor').innerText = item.louvor || "-";
+    document.getElementById('relObs').innerText = item.observacoes || "Sem observações."; mudarSecao('modal-ver-relatorio');
+}
+
+// ==========================================
+// FUNÇÕES UTILITÁRIAS
+// ==========================================
+function filtrarMembros() { const b = document.getElementById('inputBusca').value.toLowerCase(), c = document.getElementById('filtroCelula').value.toLowerCase(); document.querySelectorAll('.member-card').forEach(card => { const match = card.getAttribute('data-nome').includes(b) && (c==="" || card.getAttribute('data-celula').includes(c)); card.style.display = match ? 'flex' : 'none'; }); }
+function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Todas</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c.nome}">${c.nome}</option>`; s2.innerHTML += `<option value="${c.nome}">${c.nome}</option>`; }); }
+function filtrarTabela(id) { const b = document.getElementById('inputBuscaArquivo').value.toLowerCase(); const rows = document.getElementById('corpoArquivo').getElementsByTagName('tr'); for(let r of rows) r.style.display = r.innerText.toLowerCase().includes(b)?'':'none'; }
+
+// *As funções da Bíblia podem continuar as mesmas do seu código original, já que elas consomem a API da abibliadigital.com.br e seu repositório no GitHub.*
       // ==========================================
       // FUNÇÕES DA BÍBLIA & VERSÍCULO
       // ==========================================
