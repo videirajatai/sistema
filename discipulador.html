@@ -10,9 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
-      /* --- ESTILOS ESPECÍFICOS DO DISCIPULADOR --- */
+      /* --- ESTILOS ESPECÍFICOS DO PAINEL DISCIPULADOR --- */
       
-      /* Widget do DailyVerses */
+      /* Força o widget do DailyVerses a ficar branco e legível */
       #dailyVersesWrapper, 
       #dailyVersesWrapper a, 
       #dailyVersesWrapper div,
@@ -38,7 +38,7 @@
           text-align: right !important;
       }
 
-      .container { max-width: 900px; margin: 0 auto; padding: 15px 15px; }
+      .container { max-width: 800px; margin: 0 auto; padding: 15px; }
 
       /* HEADER */
       .header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid var(--primary); }
@@ -46,119 +46,76 @@
       .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; }
       .btn-refresh:hover { color: var(--primary); transform: rotate(90deg); }
 
-      /* DASHBOARD / VERSÍCULO DO DIA (NOVO) */
-      .stat-card { 
-          background: linear-gradient(135deg, var(--primary), #5c0016); 
-          color: white; 
-          padding: 25px 20px; 
-          border-radius: var(--radius); 
-          text-align: center; 
-          box-shadow: 0 4px 15px rgba(128, 0, 32, 0.2); 
-          margin-bottom: 15px; 
-          position: relative; 
-          overflow: hidden; 
-      }
-      
-      .stat-card::before { 
-          content: "\f10d"; 
-          font-family: "Font Awesome 5 Free"; 
-          font-weight: 900; 
-          position: absolute; 
-          top: -10px; 
-          left: 10px; 
-          font-size: 4rem; 
-          opacity: 0.1; 
-      }
-      
-      .titulo-versiculo { 
-          text-transform: uppercase; 
-          letter-spacing: 2px; 
-          font-size: 0.75rem; 
-          color: #facc15; 
-          font-weight: 700; 
-          margin-bottom: 10px; 
-          display: block; 
-      }
+      /* DASHBOARD / VERSÍCULO DO DIA */
+      .stat-card { background: linear-gradient(135deg, var(--primary), #5c0016); color: white; padding: 25px 20px; border-radius: var(--radius); text-align: center; box-shadow: 0 4px 15px rgba(128, 0, 32, 0.2); margin-bottom: 15px; position: relative; overflow: hidden; }
+      .stat-card::before { content: "\f10d"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: -10px; left: 10px; font-size: 4rem; opacity: 0.1; }
+      .titulo-versiculo { text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; color: #facc15; font-weight: 700; margin-bottom: 10px; display: block; }
 
-      /* BOTÃO BÍBLIA DESTAQUE (NOVO) */
-      .btn-biblia-destaque { 
-          width: 100%; 
-          background: linear-gradient(135deg, var(--ouro-videira), var(--ouro-escuro)); 
-          color: white; 
-          border: none; 
-          padding: 16px; 
-          border-radius: var(--radius); 
-          font-size: 1rem; 
-          font-weight: 700; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          gap: 10px; 
-          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); 
-          margin-bottom: 20px; 
-          transition: 0.3s; 
-      }
-      
-      .btn-biblia-destaque:hover { 
-          transform: translateY(-2px); 
-          box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); 
-      }
+      /* BOTÃO BÍBLIA DESTAQUE */
+      .btn-biblia-destaque { width: 100%; background: linear-gradient(135deg, var(--ouro-videira), var(--ouro-escuro)); color: white; border: none; padding: 16px; border-radius: var(--radius); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); margin-bottom: 20px; transition: 0.3s; }
+      .btn-biblia-destaque:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); }
 
       /* MENU NAVEGAÇÃO */
-      .nav-menu { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-      .nav-btn { flex: 1 1 30%; min-width: 100px; padding: 12px; border: none; border-radius: 10px; background: white; color: var(--text-light); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.8rem; }
+      .nav-menu { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+      .nav-btn { flex: 1 1 30%; min-width: 90px; padding: 12px; border: none; border-radius: 10px; background: white; color: var(--text-light); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.8rem; }
+      .nav-btn i { font-size: 1.2rem; }
       .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(128, 0, 32, 0.3); }
 
-      /* GRID & CARDS */
-      .member-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+      /* CARDS MEMBROS & AGENDA */
+      .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); gap: 15px; }
       @media (min-width: 600px) { .member-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
       .member-card { background: var(--card-bg); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border: 1px solid white; display: flex; flex-direction: column; gap: 10px; }
       .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
       .card-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0; }
-      .cat-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; background: #eee; color: #555; font-weight: bold; border: 1px solid transparent; }
+      .cat-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; background: #eee; color: #555; font-weight: bold; text-transform: uppercase; }
       .card-info { font-size: 0.85rem; color: var(--text-light); display: flex; align-items: center; gap: 6px; }
       .status-row { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
       .status-pill { flex: 1 1 auto; text-align: center; font-size: 0.7rem; padding: 5px 8px; border-radius: 6px; background: #f0f0f0; color: #999; font-weight: 600; white-space: nowrap; }
       .status-pill.active { background: var(--success-bg); color: var(--success-text); border: 1px solid #c3e6cb; }
-      .btn-zap { background: #f0fdf4; color: #166534; border-color: #bbf7d0; text-decoration: none; display: block; width: 100%; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; }
-      
-      /* TABELAS */
-      .table-clean { width: 100%; border-collapse: collapse; background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid #ddd; margin-top: 10px; }
-      .table-clean th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
-      .table-clean td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.9rem; }
-      
-      /* FORMS */
-      .form-box { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
-      label { display: block; margin-bottom: 5px; color: var(--text-light); font-weight: 600; font-size: 0.85rem; }
-      input, select, textarea { width: 100%; padding: 12px; background: var(--input-bg); margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box; }
-      .btn-save { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-      .btn-add-member { background: var(--success-text); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
+      .btn-zap { display: block; width: 100%; text-align: center; padding: 10px; margin-top: 5px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.2s; box-sizing: border-box; }
 
-      /* RELATÓRIOS */
-      .report-list-item { display: flex; align-items: center; justify-content: space-between; background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.02); cursor: pointer; transition: 0.2s; }
-      
-      /* PALAVRAS & MODAL */
+      /* TABELA CELULAS */
+      .table-clean { width: 100%; border-collapse: collapse; background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid #ddd; }
+      .table-clean th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
+      .table-clean td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.9rem; font-weight: 500; }
+      .table-clean tr:nth-child(even) { background-color: #fcfcfc; }
+
+      /* RELATÓRIOS LISTA */
+      .report-list-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; }
+
+      /* LISTA DE PALAVRAS & MODAL */
       .word-list-item { background: white; border-radius: var(--radius); padding: 15px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 4px solid var(--accent); transition: 0.2s; }
+      .word-list-item:active { transform: scale(0.98); }
       .word-date { font-weight: 800; color: var(--text-main); font-size: 1rem; }
       .word-theme { font-size: 0.85rem; color: var(--text-light); margin-top: 2px; }
 
       .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: flex-end; backdrop-filter: blur(2px); }
-      .modal-content { background: white; width: 100%; max-width: 800px; height: 85vh; border-radius: 20px 20px 0 0; padding: 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; }
+      .modal-content { background: white; width: 100%; max-width: 800px; height: 85vh; border-radius: 20px 20px 0 0; padding: 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
       @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-      .btn-close-modal { position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;}
-      
-      .btn-youtube { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background-color: #FF0000; color: white; font-weight: bold; text-decoration: none; border-radius: 8px; margin-bottom: 15px; }
+      .word-text { line-height: 1.6; color: #444; font-size: 0.95rem; white-space: pre-wrap; margin-top: 15px; }
+      .btn-close-modal { position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #555; z-index: 10; display: flex; align-items: center; justify-content: center;}
 
-      /* BÍBLIA */
+      .btn-youtube { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background-color: #FF0000; color: white; font-weight: bold; text-decoration: none; border-radius: 8px; margin-bottom: 15px; transition: background 0.2s; box-sizing: border-box; }
+      .btn-youtube:hover { background-color: #cc0000; }
+
+      input, select, textarea { width: 100%; padding: 12px; background: var(--input-bg); margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box; }
+      input:focus, textarea:focus, select:focus { border-color: var(--primary); background: #fff; }
+
+      /* ESTILOS DA BÍBLIA */
       :root { --ouro-videira: #D4AF37; --ouro-escuro: #b5952f; }
       .biblia-offcanvas { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background-color: #ffffff; box-shadow: -5px 0 25px rgba(0,0,0,0.1); z-index: 2000; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
       .biblia-offcanvas.aberto { right: 0; }
       #biblia-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; display: none; opacity: 0; transition: opacity 0.3s ease; }
       .biblia-header { background-color: var(--ouro-videira); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+      .biblia-titulo-area { display: flex; align-items: center; gap: 10px; }
+      .biblia-header h2 { color: white; margin: 0; font-size: 1.2rem; font-weight: 700; }
+      .btn-fechar-biblia { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; margin: 0; }
       .biblia-controles { padding: 15px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px; }
-      .biblia-controles select { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
+      .biblia-controles select { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: 'Inter', sans-serif; margin-bottom: 0; }
+      .btn-ler-ouro { background-color: var(--ouro-videira); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+      .btn-ler-ouro:hover { background-color: var(--ouro-escuro); }
       .biblia-texto-area { padding: 25px 20px; overflow-y: auto; flex: 1; line-height: 1.8; font-size: 1rem; color: #334155; }
+      .biblia-placeholder { text-align: center; color: #94a3b8; font-style: italic; margin-top: 50px; }
     </style>
   </head>
   <body>
@@ -181,7 +138,7 @@
       </div>
 
       <div class="stat-card" id="card-versiculo">
-        <span class="titulo-versiculo"><i class="fas fa-star"></i> Versículo do Dia</span>
+        <span class="titulo-versiculo">Versículo do Dia</span>
         <div id="dailyVersesWrapper"></div>
         <script async defer src="https://dailyverses.net/get/verse.js?language=arc"></script>
       </div>
@@ -201,18 +158,17 @@
       <div id="secao-lista">
         <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-             <h4 style="margin:0; color: var(--text-light);"><span id="totalMembros">0</span> Membros</h4>
+              <h4 style="margin:0; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
+                Membros da Rede
+                <span id="badge-total-membros" style="background: var(--primary); color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">0</span>
+              </h4>
           </div>
           <div style="display:flex; gap:10px;">
-            <input type="text" id="inputBusca" placeholder="🔍 Buscar membro..." onkeyup="filtrarMembros()" style="margin:0; flex:2;">
-            <select id="filtroCelula" onchange="filtrarMembros()" style="margin:0; flex:1;">
-               <option value="">Todas</option>
-            </select>
+            <input type="text" id="inputBusca" placeholder="🔍 Buscar nome..." onkeyup="filtrarMembros()" style="margin:0; flex:2;">
+            <select id="filtroCelula" onchange="filtrarMembros()" style="margin:0; flex:1;"><option value="">Todas</option></select>
           </div>
         </div>
-        <div id="gridMembros" class="member-grid">
-           <p style="text-align:center; color:#999;">Carregando...</p>
-        </div>
+        <div id="gridMembros" class="member-grid"></div>
       </div>
 
       <div id="secao-celulas" class="hidden">
@@ -227,71 +183,81 @@
 
       <div id="secao-relatorios" class="hidden">
         <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
-          <label>Filtrar por Célula</label>
-          <select id="filtroRelCelula" onchange="filtrarRelatorios()">
+          <label style="color:var(--text-main); font-weight:600;">Filtrar por Célula</label>
+          <select id="filtroRelCelula" onchange="filtrarRelatorios()" style="margin-bottom:0;">
             <option value="">Todas as Células</option>
           </select>
         </div>
-        <div id="listaRelatorios"></div>
+        <div id="listaRelatorios">
+            <p style="text-align:center; color:#999;">Buscando relatórios...</p>
+        </div>
       </div>
 
       <div id="secao-agenda" class="hidden">
-         <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Agenda da Igreja</h4>
-         <div id="listaAgenda" class="member-grid">
-            <p style="text-align:center; color:#999; grid-column: 1 / -1;">Carregando...</p>
-         </div>
+        <h4 style="color: var(--text-light); margin-top:0; margin-bottom: 15px;"><i class="far fa-calendar-alt"></i> Agenda da Igreja</h4>
+        <div id="listaAgenda" class="member-grid">
+           <p style="text-align:center; color:#999; grid-column: 1 / -1;">Buscando agenda no Google...</p>
+        </div>
       </div>
 
       <div id="secao-palavras" class="hidden">
-         <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras e Estudos</h4>
-         <div id="listaPalavras"></div>
+         <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras & Estudos</h4>
+         <div id="listaPalavras">
+           <p style="text-align:center; color:#999;">Carregando...</p>
+         </div>
       </div>
 
-    </div> <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
+    </div>
+
+    <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
       <div class="modal-content" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModal(null)">&times;</button>
-        <h3 id="modalTitulo" style="color:var(--primary); margin-top:10px;"></h3>
-        <small id="modalData" style="color:#777; display:block; margin-bottom:15px;"></small>
-        <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden"><i class="fab fa-youtube"></i> Assistir no YouTube</a>
-        <div id="modalTexto" style="line-height: 1.6; color: #444; font-size: 0.95rem; white-space: pre-wrap; margin-top: 15px;"></div>
+          <button class="btn-close-modal" onclick="fecharModal(null)">&times;</button>
+          <h3 id="modalTitulo" style="color:var(--primary); margin-top:10px;"></h3>
+          <small id="modalData" style="color:#777; display:block; margin-bottom:15px;"></small>
+          <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden"><i class="fab fa-youtube"></i> Assistir no YouTube</a>
+          <div id="modalTexto" class="word-text"></div>
       </div>
     </div>
 
     <div id="biblia-overlay" onclick="fecharBiblia()"></div>
     <div id="painel-biblia" class="biblia-offcanvas">
-      <div class="biblia-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <i class="fas fa-bible" style="font-size: 1.2rem;"></i>
-          <h2 style="margin: 0;">A Mensagem</h2>
+        <div class="biblia-header">
+            <div class="biblia-titulo-area">
+                <i class="fas fa-bible" style="font-size: 1.2rem;"></i>
+                <h2>A Mensagem</h2>
+            </div>
+            <button class="btn-fechar-biblia" onclick="fecharBiblia()"><i class="fas fa-times"></i></button>
         </div>
-        <button style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;" onclick="fecharBiblia()"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="biblia-controles">
-        <select id="biblia-livro" onchange="atualizarCapitulos()"></select>
-        <select id="biblia-capitulo" disabled><option value="">Capítulo</option></select>
-        <button class="btn-ler-ouro" style="background:var(--ouro-videira); color:white; padding:10px; border:none; border-radius:8px;" onclick="lerCapitulo()"><i class="fas fa-search"></i> Ler</button>
-      </div>
-      <div class="biblia-texto-area" id="biblia-conteudo">
-        <p class="biblia-placeholder">Selecione um livro e um capítulo para começar a leitura.</p>
-      </div>
+        
+        <div class="biblia-controles">
+            <select id="biblia-livro" onchange="atualizarCapitulos()"></select>
+            <select id="biblia-capitulo" disabled></select>
+            <button class="btn-ler-ouro" onclick="carregarCapitulo()"><i class="fas fa-search"></i> Ler</button>
+        </div>
+
+        <div id="biblia-conteudo" class="biblia-texto-area">
+            <p class="biblia-placeholder">Selecione o livro e o capítulo para começar a leitura.</p>
+        </div>
     </div>
 
     <script>
       const API_URL = sessionStorage.getItem('urlApi');
-      let dadosMembros = [], dadosCelulas = [], dadosRelatorios = [], listaPalavras = [], listaAgenda = [];
 
-      window.onload = () => {
-          preencherLivros();
-          carregarTudo();
-      };
+      // --- CREDENCIAIS DO SUPABASE EXATAS ---
+      const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co"; 
+      const SB_KEY = "sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q";
+
+      let dadosMembros = [], dadosCelulas = [], listaPalavras = [], listaAgenda = [], dadosRelatorios = [];
+      
+      window.onload = carregarTudo;
 
       // ==========================================
-      // FETCH E SUPABASE
+      // MOTORES DE COMUNICAÇÃO
       // ==========================================
       
-      // Motor Google para as planilhas que ainda não foram migradas (ex: Agenda e Relatórios se aplicável)
+      // MOTOR GOOGLE SCRIPT (Apenas para a Agenda)
       async function fetchGoogle(action, payload = {}) {
-          payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
+        payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
           try {
               let res = await fetch(API_URL, {
                   method: 'POST',
@@ -302,247 +268,219 @@
               else throw new Error(json.mensagem);
           } catch(e) {
               console.error("Erro na API Google:", e);
-              return null;
+              throw e;
           }
       }
 
-      // Função Principal de Carregamento Migrado para Supabase
+      // MOTOR SUPABASE (Para Membros, Células, Palavras e Relatórios)
+      async function lerSupabase(tabela) {
+          const res = await fetch(`${SB_URL}/rest/v1/${tabela}?select=*`, {
+              method: 'GET',
+              headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+          });
+          if (!res.ok) throw new Error(`Erro ao ler tabela: ${tabela}`);
+          return await res.json();
+      }
+
+      // ==========================================
+      // CARREGAMENTO INICIAL
+      // ==========================================
       async function carregarTudo() {
-          const icon = document.getElementById('iconRefresh');
-          if(icon) icon.classList.add('fa-spin');
+        const icon = document.getElementById('iconRefresh'); 
+        if(icon) icon.classList.add('fa-spin');
+        
+        // 1. DADOS DO SUPABASE
+        try {
+            dadosMembros = await lerSupabase('membros'); 
+            document.getElementById('badge-total-membros').innerText = dadosMembros.length;
+            renderizarMembros(dadosMembros);
+        } catch (e) { console.error("Erro Membros Supabase:", e); }
 
-          try {
-              // 1. SUPABASE (Membros, Células e Palavras)
-              // Usando as funções utilitárias que você definiu no ambiente (ex: lerSupabase)
-              dadosMembros = await lerSupabase('membros');
-              dadosCelulas = await lerSupabase('celulas');
-              
-              // No Discipulador, em geral filtramos os dados para a rede dele. 
-              // Assumindo que o filtro padrão ou a query já traz o correto
-              document.getElementById('totalMembros').innerText = dadosMembros.length;
-              
-              renderizarMembros(dadosMembros);
-              renderizarCelulas(dadosCelulas);
-              preencherSelects(dadosCelulas);
+        try {
+            dadosCelulas = await lerSupabase('celulas');
+            renderizarCelulas(dadosCelulas);
+            preencherSelects(dadosCelulas);
+        } catch (e) { console.error("Erro Celulas Supabase:", e); }
 
-              listaPalavras = await lerSupabase('palavras');
-              if (listaPalavras) {
-                  listaPalavras.reverse();
-                  renderizarPalavras(listaPalavras);
-              }
+        try {
+            dadosRelatorios = await lerSupabase('relatorios');
+            filtrarRelatorios();
+        } catch (e) { console.error("Erro Relatórios Supabase:", e); }
 
-              // 2. RELATÓRIOS (Supabase ou Google Sheets)
-              // Se relatórios já estiver no supabase, troque fetchGoogle por lerSupabase('relatorios')
-              try {
-                 dadosRelatorios = await fetchGoogle('buscarRelatorios');
-                 filtrarRelatorios();
-              } catch(e) { console.error(e); }
+        try {
+            listaPalavras = await lerSupabase('palavras');
+            listaPalavras.reverse(); 
+            renderizarPalavras(listaPalavras);
+        } catch (e) { console.error("Erro Palavras Supabase:", e); }
 
-              // 3. AGENDA DA IGREJA (Mantendo do Google Sheets conforme seu código original)
-              try {
-                  const agendaRes = await fetchGoogle('buscarAgenda');
-                  listaAgenda = agendaRes || [];
-                  renderizarAgenda(listaAgenda);
-              } catch(e) { console.error(e); }
+        // 2. DADOS DO GOOGLE SCRIPT (Exclusivo da Agenda)
+        try {
+            const agendaRes = await fetchGoogle('buscarAgenda');
+            listaAgenda = agendaRes || [];
+            renderizarAgenda(listaAgenda);
+        } catch(e) {
+            console.error("Erro Agenda Google:", e);
+            renderizarAgenda([]);
+        }
 
-          } catch (error) {
-              console.error("Erro Geral de Carregamento:", error);
-          }
-
-          if(icon) icon.classList.remove('fa-spin');
+        if(icon) icon.classList.remove('fa-spin');
       }
 
       function mudarSecao(s) {
-          ['lista','celulas','relatorios','palavras','agenda'].forEach(id => {
-              if(document.getElementById('secao-'+id)) {
-                  document.getElementById('secao-'+id).classList.add('hidden');
-              }
-          });
-          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-          
-          if(document.getElementById('secao-'+s)) document.getElementById('secao-'+s).classList.remove('hidden');
-          if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
+         ['lista','celulas','relatorios','palavras','agenda'].forEach(id => document.getElementById('secao-'+id).classList.add('hidden'));
+         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+         document.getElementById('secao-'+s).classList.remove('hidden');
+         if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
       }
 
       // ==========================================
-      // RENDERIZAÇÃO E FILTROS
+      // RENDERIZAÇÃO E TELAS
       // ==========================================
-
+      
       function renderizarMembros(lista) {
-          const grid = document.getElementById('gridMembros');
-          grid.innerHTML = '';
-          if(!lista || lista.length === 0){
-             grid.innerHTML = '<p style="text-align:center; color:#999;">Nenhum membro encontrado.</p>';
+         const grid = document.getElementById('gridMembros'); grid.innerHTML = '';
+         if(!lista || lista.length === 0){
+             grid.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1;">Nenhum membro encontrado.</p>';
              return;
-          }
+         }
 
-          const check = (val) => (String(val).toLowerCase()==='sim' || val===true) ? 'active' : '';
+         const check = (val) => (String(val).toLowerCase()==='sim' || val===true) ? 'active' : '';
+         const formatData = (d) => { if(!d)return''; if(d.includes('/')) return d; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}`:d; };
 
-          lista.forEach(m => {
-              let nome = m.nome || 'Sem Nome';
-              let celula = m.celula || 'Sem Célula';
-              let tel = m.telefone || '';
-              
-              grid.innerHTML += `
-                  <div class="member-card">
-                      <div class="card-header">
-                          <h4 class="card-name">${nome}</h4>
-                          <span class="cat-badge">${m.tipo || 'Membro'}</span>
-                      </div>
-                      <div class="card-info"><i class="fas fa-network-wired"></i> ${celula}</div>
-                      
-                      <div class="status-row">
-                          <span class="status-pill ${check(m.batizado)}">Batismo</span>
-                          <span class="status-pill ${check(m.cursao)}">Cursão</span>
-                          <span class="status-pill ${check(m.ctl)}">CTL</span>
-                          <span class="status-pill ${check(m.encontro)}">Encontro</span>
-                      </div>
-                      
-                      ${tel ? `<a href="https://wa.me/55${tel.replace(/\D/g,'')}" target="_blank" class="btn-zap"><i class="fab fa-whatsapp"></i> Chamar no WhatsApp</a>` : ''}
-                  </div>
-              `;
-          });
+         lista.forEach(m => {
+            let nome = m.nome || 'Sem Nome'; 
+            let celula = m.celula || '-';  
+            let categoria = m.tipo || 'Frequentador'; 
+            let tel = String(m.telefone || '');
+            let telClean = tel.replace(/\D/g, '');
+            let btnZap = (telClean.length > 8) ? `<a href="https://wa.me/55${telClean}" target="_blank" class="btn-zap"><i class="fab fa-whatsapp"></i> Conversar</a>` : '';
+            let nasc = m.nascimento ? `<span style="font-size:0.8rem; margin-left:auto; color:#999;"><i class="fas fa-birthday-cake"></i> ${formatData(m.nascimento)}</span>` : '';
+            let badgeDizimista = (String(m.dizimista).toLowerCase() === 'sim' || m.dizimista === true) ? `<span style="font-size:0.7rem; margin-left:5px; color:#166534; background:#dcfce7; padding:2px 6px; border-radius:4px; border:1px solid #bbf7d0;"><i class="fas fa-seedling"></i> Dizimista</span>` : '';
+
+            grid.innerHTML += `
+              <div class="member-card" data-nome="${nome.toLowerCase()}" data-celula="${celula.toLowerCase()}">
+                 <div class="card-header"><h4 class="card-name">${nome}</h4><span class="cat-badge cat-${categoria}">${categoria}</span></div>
+                 <div class="card-info" style="flex-wrap: wrap;"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${badgeDizimista} ${nasc}</div>
+                 <div class="status-row">
+                    <div class="status-pill ${check(m.batizado)}">Batismo</div>
+                    <div class="status-pill ${check(m.cursao)}">Cursão</div>
+                    <div class="status-pill ${check(m.ctl)}">CTL</div>
+                    <div class="status-pill ${check(m.encontro)}">Encontro</div>
+                 </div>
+                 ${btnZap}
+              </div>`;
+         });
       }
 
       function filtrarMembros() {
-          const busca = document.getElementById('inputBusca').value.toLowerCase();
-          const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
-          
-          const cards = document.getElementById('gridMembros').getElementsByClassName('member-card');
-          Array.from(cards).forEach(card => {
-              const texto = card.innerText.toLowerCase();
-              const mCelula = card.querySelector('.card-info').innerText.toLowerCase();
-              
-              const matchBusca = texto.includes(busca);
-              const matchCelula = celulaFiltro === "" || mCelula.includes(celulaFiltro);
-              
-              card.style.display = (matchBusca && matchCelula) ? 'flex' : 'none';
-          });
+         const b = document.getElementById('inputBusca').value.toLowerCase();
+         const c = document.getElementById('filtroCelula').value.toLowerCase();
+         document.querySelectorAll('.member-card').forEach(card => {
+            if(card.hasAttribute('data-nome') && card.hasAttribute('data-celula')){
+                const match = card.getAttribute('data-nome').includes(b) && (c==="" || card.getAttribute('data-celula').includes(c));
+                card.style.display = match ? 'flex' : 'none';
+            }
+         });
       }
 
       function renderizarCelulas(lista) {
-          const corpo = document.getElementById('corpoCelulas');
-          corpo.innerHTML = '';
-          lista.forEach(c => {
-              corpo.innerHTML += `<tr>
-                  <td><strong>${c.nome || c[0] || '-'}</strong></td>
-                  <td>${c.lider || c[2] || '-'}</td>
-                  <td>${c.dia_hora || c[3] || '-'}</td>
-              </tr>`;
-          });
+         const tb = document.getElementById('corpoCelulas'); tb.innerHTML = '';
+         if(!lista || !lista.length) { tb.innerHTML='<tr><td colspan="3" style="text-align:center;">Nenhuma célula encontrada.</td></tr>'; return; }
+         lista.forEach(c => {
+            tb.innerHTML += `<tr><td><strong>${c.nome || ''}</strong></td><td>${c.lider || ''}</td><td>${c.dia_horario || ''}</td></tr>`;
+         });
       }
 
       function preencherSelects(celulas) {
-          const s1 = document.getElementById('filtroCelula');
-          const s2 = document.getElementById('filtroRelCelula');
-          if(!s1 || !s2) return;
-          
-          s1.innerHTML='<option value="">Todas</option>';
-          s2.innerHTML='<option value="">Todas as Células</option>';
-          
-          celulas.forEach(c => {
-              let nome = c.nome || c[0];
-              s1.innerHTML += `<option value="${nome}">${nome}</option>`;
-              s2.innerHTML += `<option value="${nome}">${nome}</option>`;
-          });
+         const s1 = document.getElementById('filtroCelula');
+         const s2 = document.getElementById('filtroRelCelula');
+         s1.innerHTML='<option value="">Todas</option>'; 
+         s2.innerHTML='<option value="">Todas as Células</option>';
+         
+         if(!celulas) return;
+         celulas.forEach(c => {
+            if(c.nome) {
+                s1.innerHTML += `<option value="${c.nome}">${c.nome}</option>`;
+                s2.innerHTML += `<option value="${c.nome}">${c.nome}</option>`;
+            }
+         });
       }
 
-      // --- RELATÓRIOS ---
+      // Visualização dos Relatórios Puxados do Supabase
       function filtrarRelatorios() {
           const divLista = document.getElementById('listaRelatorios');
           divLista.innerHTML = '';
           const celulaFiltro = document.getElementById('filtroRelCelula').value.toLowerCase();
           
           if(!dadosRelatorios || dadosRelatorios.length === 0) {
-              divLista.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">Nenhum relatório encontrado.</div>';
+              divLista.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">Nenhum relatório encontrado na base.</div>';
               return;
           }
 
           const listaFiltrada = dadosRelatorios.filter(r => {
-              // Ajuste o índice ou propriedade conforme o modelo de relatórios
-              const celulaRow = String(r.celula || r[1]).toLowerCase();
+              const celulaRow = String(r.celula || '').toLowerCase();
               return celulaFiltro === "" || celulaRow.includes(celulaFiltro);
           });
 
           if(listaFiltrada.length === 0) {
-              divLista.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório para esta célula.</p>';
+              divLista.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório submetido para esta célula.</p>';
               return;
           }
 
           listaFiltrada.forEach(r => {
+              let dataF = r.data || '';
+              try { if(dataF.includes('-')) { const dp=dataF.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+
               divLista.innerHTML += `
                   <div class="report-list-item">
                       <div>
-                          <strong style="color:var(--primary);">${r.celula || r[1]}</strong>
-                          <div style="font-size:0.8rem; color:#777; margin-top:3px;">${r.data || r[0]} | ${r.total || r[3]} presentes</div>
+                          <strong style="color:var(--primary); font-size:1.1rem;">${r.celula || '-'}</strong>
+                          <div style="font-size:0.85rem; color:#666; margin-top:5px;"><i class="far fa-calendar-alt"></i> ${dataF}</div>
+                          <div style="font-size:0.85rem; color:#444; margin-top:3px; font-weight:600;"><i class="fas fa-users"></i> ${r.presentes || '0'}</div>
                       </div>
-                      <i class="fas fa-file-alt" style="color:#ccc;"></i>
+                      <i class="fas fa-file-alt" style="color:#ccc; font-size:1.5rem;"></i>
                   </div>
               `;
           });
       }
 
-      // --- AGENDA ---
-      function renderizarAgenda(lista) {
-          const div = document.getElementById('listaAgenda');
-          div.innerHTML = '';
-          if(!lista || lista.length === 0) {
-              div.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1;">Nenhum evento na agenda.</p>';
-              return;
-          }
-          
-          lista.forEach((a) => {
-              let corCategoria = 'var(--primary)';
-              // Use seus próprios critérios de cor
-              div.innerHTML += `
-                  <div class="member-card" style="border-left: 5px solid ${corCategoria}">
-                      <div class="card-header">
-                          <h4 class="card-name" style="color: ${corCategoria};">${a[1] || a.titulo}</h4>
-                      </div>
-                      <div class="card-info" style="color: #333; font-weight: bold;"><i class="far fa-calendar-check"></i> ${a[0] || a.data} ${a[2] ? '- ' + a[2] : ''}</div>
-                      ${a[5] || a.descricao ? `<div style="font-size:0.85rem; color:#666; margin-top:10px; line-height:1.4;">${a[5] || a.descricao}</div>` : ''}
-                  </div>
-              `;
-          });
-      }
-
-      // --- PALAVRAS ---
       function renderizarPalavras(lista) {
-          const div = document.getElementById('listaPalavras');
-          div.innerHTML = '';
+          const div = document.getElementById('listaPalavras'); div.innerHTML = '';
           if(!lista || lista.length === 0) {
-              div.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma palavra encontrada.</p>';
+              div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma palavra cadastrada.</p>';
               return;
           }
-          
           lista.forEach((p, index) => {
-              let data = p.data || p[0];
-              let titulo = p.titulo || p[1];
+              let dataF = p.data || '';
+              try { if(dataF.includes('-')) { const dp=dataF.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
               div.innerHTML += `
-                  <div class="word-list-item" onclick="abrirPalavra(${index})">
-                      <div>
-                          <div class="word-date"><i class="far fa-calendar-alt"></i> ${data}</div>
-                          <div class="word-theme">${titulo}</div>
-                      </div>
-                      <i class="fas fa-chevron-right" style="color:var(--text-light);"></i>
+              <div class="word-list-item" onclick="abrirPalavra(${index})">
+                  <div>
+                      <div class="word-date"><i class="far fa-calendar-alt"></i> ${dataF}</div>
+                      <div class="word-theme">${p.tema || 'Sem Título'}</div>
                   </div>
-              `;
+                  <i class="fas fa-chevron-right" style="color:var(--text-light);"></i>
+              </div>`;
           });
       }
 
       function abrirPalavra(index) {
-          const p = listaPalavras[index];
-          document.getElementById('modalTitulo').innerText = p.titulo || p[1];
-          document.getElementById('modalData').innerText = p.data || p[0];
-          document.getElementById('modalTexto').innerHTML = (p.texto || p[2]).replace(/\n/g, '<br>');
-          
-          const link = p.link_youtube || p[3];
+          const p = listaPalavras[index]; 
+          document.getElementById('modalTitulo').innerText = p.tema || '';
+          let dataF = p.data || '';
+          try { if(dataF.includes('-')) { const dp=dataF.split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+          document.getElementById('modalData').innerText = dataF;
+          document.getElementById('modalTexto').innerText = p.texto || '';
+
           const btn = document.getElementById('btnLinkYoutube');
-          if(link && link.includes('http')) {
+          const link = p.link_youtube; 
+
+          if (link && link.trim() !== "") {
               btn.href = link;
               btn.classList.remove('hidden');
           } else {
               btn.classList.add('hidden');
+              btn.href = "#";
           }
           document.getElementById('modalPalavra').classList.remove('hidden');
       }
@@ -553,8 +491,52 @@
           }
       }
 
+      // Renderização EXCLUSIVA do Google Script (Agenda)
+      function renderizarAgenda(lista) {
+         const div = document.getElementById('listaAgenda'); div.innerHTML = '';
+         if(!lista || lista.length === 0) {
+             div.innerHTML = '<p style="text-align:center; color:#999; grid-column: 1 / -1; margin-top:20px;">Nenhum evento na agenda.</p>';
+             return;
+         }
+         lista.sort((a, b) => {
+             const parseDate = (d) => {
+                 if(!d) return 0;
+                 if(d.includes('-')) { const p = d.split('-'); return new Date(p[0], p[1]-1, p[2]).getTime(); }
+                 if(d.includes('/')) { const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); }
+                 return new Date(d).getTime();
+             };
+             return parseDate(a[0]) - parseDate(b[0]);
+         });
+         
+         lista.forEach((a) => {
+             let dataF = a[0] || '';
+             try { if(a[0] && a[0].includes('-')) { const dp=a[0].split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+
+             let corCategoria = '#555';
+             if(a[4] === 'RADICAIS LIVRES') corCategoria = '#0056b3';
+             else if(a[4] === 'GOOGLE AGENDA') corCategoria = 'var(--primary)';
+             else if(a[4] === 'RADICAIS KIDS') corCategoria = '#b58900';
+             let corTipo = (a[3] === 'Pago') ? '#dc3545' : 'var(--success-text)';
+
+             div.innerHTML += `
+             <div class="member-card">
+                 <div class="card-header">
+                     <h4 class="card-name" style="color: var(--text-main); font-size: 1rem;"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
+                     <span class="cat-badge" style="background:${corCategoria}; color:white; border:none;">${a[4]||'Sem Categoria'}</span>
+                 </div>
+                 <div style="font-size: 1rem; font-weight: 700; color: #333; margin-top: 5px;">${a[1]||''}</div>
+                 <div style="font-size: 0.85rem; color: #666; margin-top: 5px; min-height: 20px;">${a[2]||''}</div>
+                 <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                     <span style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background: #f9f9f9; color: ${corTipo}; font-weight: bold; border: 1px solid #ddd;">
+                         <i class="fas fa-info-circle"></i> -> ${a[3]||''}
+                     </span>
+                 </div>
+             </div>`;
+         });
+      }
+
       // ==========================================
-      // BÍBLIA (A MENSAGEM)
+      // BÍBLIA (DADOS E INTEGRAÇÃO GITHUB)
       // ==========================================
       const dadosBiblia = [
           { id: "genesis", nome: "Gênesis", caps: 50 }, { id: "exodo", nome: "Êxodo", caps: 40 }, 
@@ -576,30 +558,47 @@
           { id: "miqueias", nome: "Miqueias", caps: 7 }, { id: "naum", nome: "Naum", caps: 3 }, 
           { id: "habacuque", nome: "Habacuque", caps: 3 }, { id: "sofonias", nome: "Sofonias", caps: 3 }, 
           { id: "ageu", nome: "Ageu", caps: 2 }, { id: "zacarias", nome: "Zacarias", caps: 14 }, 
-          { id: "malaquias", nome: "Malaquias", caps: 4 }, { id: "mateus", nome: "Mateus", caps: 28 }, 
-          { id: "marcos", nome: "Marcos", caps: 16 }, { id: "lucas", nome: "Lucas", caps: 24 }, 
-          { id: "joao", nome: "João", caps: 21 }, { id: "atos", nome: "Atos", caps: 28 }, 
-          { id: "romanos", nome: "Romanos", caps: 16 }, { id: "1corintios", nome: "1 Coríntios", caps: 16 }, 
-          { id: "2corintios", nome: "2 Coríntios", caps: 13 }, { id: "galatas", nome: "Gálatas", caps: 6 }, 
-          { id: "efesios", nome: "Efésios", caps: 6 }, { id: "filipenses", nome: "Filipenses", caps: 4 }, 
-          { id: "colossenses", nome: "Colossenses", caps: 4 }, { id: "1tessalonicenses", nome: "1 Tessalonicenses", caps: 5 }, 
-          { id: "2tessalonicenses", nome: "2 Tessalonicenses", caps: 3 }, { id: "1timoteo", nome: "1 Timóteo", caps: 6 }, 
-          { id: "2timoteo", nome: "2 Timóteo", caps: 4 }, { id: "tito", nome: "Tito", caps: 3 }, 
-          { id: "filemom", nome: "Filemom", caps: 1 }, { id: "hebreus", nome: "Hebreus", caps: 13 }, 
-          { id: "tiago", nome: "Tiago", caps: 5 }, { id: "1pedro", nome: "1 Pedro", caps: 5 }, 
-          { id: "2pedro", nome: "2 Pedro", caps: 3 }, { id: "1joao", nome: "1 João", caps: 5 }, 
-          { id: "2joao", nome: "2 João", caps: 1 }, { id: "3joao", nome: "3 João", caps: 1 }, 
-          { id: "judas", nome: "Judas", caps: 1 }, { id: "apocalipse", nome: "Apocalipse", caps: 22 }
+          { id: "malaquias", nome: "Malaquias", caps: 4 },
+          { id: "mateus", nome: "Mateus", caps: 28 }, { id: "marcos", nome: "Marcos", caps: 16 }, 
+          { id: "lucas", nome: "Lucas", caps: 24 }, { id: "joao", nome: "João", caps: 21 }, 
+          { id: "atos", nome: "Atos", caps: 28 }, { id: "romanos", nome: "Romanos", caps: 16 }, 
+          { id: "1corintios", nome: "1 Coríntios", caps: 16 }, { id: "2corintios", nome: "2 Coríntios", caps: 13 }, 
+          { id: "galatas", nome: "Gálatas", caps: 6 }, { id: "efesios", nome: "Efésios", caps: 6 }, 
+          { id: "filipenses", nome: "Filipenses", caps: 4 }, { id: "colossenses", nome: "Colossenses", caps: 4 }, 
+          { id: "1tessalonicenses", nome: "1 Tessalonicenses", caps: 5 }, { id: "2tessalonicenses", nome: "2 Tessalonicenses", caps: 3 }, 
+          { id: "1timoteo", nome: "1 Timóteo", caps: 6 }, { id: "2timoteo", nome: "2 Timóteo", caps: 4 }, 
+          { id: "tito", nome: "Tito", caps: 3 }, { id: "filemon", nome: "Filemom", caps: 1 }, 
+          { id: "hebreus", nome: "Hebreus", caps: 13 }, { id: "tiago", nome: "Tiago", caps: 5 }, 
+          { id: "1pedro", nome: "1 Pedro", caps: 5 }, { id: "2pedro", nome: "2 Pedro", caps: 3 }, 
+          { id: "1joao", nome: "1 João", caps: 5 }, { id: "2joao", nome: "2 João", caps: 1 }, 
+          { id: "3joao", nome: "3 João", caps: 1 }, { id: "judas", nome: "Judas", caps: 1 }, 
+          { id: "apocalipse", nome: "Apocalipse", caps: 22 }
       ];
 
-      function preencherLivros() {
+      function abrirBiblia() {
+          document.getElementById('painel-biblia').classList.add('aberto');
+          const overlay = document.getElementById('biblia-overlay');
+          overlay.style.display = 'block';
+          setTimeout(() => overlay.style.opacity = '1', 10);
+          iniciarBiblia(); 
+      }
+
+      function fecharBiblia() {
+          document.getElementById('painel-biblia').classList.remove('aberto');
+          const overlay = document.getElementById('biblia-overlay');
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.style.display = 'none', 300);
+      }
+
+      function iniciarBiblia() {
           const selectLivro = document.getElementById('biblia-livro');
-          selectLivro.innerHTML = '<option value="">Livro</option>';
+          if(selectLivro.options.length > 0) return; // Evita recarregar opções
+          selectLivro.innerHTML = '<option value="">Selecione o Livro</option>';
           dadosBiblia.forEach((livro, index) => {
               let option = document.createElement('option');
               option.value = livro.id;
               option.text = livro.nome;
-              if (index >= 39) option.style.fontWeight = "bold"; // NT
+              if (index >= 39) option.style.fontWeight = "bold"; 
               selectLivro.appendChild(option);
           });
       }
@@ -608,38 +607,21 @@
           const selectLivro = document.getElementById('biblia-livro');
           const selectCapitulo = document.getElementById('biblia-capitulo');
           selectCapitulo.innerHTML = '<option value="">Capítulo</option>';
-          if (selectLivro.value === "") {
-              selectCapitulo.disabled = true;
-              return;
-          }
-          const livro = dadosBiblia.find(l => l.id === selectLivro.value);
-          for (let i = 1; i <= livro.caps; i++) {
+          if (selectLivro.value === "") { selectCapitulo.disabled = true; return; }
+          const livroEscolhido = dadosBiblia.find(l => l.id === selectLivro.value);
+          for (let i = 1; i <= livroEscolhido.caps; i++) {
               let option = document.createElement('option');
-              option.value = i;
-              option.text = i;
-              selectCapitulo.appendChild(option);
+              option.value = i; option.text = i; selectCapitulo.appendChild(option);
           }
           selectCapitulo.disabled = false;
       }
 
-      function abrirBiblia() {
-          document.getElementById('biblia-overlay').style.display = 'block';
-          setTimeout(() => document.getElementById('biblia-overlay').style.opacity = '1', 10);
-          document.getElementById('painel-biblia').classList.add('aberto');
-      }
-
-      function fecharBiblia() {
-          document.getElementById('biblia-overlay').style.opacity = '0';
-          setTimeout(() => document.getElementById('biblia-overlay').style.display = 'none', 300);
-          document.getElementById('painel-biblia').classList.remove('aberto');
-      }
-
-      async function lerCapitulo() {
+      async function carregarCapitulo() {
           const selectLivro = document.getElementById('biblia-livro');
-          const livro = selectLivro.value;
-          const capitulo = document.getElementById('biblia-capitulo').value;
+          const inputCapitulo = document.getElementById('biblia-capitulo');
           const conteudo = document.getElementById('biblia-conteudo');
-
+          
+          const livro = selectLivro.value; const capitulo = inputCapitulo.value; 
           if (!livro || !capitulo) { alert("Por favor, selecione um livro e o capítulo."); return; }
 
           conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Lendo do GitHub...</p>";
@@ -659,7 +641,7 @@
                   conteudo.innerHTML += blocoHTML;
               });
           } catch (e) {
-              conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;">Erro ao carregar da base. Tente novamente mais tarde.</p>`;
+              conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;">Erro ao carregar do GitHub.</p>`;
           }
       }
     </script>
