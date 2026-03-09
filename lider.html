@@ -879,18 +879,25 @@ function renderizarAgenda(lista) {
          const btn = document.getElementById('btnSalvarAgenda'); btn.disabled = true; btn.innerText="Salvando...";
          
          const d = { 
-            data_evento: this.dataEvento.value, descricao: this.descricao.value, 
-            observacao: this.observacao.value, tipo: this.tipo.value, categoria: this.categoria.value 
+            dataEvento: this.dataEvento.value, 
+            descricao: this.descricao.value, 
+            observacao: this.observacao.value, 
+            tipo: this.tipo.value, 
+            categoria: this.categoria.value 
          };
          
          try {
-             const resposta = await salvarSupabase('agenda', d);
+             // Chamando o Google Script de volta em vez do Supabase
+             const resposta = await fetchGoogle('salvarAgenda', d);
              alert(resposta);
              this.reset();
              mudarSecao('agenda');
              carregarTudo();
-         } catch(err) { alert(err.message); } 
-         finally { btn.disabled = false; btn.innerText="Salvar Evento"; }
+         } catch(err) {
+             console.log(err);
+         } finally {
+             btn.disabled = false; btn.innerText="Salvar Evento";
+         }
       };
 
       // SALVAR SUGESTÃO/ORAÇÃO
