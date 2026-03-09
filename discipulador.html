@@ -65,7 +65,8 @@
       .table-clean th { background: var(--primary); color: white; padding: 12px; text-align: left; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
       .table-clean td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.9rem; font-weight: 500; }
       .table-clean tr:nth-child(even) { background-color: #fcfcfc; }
-      .btn-icon { background: #f1f5f9; border: none; padding: 8px; border-radius: 6px; color: #475569; cursor: pointer; transition: 0.2s; }
+      /* BOTÕES DISCRETOS ORIGINAIS */
+      .btn-icon { background: #f1f5f9; border: none; padding: 8px; border-radius: 6px; color: #475569; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
       .btn-icon:hover { background: #e2e8f0; color: var(--primary); }
 
       /* RELATÓRIOS LISTA */
@@ -410,24 +411,30 @@
             let nasc = m.nascimento ? `<span style="font-size:0.8rem; margin-left:auto; color:#999;"><i class="fas fa-birthday-cake"></i> ${formatData(m.nascimento)}</span>` : '';
             let bDiz = (String(m.dizimista).toLowerCase() === 'sim' || m.dizimista === true) ? `<span style="font-size:0.7rem; margin-left:5px; color:#166534; background:#dcfce7; padding:2px 6px; border-radius:4px;">Dizimista</span>` : '';
 
-            // Botões de Ação
+            // Botões de Ação (Padrão Original Discreto)
             let acoesHTML = '';
             if(!isArquivado) {
                 acoesHTML = `
-                <div class="card-actions">
-                    <button onclick="abrirEditarMembro('${m.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                    <button onclick="arquivarMembro('${m.id}')" class="btn-action btn-archive"><i class="fas fa-box"></i> Arquivar</button>
+                <div style="display:flex; gap:5px;">
+                    <button onclick="abrirEditarMembro('${m.id}')" class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button onclick="arquivarMembro('${m.id}')" class="btn-icon" title="Arquivar"><i class="fas fa-archive"></i></button>
                 </div>`;
             } else {
                 acoesHTML = `
-                <div class="card-actions">
-                    <button onclick="restaurarMembro('${m.id}')" class="btn-action btn-restore"><i class="fas fa-undo"></i> Restaurar</button>
+                <div style="display:flex; gap:5px;">
+                    <button onclick="restaurarMembro('${m.id}')" class="btn-icon" title="Restaurar"><i class="fas fa-undo"></i></button>
                 </div>`;
             }
 
             return `
               <div class="member-card" data-nome="${nome.toLowerCase()}" data-celula="${celula.toLowerCase()}">
-                 <div class="card-header"><h4 class="card-name">${nome}</h4><span class="cat-badge">${categoria}</span></div>
+                 <div class="card-header">
+                     <div style="display:flex; flex-direction: column; gap: 4px;">
+                         <h4 class="card-name">${nome}</h4>
+                         <span class="cat-badge" style="width: fit-content;">${categoria}</span>
+                     </div>
+                     ${acoesHTML}
+                 </div>
                  <div class="card-info" style="flex-wrap: wrap;"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${bDiz} ${nasc}</div>
                  <div class="status-row">
                     <div class="status-pill ${check(m.batizado)}">Batismo</div>
@@ -435,7 +442,6 @@
                     <div class="status-pill ${check(m.ctl)}">CTL</div>
                     <div class="status-pill ${check(m.encontro)}">Encontro</div>
                  </div>
-                 ${acoesHTML}
                  ${!isArquivado ? btnZap : ''}
               </div>`;
          };
