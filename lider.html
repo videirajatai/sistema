@@ -398,9 +398,6 @@
       // ==========================================
       // CARREGAMENTO INICIAL
       // ==========================================
-      // ==========================================
-      // CARREGAMENTO INICIAL
-      // ==========================================
       async function carregarTudo() {
         const icon = document.getElementById('iconRefresh'); 
         if(icon) icon.classList.add('fa-spin');
@@ -427,7 +424,27 @@
 
         try {
             listaPalavras = await lerSupabase('palavras');
-            listaPalavras.reverse(); 
+            
+            // Aqui a mágica acontece: ele lê as datas, converte e ordena da maior (mais nova) para a menor (mais velha)
+            listaPalavras.sort((a, b) => {
+                const pegarTempo = (d) => {
+                    if (!d) return 0;
+                    // Se for formato YYYY-MM-DD (Padrão banco de dados)
+                    if (d.includes('-')) { 
+                        const p = d.split('-'); 
+                        return new Date(p[0], p[1]-1, p[2]).getTime(); 
+                    }
+                    // Se for formato DD/MM/YYYY (Padrão brasileiro)
+                    if (d.includes('/')) { 
+                        const p = d.split('/'); 
+                        return new Date(p[2], p[1]-1, p[0]).getTime(); 
+                    }
+                    return new Date(d).getTime();
+                };
+                
+                return pegarTempo(b.data) - pegarTempo(a.data);
+            });
+
             renderizarPalavras(listaPalavras);
         } catch (e) { console.error("Erro Palavras Supabase:", e); }
 
