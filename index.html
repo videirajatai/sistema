@@ -144,7 +144,13 @@
                                     // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos (ex: "Líder" vira "lider")
                     const categoria = (dadosUsuario.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 
-                    registrarLog(user, nomeReal);
+                    // ---> CHAMA O LOG DE LOGIN AQUI <---
+                    registrarLog(user, nomeReal, "Fez login no sistema");
+
+                    // Salva os dados de sessão
+                    sessionStorage.setItem('usuarioLogado', nomeReal);
+                    sessionStorage.setItem('loginDigitado', user); // <--- ADD ISSO PARA USARMOS NAS OUTRAS TELAS
+                    sessionStorage.setItem('urlApi', urlBackend);
                     // Mapeia quais painéis o usuário pode acessar
                     let paginas = [];
                     
@@ -245,14 +251,15 @@
 
 
 // FUNÇÃO PARA SALVAR O LOG NO SUPABASE SILENCIOSAMENTE
-        async function registrarLog(usuarioDigitado, nomeReal) {
-            // Pega a data e hora atual no formato do Brasil
+        // FUNÇÃO PARA SALVAR O LOG NO SUPABASE (AGORA COM A AÇÃO)
+        async function registrarLog(usuarioDigitado, nomeReal, acaoRealizada) {
             const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
             
             const dadosLog = {
                 datahora: dataHoraAtual,
                 usuario: usuarioDigitado,
-                nomelider: nomeReal
+                nomelider: nomeReal,
+                acao: acaoRealizada // <--- Coluna nova aqui!
             };
 
             try {
@@ -266,9 +273,7 @@
                     },
                     body: JSON.stringify(dadosLog)
                 });
-            } catch (e) {
-                console.error("Aviso: Falha ao registrar log de acesso.", e);
-            }
+            } catch (e) { console.error("Aviso: Falha ao registrar log.", e); }
         }
 
         
@@ -288,6 +293,7 @@
     </script>
 </body>
 </html>
+
 
 
 
