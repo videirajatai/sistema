@@ -1189,6 +1189,33 @@
               conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;">Erro ao carregar o capítulo.</p>`;
           }
       }
+
+      // FUNÇÃO DE LOG GLOBAL PARA OS PAINÉIS
+      async function registrarLogAcao(acaoRealizada) {
+          const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
+          const user = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+          const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
+          
+          const dadosLog = {
+              datahora: dataHoraAtual,
+              usuario: user,
+              nomelider: nomeReal,
+              acao: acaoRealizada
+          };
+
+          try {
+              await fetch(`${SB_URL}/rest/v1/log`, {
+                  method: 'POST',
+                  headers: {
+                      'apikey': SB_KEY,
+                      'Authorization': `Bearer ${SB_KEY}`,
+                      'Content-Type': 'application/json',
+                      'Prefer': 'return=minimal'
+                  },
+                  body: JSON.stringify(dadosLog)
+              });
+          } catch (e) { console.error("Erro no log:", e); }
+      }
     </script>
   </body>
 </html>
