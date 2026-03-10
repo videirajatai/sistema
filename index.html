@@ -111,12 +111,19 @@
             const erro = document.getElementById('mensagem-erro');
             const btn = document.getElementById('btn-entrar');
             
-            if(!user || !pass) { erro.innerText = "⚠️ Preencha usuário e senha."; erro.style.display = 'block'; return; }
+            // Validação inicial
+            if(!user || !pass) { 
+                erro.innerText = "⚠️ Preencha usuário e senha."; 
+                erro.style.display = 'block'; 
+                return; 
+            }
 
-            btn.innerText = "Autenticando..."; btn.disabled = true; erro.style.display = 'none';
+            btn.innerText = "Autenticando..."; 
+            btn.disabled = true; 
+            erro.style.display = 'none';
 
             try {
-                // Consulta no Supabase validando usuário e senha diretamente no banco
+                // Consulta no Supabase validando usuário e senha
                 let resposta = await fetch(`${SB_URL}/rest/v1/usuarios?usuario=eq.${encodeURIComponent(user)}&senha=eq.${encodeURIComponent(pass)}&select=*`, {
                     method: 'GET',
                     headers: {
@@ -125,20 +132,29 @@
                     }
                 });
                 
-                // Se a senha for digitada com letras (e a coluna for int8), o Supabase retorna erro 400. Tratamos isso.
                 if (!resposta.ok) throw new Error("Credenciais inválidas");
 
                 let resultado = await resposta.json();
 
-                // Se encontrou 1 usuário correspondente
+                // Se encontrou o usuário
                 if (resultado && resultado.length > 0) {
                     const dadosUsuario = resultado[0];
                     const nomeReal = dadosUsuario.nome;
-                    const categoria = (dadosUsuario.categoria || "").toLowerCase();
+                    
+                    // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos (ex: "Líder" vira "lider")
+                    const categoria = (dadosUsuario.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 
-                    // Mapeia quais painéis o usuário pode acessar baseado na sua Categoria
+                    // Mapeia quais painéis o usuário pode acessar
                     let paginas = [];
-                    if (categoria === 'pastor' || categoria === 'admin') {
+                    
+                    if (categoria === 'administrador') {
+                        paginas = [
+                            { nome: "Painel do Pastor", url: "pastor" },
+                            { nome: "Painel Discipulador", url: "discipulador" },
+                            { nome: "Painel do Líder", url: "lider" },
+                            { nome: "Painel Financeiro", url: "financeiro" } // Ajuste o nome do arquivo se necessário
+                        ];
+                    } else if (categoria === 'pastor') {
                         paginas = [
                             { nome: "Painel do Pastor", url: "pastor" },
                             { nome: "Painel Discipulador", url: "discipulador" },
@@ -149,14 +165,18 @@
                             { nome: "Painel Discipulador", url: "discipulador" },
                             { nome: "Painel do Líder", url: "lider" }
                         ];
+                    } else if (categoria === 'tesoureiro') {
+                        paginas = [
+                            { nome: "Painel Financeiro", url: "financeiro" } // Ajuste o nome do arquivo se necessário
+                        ];
                     } else {
-                        // Se for líder ou qualquer outra coisa não mapeada, cai no painel base
+                        // lider ou qualquer outra coisa cai aqui
                         paginas = [
                             { nome: "Painel do Líder", url: "lider" }
                         ];
                     }
                     
-                    // Salva os dados de sessão (inclusive a URL do Google pra agenda continuar funcionando)
+                    // Salva os dados de sessão
                     sessionStorage.setItem('usuarioLogado', nomeReal);
                     sessionStorage.setItem('urlApi', urlBackend);
                     
@@ -165,10 +185,8 @@
 
                     // Redirecionamento ou Tela de Escolha
                     if (paginas.length === 1) {
-                        // Se tem só 1 permissão, pula o menu de escolha e vai direto
                         entrarNoPainel(nomeReal, paginas[0].url);
                     } else {
-                        // Se tem mais de 1, exibe os botões para ele escolher
                         document.getElementById('area-form').style.display = 'none';
                         document.getElementById('area-escolha').style.display = 'block';
                         document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
@@ -185,19 +203,21 @@
                     }
                     
                 } else {
-                    // Array vazio = usuário ou senha não encontrados
+                    // Array vazio = usuário ou senha incorretos
                     erro.innerText = "⚠️ Usuário ou senha incorretos.";
                     erro.style.display = 'block';
                     document.getElementById('senha-input').value = "";
                     document.getElementById('senha-input').focus();
-                    btn.innerText = "Entrar no Sistema"; btn.disabled = false;
+                    btn.innerText = "Entrar no Sistema"; 
+                    btn.disabled = false;
                 }
             } catch (e) {
-                // Erro de internet ou erro de tipo de dado (int8 vs texto)
+                // Trata o erro se a senha for digitada com letras num campo int8, ou sem internet
                 erro.innerText = "⚠️ Usuário ou senha incorretos.";
                 erro.style.display = 'block';
                 document.getElementById('senha-input').value = "";
-                btn.innerText = "Entrar no Sistema"; btn.disabled = false;
+                btn.innerText = "Entrar no Sistema"; 
+                btn.disabled = false;
             }
         }
 
@@ -235,3 +255,4 @@
     </script>
 </body>
 </html>
+
