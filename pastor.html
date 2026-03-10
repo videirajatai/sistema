@@ -581,14 +581,13 @@
         </div>
 
         <div class="biblia-controles">
-            <select id="biblia-livro" onchange="atualizarCapitulos()">
-                <option value="">Selecione o Livro</option>
-            </select>
-            <select id="biblia-capitulo" disabled>
-                <option value="">Capítulo</option>
-            </select>
-            <button class="btn-ler-ouro" onclick="carregarCapitulo()">Ler</button>
-        </div>
+          <select id="biblia-livro" onchange="atualizarCapitulos()">
+              <option value="">Selecione o Livro</option>
+          </select>
+          <select id="biblia-capitulo" onchange="carregarCapitulo()" disabled>
+              <option value="">Capítulo</option>
+          </select>
+      </div>
 
         <div id="biblia-conteudo" class="biblia-texto-area">
             <p class="biblia-placeholder">Selecione um livro e capítulo para começar a leitura.</p>
@@ -1151,6 +1150,9 @@
               }
               selectCapitulo.innerHTML = htmlCaps;
               selectCapitulo.disabled = false;
+              
+              // Carrega o capítulo 1 automaticamente ao trocar de livro
+              carregarCapitulo();
           }
       }
 
