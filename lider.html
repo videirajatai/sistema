@@ -488,8 +488,22 @@
       function renderizarCelulas(lista) {
          const tb = document.getElementById('corpoCelulas'); tb.innerHTML = '';
          if(!lista || !lista.length) { tb.innerHTML='<tr><td colspan="3" style="text-align:center;">Nenhuma célula encontrada.</td></tr>'; return; }
+         
          lista.forEach(c => {
-            tb.innerHTML += `<tr><td><strong>${c.nome || ''}</strong></td><td>${c.lider || ''}</td><td>${c.dia_horario || ''}</td></tr>`;
+            // Cria a linha do endereço com um ícone, se existir o dado no banco
+            let enderecoHTML = c.endereco 
+                ? `<div style="font-size: 0.75rem; color: #888; margin-top: 3px;"><i class="fas fa-map-marker-alt" style="color: #64748b;"></i> ${c.endereco}</div>` 
+                : `<div style="font-size: 0.75rem; color: #ccc; margin-top: 3px;">Sem endereço cadastrado</div>`;
+                
+            tb.innerHTML += `
+            <tr>
+                <td>
+                    <div style="font-weight: 700; color: #333;">${c.nome || ''}</div>
+                    ${enderecoHTML}
+                </td>
+                <td style="color: #444;">${c.lider || ''}</td>
+                <td style="color: #444;">${c.dia_horario || ''}</td>
+            </tr>`;
          });
       }
 
