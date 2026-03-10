@@ -587,12 +587,12 @@
 
     <script>
       // ==========================================
-      // CONFIGURAÇÃO SUPABASE
+      // CONFIGURAÇÃO supabaseClient
       // ==========================================
-      // Insira as credenciais do seu projeto Supabase aqui
+      // Insira as credenciais do seu projeto supabaseClient aqui
       const supabaseUrl = 'https://ryvfogmfpjyamgqsltks.supabase.co';
       const supabaseKey = 'sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q';
-      const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
       // Apenas para as funções que não poderiam ser alteradas (ex: Agenda)
       const API_URL = sessionStorage.getItem('urlApi'); 
@@ -621,12 +621,12 @@
           }
       }
 
-      // --- CARREGAMENTO INICIAL COM SUPABASE ---
+      // --- CARREGAMENTO INICIAL COM supabaseClient ---
       async function carregarTudo() {
         const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
         try {
-            const { data: memData } = await supabase.from('membros').select('*').eq('arquivado', false);
-            const { data: celData } = await supabase.from('celulas').select('*');
+            const { data: memData } = await supabaseClient.from('membros').select('*').eq('arquivado', false);
+            const { data: celData } = await supabaseClient.from('celulas').select('*');
 
             // Mapeamento para o formato original de arrays
             dadosMembros = memData ? memData.map(m => [m.id, m.nome, m.categoria, m.celula, m.telefone, '', m.batizado, m.cursao, m.ctl, m.encontro, m.nascimento]) : [];
@@ -691,12 +691,12 @@
         else { document.getElementById('secao-'+s).classList.remove('hidden'); const btn = document.getElementById('btn-'+s); if(btn) btn.classList.add('active'); }
       }
 
-      // --- PALAVRAS (Supabase) ---
+      // --- PALAVRAS (supabaseClient) ---
       async function carregarPalavras() {
          mudarSecao('palavras');
          const div = document.getElementById('listaPalavras'); div.innerHTML = '<p style="text-align:center;">Carregando...</p>';
          try { 
-             const { data } = await supabase.from('palavras').select('*').order('id', { ascending: false });
+             const { data } = await supabaseClient.from('palavras').select('*').order('id', { ascending: false });
              listaPalavras = data ? data.map(p => [p.data, p.tema, p.texto, p.link]) : []; 
              renderizarPalavras(listaPalavras); 
          } catch(e){}
@@ -724,30 +724,30 @@
           e.preventDefault(); const btn = document.getElementById('btnSalvarPalavra'); btn.disabled = true; btn.innerText = "Salvando...";
           try {
               const dados = { data: this.data.value, tema: this.tema.value, texto: this.texto.value, link: this.link.value };
-              await supabase.from('palavras').insert([dados]);
+              await supabaseClient.from('palavras').insert([dados]);
               alert("Publicado com sucesso!"); carregarPalavras();
           } finally { btn.disabled = false; btn.innerText = "Publicar"; }
       };
 
       
-      // --- SUGESTOES (Supabase) ---
+      // --- SUGESTOES (supabaseClient) ---
       async function carregarSugestoes() {
         mudarSecao('sugestoes'); const corpo = document.getElementById('corpoSugestoes'); corpo.innerHTML = '<tr><td colspan="2" align="center">Carregando...</td></tr>';
         try {
-            const { data } = await supabase.from('sugestoes').select('*').order('id', { ascending: false });
+            const { data } = await supabaseClient.from('sugestoes').select('*').order('id', { ascending: false });
             corpo.innerHTML = '';
             if(!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="2" align="center">Vazio.</td></tr>'; return; }
             data.forEach(row => { let d = String(row.data); if(d.length > 16) d = d.substring(0, 16); corpo.innerHTML += `<tr><td style="width:130px; font-size:0.8rem; color:#666;">${d}</td><td style="font-weight:500;">${row.mensagem}</td></tr>`; });
         } catch(e){} 
       }
 
-      // --- RELATÓRIOS (Supabase) ---
+      // --- RELATÓRIOS (supabaseClient) ---
       async function carregarRelatorios() {
         mudarSecao('relatorios'); const divLista = document.getElementById('listaRelatorios'); divLista.innerHTML = '<p align="center">Carregando...</p>';
         const sel = document.getElementById('filtroRelCelula'); sel.innerHTML = '<option value="">Todas as Células</option>';
         dadosCelulas.forEach(c => sel.innerHTML += `<option value="${c[0]}">${c[0]}</option>`);
         try { 
-            const { data } = await supabase.from('relatorios').select('*').order('id', { ascending: false });
+            const { data } = await supabaseClient.from('relatorios').select('*').order('id', { ascending: false });
             dadosRelatorios = data ? data.map(r => [r.data, r.celula, r.lista, r.gelo, r.palavra, '', r.lanche, r.louvor, r.obs]) : [];
             filtrarRelatorios(); 
         } catch(e){}
@@ -773,11 +773,11 @@
          document.getElementById('relObs').innerText = item[8] || "Sem observações."; mudarSecao('modal-ver-relatorio');
       }
 
-      // --- ARQUIVO (Supabase) ---
+      // --- ARQUIVO (supabaseClient) ---
       async function carregarArquivados() { 
         mudarSecao('arquivo'); const corpo = document.getElementById('corpoArquivo'); corpo.innerHTML = '<tr><td colspan="3" align="center">Carregando...</td></tr>';
         try {
-            const { data } = await supabase.from('membros').select('id, nome, nascimento').eq('arquivado', true);
+            const { data } = await supabaseClient.from('membros').select('id, nome, nascimento').eq('arquivado', true);
             corpo.innerHTML=''; 
             if (!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="3" align="center">Vazio.</td></tr>'; return; }
             data.forEach(r => { 
@@ -787,10 +787,10 @@
         } catch(e){}
       }
 
-      // --- FINANCEIRO BÁSICO (Supabase) ---
+      // --- FINANCEIRO BÁSICO (supabaseClient) ---
       async function carregarFinanceiro() { 
         try { 
-            const { data } = await supabase.from('financeiro').select('*').order('id', { ascending: false });
+            const { data } = await supabaseClient.from('financeiro').select('*').order('id', { ascending: false });
             dadosFinanceiros = data ? data.map(f => [f.data, f.tipo, f.categoria, f.descricao, f.valor]) : [];
             recalcularFinanceiro(); 
         } catch(e){} 
@@ -807,13 +807,13 @@
           let desc = (this.tipo.value==='Entrada' && this.categoria.value==='Dízimo') ? this.membro.value : this.descricao.value; 
           const d = { tipo: this.tipo.value, categoria: this.categoria.value, descricao: desc, valor: this.valor.value, data: this.data.value, metodo: this.metodo.value }; 
           try {
-              await supabase.from('financeiro').insert([d]);
+              await supabaseClient.from('financeiro').insert([d]);
               alert("Registrado!"); this.reset(); document.getElementById('finData').valueAsDate = new Date(); 
               carregarFinanceiro(); atualizarCategorias(); 
           } finally { btn.disabled=false; btn.innerText="Registrar Movimentação"; }
       }
 
-      // --- UTILITÁRIOS E SUBMITS (Supabase) ---
+      // --- UTILITÁRIOS E SUBMITS (supabaseClient) ---
       function filtrarMembros() { const b = document.getElementById('inputBusca').value.toLowerCase(), c = document.getElementById('filtroCelula').value.toLowerCase(); document.querySelectorAll('.member-card').forEach(card => { const match = card.getAttribute('data-nome').includes(b) && (c==="" || card.getAttribute('data-celula').includes(c)); card.style.display = match ? 'flex' : 'none'; }); }
       function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'), s3 = document.getElementById('celLider'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Todas</option>'; s3.innerHTML='<option value="">Selecione...</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; s2.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; }); lideres.forEach(l => s3.innerHTML += `<option value="${l}">${l}</option>`); }
       function editarMembro(id) { const m = dadosMembros.find(i => i[0] == id); if(!m) return; document.getElementById('idMembro').value = m[0]; document.getElementById('campoNome').value = m[1]; document.getElementById('campoNasc').value = m[10]; document.getElementById('campoTel').value = m[4]; document.getElementById('selectCelulas').value = m[3]; document.getElementById('campoCategoria').value = m[2]; document.getElementById('checkBat').checked = (m[6]==='Sim'); document.getElementById('checkCur').checked = (m[7]==='Sim'); document.getElementById('checkCtl').checked = (m[8]==='Sim'); document.getElementById('checkDiz').checked = (m[9]==='Sim'); mudarSecao('cadastro'); }
@@ -823,8 +823,8 @@
           e.preventDefault(); const id = document.getElementById('idMembro').value; const btn = document.getElementById('btnSalvar'); btn.disabled=true; btn.innerText="Salvando...";
           const d = { nome: this.nome.value, nascimento: this.nascimento.value, categoria: this.categoria.value, celula: this.celula.value, telefone: this.telefone.value, batizado: this.batizado.checked?"Sim":"Não", cursao: this.cursao.checked?"Sim":"Não", ctl: this.ctl.checked?"Sim":"Não", encontro: this.encontro.checked?"Sim":"Não", arquivado: false }; 
           try { 
-              if(id) await supabase.from('membros').update(d).eq('id', id);
-              else await supabase.from('membros').insert([d]);
+              if(id) await supabaseClient.from('membros').update(d).eq('id', id);
+              else await supabaseClient.from('membros').insert([d]);
               mudarSecao('lista'); carregarTudo(); 
           } finally { btn.disabled=false; btn.innerText="Salvar"; }
       };
@@ -838,20 +838,20 @@
           const nomeOrig = this.nomeOriginal.value;
           const dados = { nome: this.nome.value, lider: this.lider.value, dia: this.dia.value, endereco: this.endereco.value }; 
           try { 
-              if (nomeOrig) await supabase.from('celulas').update(dados).eq('nome', nomeOrig);
-              else await supabase.from('celulas').insert([dados]);
+              if (nomeOrig) await supabaseClient.from('celulas').update(dados).eq('nome', nomeOrig);
+              else await supabaseClient.from('celulas').insert([dados]);
               alert("Salvo com sucesso!"); mudarSecao('celulas'); carregarTudo(); 
           } finally { btn.disabled=false; btn.innerText="Salvar"; }
       };
       
       async function arquivar(id, n) { 
           if(confirm(`Arquivar ${n}?`)) { 
-              try{ await supabase.from('membros').update({arquivado: true}).eq('id', id); carregarTudo(); } catch(e){} 
+              try{ await supabaseClient.from('membros').update({arquivado: true}).eq('id', id); carregarTudo(); } catch(e){} 
           } 
       }
       async function restaurar(id) { 
           if(confirm("Restaurar?")) { 
-              try{ await supabase.from('membros').update({arquivado: false}).eq('id', id); mudarSecao('lista'); carregarTudo(); } catch(e){} 
+              try{ await supabaseClient.from('membros').update({arquivado: false}).eq('id', id); mudarSecao('lista'); carregarTudo(); } catch(e){} 
           } 
       }
       function filtrarTabela(id) { const b = document.getElementById('inputBuscaArquivo').value.toLowerCase(); const rows = document.getElementById('corpoArquivo').getElementsByTagName('tr'); for(let r of rows) r.style.display = r.innerText.toLowerCase().includes(b)?'':'none'; }
