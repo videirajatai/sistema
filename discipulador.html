@@ -262,6 +262,40 @@
     </div>
     
 
+<div id="modalAdicionarMembro" class="modal-overlay hidden" onclick="fecharModal('modalAdicionarMembro')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="btn-close-modal" onclick="fecharModal('modalAdicionarMembro')">&times;</button>
+            <h3 style="color:var(--primary); margin-top:10px; margin-bottom:20px;">Cadastrar Novo Membro</h3>
+            <form id="formAdicionarMembro">
+                <div class="form-group"><label>Nome</label><input type="text" id="addMembroNome" required></div>
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="addMembroNasc"></div>
+                    <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="addMembroTel" placeholder="Ex: 64999999999"></div>
+                </div>
+                <div class="form-group"><label>Célula</label><select id="addMembroCelula" required></select></div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="addMembroCat">
+                        <option>Frequentador</option>
+                        <option>Membro</option>
+                        <option>Líder</option>
+                    </select>
+                </div>
+                
+                <label style="margin-top:15px; display:block; font-weight:bold; color:var(--text-light);">Passos de Fé</label>
+                <div class="check-grid">
+                    <label class="check-option"><input type="checkbox" id="addMembroBatizado"><span class="checkmark">Batismo</span></label>
+                    <label class="check-option"><input type="checkbox" id="addMembroCursao"><span class="checkmark">Cursão</span></label>
+                    <label class="check-option"><input type="checkbox" id="addMembroCtl"><span class="checkmark">CTL</span></label>
+                    <label class="check-option"><input type="checkbox" id="addMembroEncontro"><span class="checkmark">Encontro</span></label>
+                </div>
+                <button type="submit" id="btnSalvarNovoMembro" class="btn-save">Cadastrar Membro</button>
+            </form>
+        </div>
+    </div>
+
+
+      
     <div id="modalEditarMembro" class="modal-overlay hidden" onclick="fecharModal('modalEditarMembro')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="btn-close-modal" onclick="fecharModal('modalEditarMembro')">&times;</button>
