@@ -398,6 +398,9 @@
       // ==========================================
       // CARREGAMENTO INICIAL
       // ==========================================
+      // ==========================================
+      // CARREGAMENTO INICIAL
+      // ==========================================
       async function carregarTudo() {
         const icon = document.getElementById('iconRefresh'); 
         if(icon) icon.classList.add('fa-spin');
@@ -405,10 +408,16 @@
         
         // 1. DADOS DO SUPABASE
         try {
-            dadosMembros = await lerSupabase('membros'); 
+            let todosMembros = await lerSupabase('membros'); 
+            
+            // FILTRO: Ignora quem estiver com "Sim" no arquivado, mantendo só os "Não" ou vazios
+            dadosMembros = todosMembros.filter(m => String(m.arquivado || '').toLowerCase() !== 'sim');
+            
             document.getElementById('badge-total-membros').innerText = dadosMembros.length;
             renderizarMembros(dadosMembros);
         } catch (e) { console.error("Erro Membros Supabase:", e); }
+
+        // ... resto da função continua igual
 
         try {
             dadosCelulas = await lerSupabase('celulas');
