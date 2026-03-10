@@ -886,14 +886,38 @@
       function editarCelula(index) { const c = dadosCelulas[index]; if(!c) return; document.getElementById('nomeOriginalCelula').value = c[0]; document.getElementById('celNome').value = c[0]; document.getElementById('celDia').value = c[2]; document.getElementById('celEndereco').value = c[3]; const s = document.getElementById('celLider'); s.innerHTML = '<option value="">Selecione...</option>'; lideres.forEach(l => { let opt = document.createElement('option'); opt.value = l; opt.text = l; if(l === c[1]) opt.selected = true; s.appendChild(opt); }); document.getElementById('tituloFormCelula').innerText = "Editar Célula"; mudarSecao('form-celula'); }
       
       document.getElementById('formCelula').onsubmit = async function(e) { 
-          e.preventDefault(); const btn = document.getElementById('btnSalvarCelula'); btn.disabled=true; btn.innerText="Salvando...";
-          const nomeOrig = this.nomeOriginal.value;
-          const dados = { nome: this.nome.value, lider: this.lider.value, dia_horario: this.dia_horario.value, endereco: this.endereco.value }; 
+          e.preventDefault(); 
+          const btn = document.getElementById('btnSalvarCelula'); 
+          btn.disabled = true; 
+          btn.innerText = "Salvando...";
+          
+          // Pegando os valores DIRETAMENTE pelos IDs do HTML (à prova de falhas)
+          const nomeOrig = document.getElementById('nomeOriginalCelula').value;
+          
+          const dados = { 
+              nome: document.getElementById('celNome').value, 
+              lider: document.getElementById('celLider').value, 
+              dia_horario: document.getElementById('celDia').value, // Lê do id "celDia" e salva em "dia_horario"
+              endereco: document.getElementById('celEndereco').value 
+          }; 
+          
           try { 
-              if (nomeOrig) await supabaseClient.from('celulas').update(dados).eq('nome', nomeOrig);
-              else await supabaseClient.from('celulas').insert([dados]);
-              alert("Salvo com sucesso!"); mudarSecao('celulas'); carregarTudo(); 
-          } finally { btn.disabled=false; btn.innerText="Salvar"; }
+              if (nomeOrig) {
+                  await supabaseClient.from('celulas').update(dados).eq('nome', nomeOrig);
+              } else {
+                  await supabaseClient.from('celulas').insert([dados]);
+              }
+              
+              alert("Salvo com sucesso!"); 
+              mudarSecao('celulas'); 
+              carregarTudo(); 
+          } catch(err) {
+              console.error(err);
+              alert("Erro ao salvar a célula: " + err.message);
+          } finally { 
+              btn.disabled = false; 
+              btn.innerText = "Salvar"; 
+          }
       };
       
      async function arquivar(id, n) { 
