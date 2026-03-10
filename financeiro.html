@@ -312,22 +312,19 @@
 
     let dadosFinanceiros = [];
     let dadosMembros = [];
-    let meuGrafico = null; // Variável para o Chart.js
+    let meuGrafico = null; 
 
     // ==========================================
     // INICIALIZAÇÃO
     // ==========================================
     window.onload = function() {
-        // Seta o mês e ano atual nos filtros
         const hoje = new Date();
         document.getElementById('filtroMes').value = hoje.getMonth();
         document.getElementById('filtroAno').value = hoje.getFullYear();
         
-        // Seta data de hoje no form de lançamento
         const inputData = document.getElementById('finData');
         if(inputData) inputData.valueAsDate = hoje;
 
-        // Data do rodapé de impressão
         document.getElementById('dataRodape').innerText = hoje.toLocaleDateString('pt-BR');
 
         carregarTudo();
@@ -337,20 +334,16 @@
     // NAVEGAÇÃO DA SIDEBAR
     // ==========================================
     function nav(secao, btn) {
-        // Esconde todas as views
         ['dashboard', 'lancamento', 'historico', 'dizimistas'].forEach(id => {
             const el = document.getElementById('view-' + id);
             if(el) el.classList.add('hidden');
         });
 
-        // Remove classe active dos botões
         document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
 
-        // Mostra a view clicada
         document.getElementById('view-' + secao).classList.remove('hidden');
         if(btn) btn.classList.add('active');
 
-        // Atualiza a página e o título
         document.getElementById('pageTitle').innerText = btn.innerText;
         if(secao === 'dashboard') atualizarGrafico();
     }
@@ -406,7 +399,6 @@
         dadosFinanceiros.forEach(l => { 
             let v = parseFloat(l[4] || 0); 
             
-            // Cálculos do Dashboard (respeitando o filtro de Mês/Ano)
             if(l[0].startsWith(filtroAtivo)) {
                 if(l[1] === 'Entrada') {
                     ent += v;
@@ -417,7 +409,6 @@
                 }
             }
 
-            // Tabela do Histórico
             if(corpo && l[0].startsWith(filtroAtivo)) {
                 let isEntrada = l[1] === 'Entrada';
                 let cor = isEntrada ? 'var(--success)' : 'var(--danger)'; 
@@ -439,7 +430,6 @@
             }
         }); 
 
-        // Atualiza os Cards
         document.getElementById('kpiSaldo').innerText = fmt(ent - sai); 
         document.getElementById('kpiEntradas').innerText = fmt(ent); 
         document.getElementById('kpiSaidas').innerText = fmt(sai); 
@@ -455,7 +445,6 @@
         const ctx = document.getElementById('financeChart');
         if(!ctx) return;
 
-        // Pega os últimos 6 meses (simplificado para o gráfico)
         const meses = []; const entData = []; const saiData = [];
         const hoje = new Date();
         
@@ -486,11 +475,7 @@
                     { label: 'Saídas', data: saiData, backgroundColor: '#c5221f', borderRadius: 4 }
                 ]
             },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' } },
-                scales: { y: { beginAtZero: true } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
         });
     }
 
@@ -553,7 +538,6 @@
             dropdown.style.display = 'none';
         }
     }
-    // Esconde o dropdown se clicar fora
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.search-wrapper')) {
             document.getElementById('dropdownMembros').style.display = 'none';
@@ -561,31 +545,37 @@
     });
 
     // ==========================================
-    // DIZIMISTAS E MODAL
+    // TABELA DIZIMISTAS E MODAL (EXATAMENTE COMO NO PRINT)
     // ==========================================
     function renderizarDizimistas() {
         const corpo = document.getElementById('tbDizimistas');
         if(!corpo) return;
         corpo.innerHTML = '';
         
-        dadosMembros.forEach(m => {
-            let isDizimista = (m[9] === 'Sim' || m[9] === 'sim');
-            let badge = isDizimista ? `<span style="background:var(--success-light);color:var(--success);padding:3px 8px;border-radius:6px;font-size:0.75rem;font-weight:bold;">Ativo</span>` : `<span style="background:#eee;color:#888;padding:3px 8px;border-radius:6px;font-size:0.75rem;">Inativo</span>`;
+        const fmt = (v) => parseFloat(v).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        
+        // Pega quem está marcado como dizimista OU já deu dízimo
+        const nomesQueDizimaram = new Set(dadosFinanceiros.filter(f => f[2] === 'Dízimo').map(f => f[3]));
+        let listaFiltrada = dadosMembros.filter(m => (m[9] === 'Sim' || m[9] === 'sim') || nomesQueDizimaram.has(m[1]));
+
+        listaFiltrada.forEach(m => {
+            let ultimoDizimo = '';
             
-            // Busca a data do último dízimo
-            let ultimoDizimo = 'Nenhum registro';
+            // Busca o último dízimo da pessoa
             let dFiltro = dadosFinanceiros.filter(f => f[1] === 'Entrada' && f[2] === 'Dízimo' && f[3] === m[1]);
             if(dFiltro.length > 0) {
-                let ut = dFiltro[0]; // Como já vem ordenado por data, o índice 0 é o mais recente
-                ultimoDizimo = `${ut[0].split('-').reverse().join('/')} - R$ ${ut[4]}`;
+                let ut = dFiltro[0]; // Como já vem ordenado pela data decrescente, o index 0 é o mais recente
+                ultimoDizimo = `${ut[0].split('-').reverse().join('/')} - ${fmt(ut[4])}`;
             }
 
             corpo.innerHTML += `
             <tr data-nome="${m[1].toLowerCase()}">
-                <td><strong>${m[1]}</strong><br>${badge}</td>
-                <td>${ultimoDizimo}</td>
+                <td style="font-weight: 700; color: #333;">${m[1]}</td>
+                <td style="font-weight: 700; color: #555;">${ultimoDizimo}</td>
                 <td align="center">
-                    <button onclick="abrirDizimista('${m[1]}')" class="btn-icon" title="Ver Histórico"><i class="fas fa-eye"></i></button>
+                    <button onclick="abrirDizimista('${m[1]}')" style="background:#d4af37; color:white; border:none; padding:6px 15px; border-radius:4px; font-weight:bold; cursor:pointer; font-size: 0.85rem;">
+                        <i class="fas fa-eye"></i> Detalhes
+                    </button>
                 </td>
             </tr>`;
         });
@@ -600,11 +590,47 @@
         }
     }
 
+    // Cartela do Histórico (Modal)
     function abrirDizimista(nome) {
         document.getElementById('modalNomeDizimista').innerText = nome;
-        document.getElementById('modalAnoDizimista').innerText = new Date().getFullYear();
+        
+        const anoFiltro = document.getElementById('filtroAno').value || new Date().getFullYear();
+        document.getElementById('modalAnoDizimista').innerText = anoFiltro;
+        
+        // Filtra dízimos da pessoa NO ANO selecionado
+        let dFiltro = dadosFinanceiros.filter(f => 
+            f[1] === 'Entrada' && 
+            f[2] === 'Dízimo' && 
+            f[3] === nome && 
+            f[0].startsWith(anoFiltro.toString())
+        );
+
+        let totalAno = 0;
+        let mesesValor = new Array(12).fill(0);
+
+        dFiltro.forEach(f => {
+            let valor = parseFloat(f[4]);
+            totalAno += valor;
+            let mesIndex = parseInt(f[0].split('-')[1]) - 1; // Transforma o mês 01-12 para index 0-11
+            mesesValor[mesIndex] += valor;
+        });
+
+        const fmt = (v) => v.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        document.getElementById('modalTotalValor').innerText = fmt(totalAno);
+
+        const nomesMeses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+        const grid = document.getElementById('gridMeses');
+        grid.innerHTML = '';
+
+        for(let i = 0; i < 12; i++) {
+            if(mesesValor[i] > 0) {
+                grid.innerHTML += `<div class="month-box paid">${nomesMeses[i]}<br>${fmt(mesesValor[i])}</div>`;
+            } else {
+                grid.innerHTML += `<div class="month-box">${nomesMeses[i]}-</div>`;
+            }
+        }
+
         document.getElementById('modalVisualDizimista').classList.remove('hidden');
-        // A lógica de preencher os bloquinhos do mês pode ser adicionada aqui
     }
 
     function fecharModalVisual(e) {
@@ -644,7 +670,6 @@
             registrarLogAcao(`Lançou ${dados.tipo} (${dados.categoria}): ${dados.descricao} - R$ ${dados.valor}`);
             alert("Lançamento salvo com sucesso!");
             
-            // Limpa o form
             this.reset();
             document.getElementById('finData').valueAsDate = new Date();
             document.getElementById('inputBuscaMembro').value = '';
@@ -698,7 +723,7 @@
     }
 
     // ==========================================
-    // EXCLUIR LANÇAMENTO
+    // EXCLUIR LANÇAMENTO E UTILITÁRIOS
     // ==========================================
     async function excluirFinanceiro(id, descricao) {
         if(confirm(`Tem certeza que deseja excluir o lançamento '${descricao}'?`)) {
@@ -710,9 +735,6 @@
         }
     }
 
-    // ==========================================
-    // UTILITÁRIOS (Ordenação e Logs)
-    // ==========================================
     function filtrarHistorico() { 
         let t = document.getElementById('buscaHist').value.toLowerCase(); 
         let trs = document.getElementById('tbHistorico').getElementsByTagName('tr'); 
@@ -723,7 +745,6 @@
 
     let asc = true;
     function ordenarTabela(colIndex, tipo) {
-        const tabela = document.getElementById("tabelaHistoricoMain");
         const tbody = document.getElementById("tbHistorico");
         const linhas = Array.from(tbody.querySelectorAll("tr"));
         
