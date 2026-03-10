@@ -626,25 +626,28 @@
       async function carregarTudo() {
         const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
         try {
-            // Adicionado um log de erro para ajudar a identificar bloqueios no Supabase
-            const { data: memData, error: memError } = await supabaseClient.from('membros').select('*').eq('arquivado', false);
+            // Buscando quem tem "Não", "nao", "Nao" ou vazio (null)
+            const { data: memData, error: memError } = await supabaseClient
+                .from('membros')
+                .select('*')
+                .or('arquivado.eq.Não,arquivado.eq.nao,arquivado.eq.Nao,arquivado.is.null');
+                
             if (memError) console.error("Erro ao carregar membros:", memError);
 
             const { data: celData } = await supabaseClient.from('celulas').select('*');
 
-            // Mapeamento EXATO para o formato original, protegido contra "null"
             dadosMembros = memData ? memData.map(m => [
                 m.id, 
                 m.nome || 'Sem Nome', 
                 m.categoria || 'Membro', 
                 m.celula || 'Sem Célula', 
                 m.telefone || '', 
-                m.tipo || '',       // Posição 5 (índice 5)
-                m.batizado || 'Não',// Posição 6
-                m.cursao || 'Não',  // Posição 7
-                m.ctl || 'Não',     // Posição 8
-                m.encontro || 'Não',// Posição 9
-                m.nascimento || ''  // Posição 10
+                m.tipo || '',       
+                m.batizado || 'Não',
+                m.cursao || 'Não',  
+                m.ctl || 'Não',     
+                m.encontro || 'Não',
+                m.nascimento || ''  
             ]) : [];
 
             dadosCelulas = celData ? celData.map(c => [c.nome, c.lider, c.dia, c.endereco]) : [];
@@ -793,7 +796,8 @@
       async function carregarArquivados() { 
         mudarSecao('arquivo'); const corpo = document.getElementById('corpoArquivo'); corpo.innerHTML = '<tr><td colspan="3" align="center">Carregando...</td></tr>';
         try {
-            const { data } = await supabaseClient.from('membros').select('id, nome, nascimento').eq('arquivado', true);
+            // Buscando quem tem "Sim" ou "sim"
+            const { data } = await supabaseClient.from('membros').select('id, nome, nascimento').or('arquivado.eq.Sim,arquivado.eq.sim');
             corpo.innerHTML=''; 
             if (!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="3" align="center">Vazio.</td></tr>'; return; }
             data.forEach(r => { 
@@ -836,13 +840,8 @@
       function novoCadastro() { document.getElementById('formMembro').reset(); document.getElementById('idMembro').value=''; mudarSecao('cadastro'); }
       
       document.getElementById('formMembro').onsubmit = async function(e) { 
-          e.preventDefault(); 
-          const id = document.getElementById('idMembro').value; 
-          const btn = document.getElementById('btnSalvar'); 
-          btn.disabled = true; 
-          btn.innerText = "Salvando...";
-
-          // Mapeando com as exatas colunas do seu Supabase
+          e.preventDefault(); const id = document.getElementById('idMembro').value; const btn = document.getElementById('btnSalvar'); btn.disabled=true; btn.innerText="Salvando...";
+          
           const d = { 
               nome: this.nome.value, 
               nascimento: this.nascimento.value || null, 
@@ -853,30 +852,14 @@
               cursao: this.cursao.checked ? "Sim" : "Não", 
               ctl: this.ctl.checked ? "Sim" : "Não", 
               encontro: this.encontro.checked ? "Sim" : "Não", 
-              dizimista: "Não", // Enviando padrão, já que não vi esse botão no seu HTML
-              tipo: "Padrão",   // Enviando padrão
-              arquivado: false 
+              arquivado: "Não" // <-- Passando a gravar "Não" em formato de texto
           }; 
-
+          
           try { 
-              if(id) {
-                  // Se tem ID, é uma edição
-                  const { error } = await supabaseClient.from('membros').update(d).eq('id', id);
-                  if (error) throw error;
-              } else {
-                  // Sem ID, é um novo cadastro
-                  const { error } = await supabaseClient.from('membros').insert([d]);
-                  if (error) throw error;
-              }
-              mudarSecao('lista'); 
-              carregarTudo(); 
-          } catch(err) {
-              console.error(err);
-              alert("Erro ao salvar: " + err.message);
-          } finally { 
-              btn.disabled = false; 
-              btn.innerText = "Salvar"; 
-          }
+              if(id) await supabaseClient.from('membros').update(d).eq('id', id);
+              else await supabaseClient.from('membros').insert([d]);
+              mudarSecao('lista'); carregarTudo(); 
+          } finally { btn.disabled=false; btn.innerText="Salvar"; }
       };
       
       function renderizarCelulas(l) { const c = document.getElementById('corpoCelulas'); c.innerHTML=''; l.forEach((i, x) => c.innerHTML += `<tr><td>${i[0]}</td><td>${i[1]}</td><td>${i[2]}</td><td align="center"><button onclick="editarCelula(${x})" style="background:none;border:none;color:orange;cursor:pointer;"><i class="fas fa-edit"></i></button></td></tr>`); }
@@ -894,14 +877,14 @@
           } finally { btn.disabled=false; btn.innerText="Salvar"; }
       };
       
-      async function arquivar(id, n) { 
+     async function arquivar(id, n) { 
           if(confirm(`Arquivar ${n}?`)) { 
-              try{ await supabaseClient.from('membros').update({arquivado: true}).eq('id', id); carregarTudo(); } catch(e){} 
+              try{ await supabaseClient.from('membros').update({arquivado: 'Sim'}).eq('id', id); carregarTudo(); } catch(e){} 
           } 
       }
       async function restaurar(id) { 
           if(confirm("Restaurar?")) { 
-              try{ await supabaseClient.from('membros').update({arquivado: false}).eq('id', id); mudarSecao('lista'); carregarTudo(); } catch(e){} 
+              try{ await supabaseClient.from('membros').update({arquivado: 'Não'}).eq('id', id); mudarSecao('lista'); carregarTudo(); } catch(e){} 
           } 
       }
       function filtrarTabela(id) { const b = document.getElementById('inputBuscaArquivo').value.toLowerCase(); const rows = document.getElementById('corpoArquivo').getElementsByTagName('tr'); for(let r of rows) r.style.display = r.innerText.toLowerCase().includes(b)?'':'none'; }
