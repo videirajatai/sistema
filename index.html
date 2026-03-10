@@ -140,10 +140,11 @@
                 if (resultado && resultado.length > 0) {
                     const dadosUsuario = resultado[0];
                     const nomeReal = dadosUsuario.nome;
-                    
-                    // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos (ex: "Líder" vira "lider")
+
+                                    // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos (ex: "Líder" vira "lider")
                     const categoria = (dadosUsuario.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 
+                    registrarLog(user, nomeReal);
                     // Mapeia quais painéis o usuário pode acessar
                     let paginas = [];
                     
@@ -241,6 +242,36 @@
             }, 400); 
         }
 
+
+
+// FUNÇÃO PARA SALVAR O LOG NO SUPABASE SILENCIOSAMENTE
+        async function registrarLog(usuarioDigitado, nomeReal) {
+            // Pega a data e hora atual no formato do Brasil
+            const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
+            
+            const dadosLog = {
+                datahora: dataHoraAtual,
+                usuario: usuarioDigitado,
+                nomelider: nomeReal
+            };
+
+            try {
+                await fetch(`${SB_URL}/rest/v1/log`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SB_KEY,
+                        'Authorization': `Bearer ${SB_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(dadosLog)
+                });
+            } catch (e) {
+                console.error("Aviso: Falha ao registrar log de acesso.", e);
+            }
+        }
+
+        
         function sair() {
             sessionStorage.clear();
             document.getElementById('area-escolha').style.display = 'none';
@@ -257,5 +288,6 @@
     </script>
 </body>
 </html>
+
 
 
