@@ -391,16 +391,15 @@
         <div id="tab-extrato" class="hidden"><table class="table-clean"><thead><tr><th>Dia</th><th>Descrição</th><th>Valor</th></tr></thead><tbody id="corpoFin"></tbody></table></div>
       </div>
 
-      <!-- <div id="secao-arquivo" class="hidden">
-        <h4 style="color:var(--text-light);">Arquivo Morto</h4>
-        <input type="text" id="inputBuscaArquivo" placeholder="🔍 Buscar..." onkeyup="filtrarTabela('tabelaArquivo')">
-        <table class="table-clean" id="tabelaArquivo"><thead><tr><th>Data</th><th>Nome</th><th>Ação</th></tr></thead><tbody id="corpoArquivo"></tbody></table>
-      </div> -->
-
       <div id="secao-arquivo" class="hidden">
-        <h4 style="color: #64748b; margin-top:0; margin-bottom: 15px;"><i class="fas fa-archive"></i> Membros Arquivados</h4>
-        <div id="corpoArquivo" class="member-grid"></div>
-      </div>
+        <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
+          <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin:0; color: var(--text-light);"><i class="fas fa-archive"></i> Arquivo Morto</h4>
+          </div>
+          <input type="text" id="inputBuscaArquivo" placeholder="🔍 Buscar no arquivo..." onkeyup="filtrarCardsArquivo()" style="margin:0; width: 100%;">
+        </div>
+        <div id="gridArquivo" class="member-grid"></div>
+      </div> 
 
       <div id="secao-sugestoes" class="hidden">
         <h4 style="color:#b58900;">Pedidos de Orações Recebidos</h4>
@@ -819,19 +818,52 @@
 
       // --- ARQUIVO (supabaseClient) ---
       async function carregarArquivados() { 
-        mudarSecao('arquivo'); const corpo = document.getElementById('corpoArquivo'); corpo.innerHTML = '<tr><td colspan="3" align="center">Carregando...</td></tr>';
+        mudarSecao('arquivo'); 
+        const grid = document.getElementById('gridArquivo'); 
+        grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">Carregando arquivo...</p>';
+        
         try {
-            // Buscando quem tem "Sim" ou "sim"
-            const { data } = await supabaseClient.from('membros').select('id, nome, nascimento').or('arquivado.eq.Sim,arquivado.eq.sim');
-            corpo.innerHTML=''; 
-            if (!data || data.length === 0) { corpo.innerHTML = '<tr><td colspan="3" align="center">Vazio.</td></tr>'; return; }
-            data.forEach(r => { 
-                let dataF = String(r.nascimento || '-'); if(dataF.length > 10) dataF = dataF.substring(0,10); 
-                corpo.innerHTML += `<tr><td>${dataF}</td><td>${r.nome}</td><td><button onclick="restaurar('${r.id}')" style="color:var(--success-text);border:none;background:none; cursor:pointer;"><i class="fas fa-undo"></i></button></td></tr>`; 
-            }); 
-        } catch(e){}
-      }
+            // Busca membros com status Sim ou sim no arquivado
+            const { data, error } = await supabaseClient
+                .from('membros')
+                .select('*')
+                .or('arquivado.eq.Sim,arquivado.eq.sim');
 
+            if (error) throw error;
+            grid.innerHTML = ''; 
+
+            if (!data || data.length === 0) { 
+                grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#999;">Nenhum membro arquivado.</p>'; 
+                return; 
+            }
+
+            data.forEach(m => {
+                const nasc = m.nascimento ? m.nascimento.split('-').reverse().slice(0,2).join('/') : '--/--';
+                
+                grid.innerHTML += `
+                <div class="member-card card-arquivo" data-nome="${m.nome.toLowerCase()}">
+                    <div class="card-header">
+                        <h4 class="card-name">${m.nome}</h4>
+                        <span class="cat-badge">${m.tipo || 'Membro'}</span>
+                    </div>
+                    <div class="card-info">
+                        <i class="fas fa-history" style="color:#bbb;"></i> Arquivado
+                        <span style="font-size:0.8rem; margin-left:auto; color:#999;">
+                            <i class="fas fa-birthday-cake"></i> ${nasc}
+                        </span>
+                    </div>
+                    <div class="card-actions" style="border-top: 1px dashed #eee; margin-top: 10px; padding-top: 10px;">
+                        <button onclick="restaurar('${m.id}')" class="btn-card" style="color:var(--success-text); background:#f0fdf4; border-color:#bbf7d0; width: 100%;">
+                            <i class="fas fa-undo"></i> Restaurar Membro
+                        </button>
+                    </div>
+                </div>`;
+            }); 
+        } catch(e) {
+            console.error(e);
+            grid.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar.</p>';
+        }
+      }
       // --- FINANCEIRO BÁSICO (supabaseClient) ---
       async function carregarFinanceiro() { 
         try { 
@@ -839,6 +871,13 @@
             dadosFinanceiros = data ? data.map(f => [f.data, f.tipo, f.categoria, f.descricao, f.valor]) : [];
             recalcularFinanceiro(); 
         } catch(e){} 
+      }
+      function filtrarCardsArquivo() {
+          const busca = document.getElementById('inputBuscaArquivo').value.toLowerCase();
+          document.querySelectorAll('.card-arquivo').forEach(card => {
+              const nome = card.getAttribute('data-nome');
+              card.style.display = nome.includes(busca) ? 'flex' : 'none';
+          });
       }
       function recalcularFinanceiro() { const mes = document.getElementById('filtroMesFin').value; let ent = 0, sai = 0, fil = []; dadosFinanceiros.forEach(r => { if(r[0].startsWith(mes)){ let v=parseFloat(r[4]); if(r[1]==='Entrada')ent+=v; else sai+=v; fil.push(r); }}); const fmt = (v) => v.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); document.getElementById('finSaldo').innerText = fmt(ent - sai); document.getElementById('finEntrada').innerText = fmt(ent); document.getElementById('finSaida').innerText = fmt(sai); renderizarExtrato(fil); }
       function renderizarExtrato(lista) { const corpo = document.getElementById('corpoFin'); corpo.innerHTML = ''; const fmt = (v) => parseFloat(v).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); lista.forEach(l => { let c = l[1] === 'Entrada' ? 'var(--success-text)' : 'var(--danger-text)'; corpo.innerHTML += `<tr><td>${l[0].split('-')[2]}/${l[0].split('-')[1]}</td><td>${l[3]}</td><td style="font-weight:bold; color:${c};">${fmt(l[4])}</td></tr>`; }); }
