@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet"> 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     /* VARIÁVEIS EXTRAS (Alem do global) */
@@ -300,172 +301,188 @@
   </div>
 
   <script>
-    const API_URL = sessionStorage.getItem('urlApi');
-    let dadosGlobais = {};
-    let nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-    let mesesExtenso = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
-    let listaMembrosCache = []; 
-    let membroSelecionado = ""; 
-    let myChart = null; 
+    // ==========================================
+// CONFIGURAÇÃO SUPABASE
+// ==========================================
+const supabaseUrl = 'https://ryvfogmfpjyamgqsltks.supabase.co';
+const supabaseKey = 'sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q';
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // --- NOVO MOTOR ASSÍNCRONO ---
-    async function fetchGoogle(action, payload = {}) {
-      payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
+let dadosFinanceiros = [];
+let dadosMembros = [];
+
+// Função de Inicialização
+window.onload = function() {
+    carregarTudo();
+};
+
+// ==========================================
+// CARREGAR DADOS DO SUPABASE
+// ==========================================
+async function carregarTudo() {
+    try {
+        // Busca os dados do Financeiro e Membros simultaneamente
+        const [ { data: finData }, { data: memData } ] = await Promise.all([
+            supabaseClient.from('financeiro').select('*').order('data', { ascending: false }),
+            supabaseClient.from('membros').select('*').order('nome', { ascending: true })
+        ]);
+
+        dadosFinanceiros = finData || [];
+        dadosMembros = memData || [];
+
+        // Atualiza a interface
+        renderizarFinanceiro(dadosFinanceiros);
+        // Se a sua tela tiver a função de preencher selects ou tabelas de dizimistas:
+        if(typeof preencherSelects === 'function') preencherSelects(dadosMembros);
+        if(typeof atualizarGraficos === 'function') atualizarGraficos(dadosFinanceiros);
+        if(typeof renderizarDizimistas === 'function') renderizarDizimistas(dadosMembros);
+
+    } catch(e) {
+        console.error("Erro ao carregar dados do Supabase:", e);
+        alert("Erro ao carregar os dados financeiros.");
+    }
+}
+
+// ==========================================
+// SALVAR LANÇAMENTO FINANCEIRO
+// ==========================================
+// Adapte o ID do formulário caso no seu HTML seja diferente (ex: formLancamento)
+const formFin = document.getElementById('formFinanceiro') || document.getElementById('formLancamento');
+if (formFin) {
+    formFin.onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]'); 
+        btn.disabled = true; btn.innerText = "Salvando...";
+
+        // Lógica para pegar os campos do form (ajuste os nomes dos inputs se necessário)
+        const idLancamento = this.idLancamento ? this.idLancamento.value : null;
+        const dados = {
+            tipo: this.tipo.value,
+            categoria: this.categoria.value,
+            descricao: this.descricao ? this.descricao.value : this.membro.value, // Se for dízimo pega o membro
+            valor: parseFloat(this.valor.value.replace(',', '.')),
+            data: this.data.value,
+            metodo: this.metodo.value
+        };
+
         try {
-            let res = await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: action, payload: payload })
-            });
-            let json = await res.json();
-            if (json.status === "sucesso") return json.dados || json.mensagem;
-            else throw new Error(json.mensagem);
-        } catch(e) { console.error("API Error:", e); alert("Erro de comunicação: " + e.message); throw e; }
-    }
-
-    window.onload = function() {
-       document.getElementById('finData').valueAsDate = new Date();
-       const hoje = new Date();
-       document.getElementById('filtroMes').value = hoje.getMonth();
-       document.getElementById('filtroAno').value = hoje.getFullYear();
-       document.getElementById('dataRodape').innerText = hoje.toLocaleDateString();
-       
-       document.addEventListener('click', function(e) {
-          if (!e.target.closest('.search-wrapper')) {
-              document.getElementById('dropdownMembros').style.display = 'none';
-          }
-       });
-
-       carregarTudo();
+            if (idLancamento) {
+                await supabaseClient.from('financeiro').update(dados).eq('id', idLancamento);
+                registrarLogAcao(`Editou lançamento financeiro: ${dados.descricao} - R$ ${dados.valor}`);
+            } else {
+                await supabaseClient.from('financeiro').insert([dados]);
+                registrarLogAcao(`Adicionou lançamento financeiro (${dados.tipo}): ${dados.descricao} - R$ ${dados.valor}`);
+            }
+            alert("Lançamento salvo com sucesso!");
+            this.reset();
+            carregarTudo(); // Atualiza a tela
+        } catch(error) {
+            console.error(error);
+            alert("Erro ao salvar lançamento.");
+        } finally {
+            btn.disabled = false; btn.innerText = "Salvar";
+        }
     };
+}
 
-    function nav(viewId, btn) {
-       ['dashboard','lancamento','historico','dizimistas'].forEach(v => document.getElementById('view-'+v).classList.add('hidden'));
-       document.getElementById('view-'+viewId).classList.remove('hidden');
-       document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
-       btn.classList.add('active');
-       document.getElementById('filterContainer').style.display = (viewId === 'lancamento') ? 'none' : 'flex';
-       document.getElementById('pageTitle').innerText = {'dashboard':'Visão Geral','lancamento':'Lançamentos','historico':'Histórico','dizimistas':'Controle de Dizimistas'}[viewId];
+// ==========================================
+// EXCLUIR LANÇAMENTO FINANCEIRO
+// ==========================================
+async function excluirFinanceiro(id, descricao) {
+    if(confirm(`Tem certeza que deseja excluir o lançamento '${descricao}'?`)) {
+        try {
+            await supabaseClient.from('financeiro').delete().eq('id', id);
+            registrarLogAcao(`Excluiu lançamento financeiro: ${descricao}`);
+            alert("Lançamento excluído com sucesso!");
+            carregarTudo();
+        } catch(e) {
+            console.error(e);
+            alert("Erro ao excluir o lançamento.");
+        }
     }
+}
 
-    async function carregarTudo() {
-       const icon = document.getElementById('iconRefresh'); icon.classList.add('fa-spin');
-       const mes = document.getElementById('filtroMes').value;
-       const ano = document.getElementById('filtroAno').value;
+// ==========================================
+// SALVAR MEMBRO (DIZIMISTA) A PARTIR DO FINANCEIRO
+// ==========================================
+const formMembro = document.getElementById('formMembroCompleto');
+if (formMembro) {
+    formMembro.onsubmit = async function(e) { 
+        e.preventDefault(); 
+        const btn = document.getElementById('btnSalvarMembro'); 
+        btn.innerText = "Salvando..."; btn.disabled = true;
+        
+        const dados = {
+            nome: this.nome.value, 
+            nascimento: this.nascimento.value || null, 
+            telefone: this.telefone.value, 
+            celula: this.celula.value, 
+            categoria: this.categoria.value, 
+            batizado: this.batizado && this.batizado.checked ? "Sim" : "Não", 
+            dizimista: this.dizimista && this.dizimista.checked ? "Sim" : "Não", 
+            cursao: "Não", 
+            ctl: "Não",
+            arquivado: "Não"
+        }; 
 
-       const sub = document.getElementById('printSubTitle');
-       if(mes == -1) sub.innerText = `RELATÓRIO ANUAL DE ${ano}`;
-       else sub.innerText = `RELATÓRIO DE ${mesesExtenso[mes]} DE ${ano}`;
-
-       try {
-           const res = await fetchGoogle('buscarDadosDashboardFinanceiro', { filtroMes: mes, filtroAno: ano });
-           dadosGlobais = res;
-           
-           const fmt = (v) => v.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-           document.getElementById('kpiSaldo').innerText = fmt(res.kpis.saldo);
-           document.getElementById('kpiEntradas').innerText = fmt(res.kpis.entradasMes);
-           document.getElementById('kpiSaidas').innerText = fmt(res.kpis.saidasMes);
-           document.getElementById('kpiDizimos').innerText = fmt(res.kpis.dizimosMes);
-           document.getElementById('kpiOfertas').innerText = fmt(res.kpis.ofertasMes);
-           
-           listaMembrosCache = res.membros.map(m => m[1]).sort();
-           const selCel = document.getElementById('modalSelectCelula'); selCel.innerHTML = '<option value="">Selecione...</option>';
-           if(res.celulas) res.celulas.forEach(c => selCel.innerHTML += `<option value="${c[0]}">${c[0]}</option>`);
-           
-           filtrarERenderizarHistorico(res.financeiro, mes, ano);
-           renderizarDizimistas(res.dizimistas);
-           renderizarGrafico(res.grafico); 
-       } catch (e) { console.error(e); } finally { icon.classList.remove('fa-spin'); }
-    }
-
-    // --- GRÁFICO (Chart.js) ---
-    function renderizarGrafico(dados) {
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        if(myChart) myChart.destroy();
-        const labels = dados.map(d => d.label); const dataEntrada = dados.map(d => d.entrada); const dataSaida = dados.map(d => d.saida);
-
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: labels, datasets: [
-                    { label: 'Entradas', data: dataEntrada, borderColor: '#1e8e3e', backgroundColor: 'rgba(30, 142, 62, 0.1)', tension: 0.3, fill: true },
-                    { label: 'Saídas', data: dataSaida, borderColor: '#c5221f', backgroundColor: 'rgba(197, 34, 31, 0.1)', tension: 0.3, fill: true }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y); } return label; } } } }, scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } } }
-        });
-    }
-
-    // --- SMART SEARCH LOGIC ---
-    function filtrarDropdownMembros() {
-        const input = document.getElementById('inputBuscaMembro'); const dropdown = document.getElementById('dropdownMembros'); const icon = document.getElementById('iconValidMember');
-        const val = input.value.toLowerCase();
-        input.classList.remove('valid-member'); icon.style.display = 'none'; membroSelecionado = ""; dropdown.innerHTML = '';
-        if(val.length === 0) { dropdown.style.display = 'none'; return; }
-
-        const filtrados = listaMembrosCache.filter(m => m.toLowerCase().includes(val));
-        if(filtrados.length > 0) {
-            dropdown.style.display = 'block';
-            filtrados.forEach(nome => {
-                const div = document.createElement('div'); div.className = 'dropdown-item'; div.innerText = nome;
-                div.onclick = function() { selecionarMembro(nome); };
-                dropdown.appendChild(div);
-            });
-        } else { dropdown.style.display = 'none'; }
-    }
-
-    function selecionarMembro(nome) {
-        const input = document.getElementById('inputBuscaMembro'); const dropdown = document.getElementById('dropdownMembros'); const icon = document.getElementById('iconValidMember');
-        input.value = nome; membroSelecionado = nome; dropdown.style.display = 'none';
-        input.classList.add('valid-member'); icon.style.display = 'block';
-    }
-
-    // --- OUTRAS FUNÇÕES ---
-    function filtrarERenderizarHistorico(listaCompleta, mesFiltro, anoFiltro) {
-        const tb = document.getElementById('tbHistorico'); tb.innerHTML = ''; let saldoPeriodo = 0;
-        const listaFiltrada = listaCompleta.filter(r => { let partes = r[0].split('-'); let d = new Date(partes[0], partes[1]-1, partes[2]); let ehMes = (mesFiltro == -1) ? true : (d.getMonth() == mesFiltro); return ehMes && d.getFullYear() == anoFiltro; });
-
-        if (listaFiltrada.length === 0) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Nenhum lançamento encontrado.</td></tr>'; document.getElementById('footerTotal').innerText = "R$ 0,00"; return; }
-
-        listaFiltrada.forEach(row => { 
-           let valorNum = parseFloat(row[4]); if(row[1] === 'Entrada') saldoPeriodo += valorNum; else saldoPeriodo -= valorNum;
-           let dataF = row[0].split('-').reverse().join('/'); let valorF = valorNum.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-           let classeLinha = row[1] === 'Entrada' ? 'row-in' : 'row-out';
-           tb.innerHTML += `<tr class="${classeLinha}"><td>${dataF}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td data-val="${valorNum}">${valorF}</td></tr>`;
-        });
-        let corTotal = saldoPeriodo >= 0 ? '#4caf50' : '#f44336'; document.getElementById('footerTotal').innerText = saldoPeriodo.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); document.getElementById('footerTotal').style.color = corTotal;
-    }
-
-    function atualizarCategorias() { const t=document.getElementById('finTipo').value; const c=document.getElementById('finCategoria'); if(t==='Entrada') c.innerHTML='<option value="Dízimo">Dízimo</option><option value="Oferta">Oferta</option>'; else c.innerHTML='<option value="Despesa Fixa">Despesa Fixa</option><option value="Eventual">Eventual</option><option value="Manutenção">Manutenção</option>'; atualizarCampos(); }
-    function atualizarCampos(){ const t=document.getElementById('finTipo').value; const c=document.getElementById('finCategoria').value; if(t==='Entrada'&&c==='Dízimo'){ document.getElementById('boxMembro').classList.remove('hidden'); document.getElementById('boxDescricao').classList.add('hidden'); }else{ document.getElementById('boxMembro').classList.add('hidden'); document.getElementById('boxDescricao').classList.remove('hidden'); }}
-    
-    // Submits Assíncronos
-    document.getElementById('formFinanceiro').onsubmit = async function(e) {
-       e.preventDefault(); const btn=document.getElementById('btnSalvarFin'); 
-       if(this.tipo.value==='Entrada' && this.categoria.value==='Dízimo') { if (!membroSelecionado) { alert("Por favor, selecione um membro válido da lista."); document.getElementById('inputBuscaMembro').focus(); return; } }
-       btn.disabled=true; btn.innerText="Salvando...";
-       let desc = (this.tipo.value==='Entrada' && this.categoria.value==='Dízimo') ? membroSelecionado : this.descricao.value;
-       const d = {tipo:this.tipo.value, categoria:this.categoria.value, descricao:desc, valor:document.getElementById('finValor').value, data:this.data.value, metodo:this.metodo.value};
-       
-       try {
-           await fetchGoogle('salvarTransacao', d);
-           alert("Salvo com sucesso!"); this.reset(); document.getElementById('finData').valueAsDate=new Date(); 
-           membroSelecionado = ""; document.getElementById('inputBuscaMembro').classList.remove('valid-member'); document.getElementById('iconValidMember').style.display='none';
-           carregarTudo(); 
-       } finally { btn.disabled=false; btn.innerText="Confirmar"; }
+        try { 
+            await supabaseClient.from('membros').insert([dados]);
+            registrarLogAcao(`Cadastrou novo membro/dizimista via Financeiro: ${dados.nome}`);
+            alert("Membro salvo com sucesso!"); 
+            this.reset();
+            carregarTudo();
+        } catch(err) {
+            console.error(err);
+            alert("Erro ao salvar membro.");
+        } finally {
+            btn.innerText = "Salvar"; btn.disabled = false;
+        }
     };
+}
+
+// ==========================================
+// FUNÇÕES DE INTERFACE (MODAIS, FILTROS)
+// ==========================================
+function abrirModalVisual(id) { document.getElementById('modalVisualDizimista').classList.remove('hidden'); }
+function fecharModalVisual(e) { if(e===null || e.target.id==='modalVisualDizimista') document.getElementById('modalVisualDizimista').classList.add('hidden'); }
+
+function filtrarDizimistas() { 
+    let t = document.getElementById('buscaDizimista').value.toLowerCase(); 
+    let trs = document.getElementById('tbDizimistas').getElementsByTagName('tr'); 
+    for(let tr of trs) { 
+        let n = tr.getAttribute('data-nome'); 
+        if(n && n.toLowerCase().includes(t)) tr.style.display = ''; 
+        else tr.style.display = 'none'; 
+    }
+}
+
+function filtrarHistorico() { 
+    let t = document.getElementById('buscaHist').value.toLowerCase(); 
+    let trs = document.getElementById('tbHistorico').getElementsByTagName('tr'); 
+    for(let tr of trs) {
+        tr.style.display = tr.innerText.toLowerCase().includes(t) ? '' : 'none'; 
+    }
+}
+
+// ==========================================
+// REGISTRO DE LOGS (AUDITORIA)
+// ==========================================
+async function registrarLogAcao(acaoRealizada) {
+    const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
+    const user = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+    const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
     
-    let ordemAtual = { col: -1, asc: true };
-    function ordenarTabela(n, tipo) { const table=document.getElementById("tabelaHistoricoMain"); const tbody=table.tBodies[0]; const rows=Array.from(tbody.querySelectorAll("tr")); if (ordemAtual.col===n) ordemAtual.asc=!ordemAtual.asc; else { ordemAtual.col=n; ordemAtual.asc=true; } rows.sort((a,b)=>{ let cA=a.cells[n].innerText.trim(); let cB=b.cells[n].innerText.trim(); if(tipo==='valor'){ let vA=parseFloat(a.cells[n].getAttribute('data-val')); let vB=parseFloat(b.cells[n].getAttribute('data-val')); return ordemAtual.asc?vA-vB:vB-vA; } else if(tipo==='data'){ let [da,ma,ya]=cA.split('/'); let [db,mb,yb]=cB.split('/'); return ordemAtual.asc?new Date(ya,ma-1,da)-new Date(yb,mb-1,db):new Date(yb,mb-1,db)-new Date(ya,ma-1,da); } else return ordemAtual.asc?cA.localeCompare(cB):cB.localeCompare(cA); }); tbody.innerHTML=""; rows.forEach(r=>tbody.appendChild(r)); }
-    function renderizarDizimistas(mapa) { const tb=document.getElementById('tbDizimistas'); tb.innerHTML=''; let l=Object.keys(mapa).sort(); if(l.length===0) tb.innerHTML='<tr><td colspan="3" align="center">Vazio.</td></tr>'; l.forEach(n=>{ let d=mapa[n]; let ut='-'; if(d.ultimaData){ let dt=d.ultimaData.split('-').reverse().join('/'); let vl=d.ultimoValor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); ut=`${dt} - <strong>${vl}</strong>`; } tb.innerHTML+=`<tr data-nome="${n.toLowerCase()}"><td style="font-weight:600;">${n}</td><td style="color:#555;">${ut}</td><td align="center"><button onclick="verVisual('${n}')" style="background:var(--accent); border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; color:#333;"><i class="fas fa-eye"></i> Detalhes</button></td></tr>`; }); }
-    function verVisual(nome){ const d=dadosGlobais.dizimistas[nome]; document.getElementById('modalNomeDizimista').innerText=nome; document.getElementById('modalTotalValor').innerText=d.total.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); const g=document.getElementById('gridMeses'); g.innerHTML=''; d.meses.forEach((v,i)=>{ let c=v>0?'paid':''; let vt=v>0?v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'-'; g.innerHTML+=`<div class="month-box ${c}">${nomesMeses[i]}<span class="month-val">${vt}</span></div>`}); document.getElementById('modalVisualDizimista').classList.remove('hidden');}
-    function fecharModalVisual(e){ if(e===null||e.target.id==='modalVisualDizimista') document.getElementById('modalVisualDizimista').classList.add('hidden'); }
-    function filtrarDizimistas(){ let t=document.getElementById('buscaDizimista').value.toLowerCase(); let trs=document.getElementById('tbDizimistas').getElementsByTagName('tr'); for(let tr of trs){ let n=tr.getAttribute('data-nome'); if(n&&n.includes(t)) tr.style.display=''; else tr.style.display='none'; }}
-    function filtrarHistorico(){ let t=document.getElementById('buscaHist').value.toLowerCase(); let trs=document.getElementById('tbHistorico').getElementsByTagName('tr'); for(let tr of trs) tr.style.display=tr.innerText.toLowerCase().includes(t)?'':'none'; }
-    
-    document.getElementById('formMembroCompleto').onsubmit = async function(e) { 
-        e.preventDefault(); const btn=document.getElementById('btnSalvarMembro'); btn.innerText="..."; 
-        const d={nome:this.nome.value, nascimento:this.nascimento.value, telefone:this.telefone.value, celula:this.celula.value, categoria:this.categoria.value, batizado:this.batizado.checked?"Sim":"Não", dizimista:this.dizimista.checked?"Sim":"Não", cursao:"Não", ctl:"Não"}; 
-        try { await fetchGoogle('salvarMembro', d); alert("Salvo!"); this.reset(); document.getElementById('modalMembro').classList.add('hidden'); carregarTudo(); } finally { btn.innerText="Salvar"; }
-    };
+    try {
+        await supabaseClient.from('log').insert([{ 
+            datahora: dataHoraAtual, 
+            usuario: user, 
+            nomelider: nomeReal, 
+            acao: acaoRealizada 
+        }]);
+    } catch (e) { 
+        console.error("Erro ao salvar o log:", e); 
+    }
+}
   </script>
 </body>
 </html>
