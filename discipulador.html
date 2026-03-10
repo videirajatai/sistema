@@ -93,9 +93,20 @@
       .check-option input:checked ~ .checkmark { background: var(--success-bg); color: var(--success-text); border-color: #badbcc; }
 
       /* DETALHES DO RELATÓRIO */
-      .rel-detail-row { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
-      .rel-detail-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 3px; }
-      .rel-detail-value { font-size: 1rem; color: #334155; }
+      /* ESTILOS DO RELATÓRIO TIPO PAPEL (Igual ao do Pastor) */
+      .paper-report { background: #fff; border: 1px solid #e0e0e0; border-top: 4px solid var(--accent); padding: 20px; border-radius: 8px; }
+      .paper-header { text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #ddd; margin-bottom: 15px; }
+      .paper-title { font-weight: 800; font-size: 1.1rem; color: var(--primary); display:block; }
+      .paper-date { font-size: 0.85rem; color: #777; }
+      .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+      .role-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+      .role-label { font-size: 0.7rem; color: #999; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 3px; }
+      .role-val { font-size: 0.9rem; font-weight: 600; color: #333; }
+      .attend-box { background: var(--success-bg); color: var(--success-text); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 1px solid #c3e6cb; }
+      .attend-num { font-size: 1.5rem; font-weight: 800; display: block; }
+      .attend-label { font-size: 0.8rem; font-weight: 600; opacity: 0.9; }
+      .list-present { font-size: 0.85rem; color: #555; line-height: 1.6; background: #fff; border: 1px solid #eee; padding: 10px; border-radius: 8px; }
+      .obs-box { margin-top: 15px; background: #fffbf0; padding: 15px; border-radius: 8px; color: #665c3b; font-size: 0.9rem; border: 1px solid #faeace; }
 
       /* ESTILOS DA BÍBLIA */
       :root { --ouro-videira: #D4AF37; --ouro-escuro: #b5952f; }
@@ -210,39 +221,32 @@
          </div>
       </div>
 
-    </div> <div id="modalRelatorio" class="modal-overlay hidden" onclick="fecharModal('modalRelatorio')">
+    <div id="modalRelatorio" class="modal-overlay hidden" onclick="fecharModal('modalRelatorio')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="btn-close-modal" onclick="fecharModal('modalRelatorio')">&times;</button>
-            <h3 id="detalheRelCelula" style="color:var(--primary); margin-top:10px; margin-bottom: 20px;"></h3>
             
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Data do Relatório</div>
-                <div class="rel-detail-value" id="detalheRelData"></div>
+            <div class="paper-report" style="margin-top: 20px;">
+                <div class="paper-header">
+                    <span class="paper-title" id="detalheRelCelula">Nome da Célula</span>
+                    <span class="paper-date" id="detalheRelData">00/00/0000</span>
+                </div>
+                <div class="attend-box">
+                    <span class="attend-num" id="detalheRelTotal">0</span>
+                    <span class="attend-label">PESSOAS PRESENTES</span>
+                </div>
+                <div class="role-grid">
+                    <div class="role-box"><span class="role-label">Palavra</span><span class="role-val" id="detalheRelPalavra">-</span></div>
+                    <div class="role-box"><span class="role-label">Louvor</span><span class="role-val" id="detalheRelLouvor">-</span></div>
+                    <div class="role-box"><span class="role-label">Lanche</span><span class="role-val" id="detalheRelLanche">-</span></div>
+                    <div class="role-box"><span class="role-label">Quebra-Gelo</span><span class="role-val" id="detalheRelQuebra">-</span></div>
+                </div>
+                <div style="margin-top:15px;">
+                    <span style="font-weight:bold; color:#555; font-size:0.85rem;">Frequência / Nomes</span>
+                    <div class="list-present" id="detalheRelPresentes"></div>
+                </div>
+                <div class="obs-box" id="detalheRelObs">...</div>
             </div>
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Nomes dos Presentes</div>
-                <div class="rel-detail-value" id="detalheRelPresentes" style="font-weight:600; color:var(--primary);"></div>
-            </div>
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Quebra-Gelo</div>
-                <div class="rel-detail-value" id="detalheRelQuebra"></div>
-            </div>
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Palavra / Estudo</div>
-                <div class="rel-detail-value" id="detalheRelPalavra"></div>
-            </div>
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Louvor / Oração</div>
-                <div class="rel-detail-value" id="detalheRelLouvor"></div>
-            </div>
-            <div class="rel-detail-row">
-                <div class="rel-detail-label">Lanche / Comunhão</div>
-                <div class="rel-detail-value" id="detalheRelLanche"></div>
-            </div>
-            <div class="rel-detail-row" style="border-bottom:none;">
-                <div class="rel-detail-label">Observações / Testemunhos</div>
-                <div class="rel-detail-value" id="detalheRelObs" style="white-space: pre-wrap;"></div>
-            </div>
+
         </div>
     </div>
 
@@ -761,7 +765,15 @@
 
           document.getElementById('detalheRelCelula').innerText = r.celula || 'Célula';
           document.getElementById('detalheRelData').innerText = dataF;
-          document.getElementById('detalheRelPresentes').innerText = r.presentes || 'Nenhum listado';
+          
+          // Calcula o total de presentes contando as vírgulas
+          let listaNomes = r.presentes || "";
+          let quantidade = listaNomes.split(',').filter(n => n.trim() !== '').length;
+          if (quantidade === 0 && listaNomes.trim().length > 0) quantidade = 1;
+
+          document.getElementById('detalheRelTotal').innerText = quantidade;
+          document.getElementById('detalheRelPresentes').innerText = listaNomes || 'Nenhum listado';
+          
           document.getElementById('detalheRelQuebra').innerText = r.quebra_gelo || '-';
           document.getElementById('detalheRelPalavra').innerText = r.palavra || '-';
           document.getElementById('detalheRelLouvor').innerText = r.louvor || '-';
