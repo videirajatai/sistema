@@ -343,19 +343,31 @@
         <div id="gridMembros" class="member-grid"></div>
       </div>
 
-      <div id="secao-celulas" class="hidden">
+     <!-- <div id="secao-celulas" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
           <h4 style="margin:0; color:var(--primary);">Gestão de Células</h4>
           <button onclick="novaCelula()" class="btn-add-member" style="background:var(--accent); color:#333;">+ Nova Célula</button>
-        </div>
+        </div> 
         <div style="overflow-x:auto;">
           <table class="table-clean" id="tabelaCelulas">
             <thead><tr><th>Nome</th><th>Líder</th><th>Dia</th><th style="text-align:center;">Ações</th></tr></thead>
             <tbody id="corpoCelulas"></tbody>
           </table>
         </div>
-      </div>
+      </div> -->
 
+
+      <div id="secao-celulas" class="hidden">
+        <h4 style="color: var(--primary); margin-top:0; margin-bottom: 15px;">Quadro de Células (Discipulado)</h4>
+        <div style="overflow-x:auto;">
+          <table class="table-clean" id="tabelaCelulas">
+            <thead><tr><th>Célula</th><th>Líder</th><th>Dia/Horário</th><th>Ações</th></tr></thead>
+            <tbody id="corpoCelulas"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      
       <div id="secao-financeiro" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
           <h4 style="margin:0; color:var(--primary);">Dashboard Financeiro</h4>
@@ -394,7 +406,7 @@
       <div id="secao-arquivo" class="hidden">
         <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h4 style="margin:0; color: var(--text-light);"><i class="fas fa-archive"></i> Arquivo Morto</h4>
+            <h4 style="margin:0; color: var(--text-light);"><i class="fas fa-archive"></i> Arquivo</h4>
           </div>
           <input type="text" id="inputBuscaArquivo" placeholder="🔍 Buscar no arquivo..." onkeyup="filtrarCardsArquivo()" style="margin:0; width: 100%;">
         </div>
