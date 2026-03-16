@@ -9,8 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
-         <!-- ==========================================LOGO NAV=============================================================-->
-  <link rel="icon" type="image/png" href="logo.png">
+         <link rel="icon" type="image/png" href="logo.png">
   <link rel="shortcut icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
 
@@ -20,8 +19,6 @@
   <meta name="apple-mobile-web-app-title" content="Sistema Videira">
   <meta name="theme-color" content="#0f172a"> 
     <link rel="manifest" href="manifest.json">
-    <!-- ==========================================LOGO NAV =============================================================-->
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -38,6 +35,10 @@
       .nav-btn i { font-size: 1.2rem; }
       .nav-btn.active { background: #000; color: white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
 
+      /* BARRA DE PESQUISA */
+      .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+      .filter-bar input, .filter-bar select { margin-bottom: 0; padding: 10px; font-size: 0.9rem; border-color: #ddd; }
+      
       /* LISTA DE USUÁRIOS */
       .user-card { background: white; padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
       .user-info h4 { margin: 0 0 4px 0; color: var(--text-main); font-size: 1rem; }
@@ -96,6 +97,19 @@
            <h4 style="margin:0; color: var(--text-light);">Gerenciar Acessos</h4>
            <button onclick="novoUsuario()" class="btn-add"><i class="fas fa-plus"></i> Novo Cadastro</button>
         </div>
+
+        <div class="filter-bar">
+            <input type="text" id="filtroNome" placeholder="Buscar por nome ou login..." onkeyup="filtrarUsuarios()" style="flex: 2;">
+            <select id="filtroCategoria" onchange="filtrarUsuarios()" style="flex: 1;">
+                <option value="">Todos</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Pastor">Pastor</option>
+                <option value="Líder">Líder</option>
+                <option value="Discipulador">Discipulador</option>
+                <option value="Tesoureiro">Tesoureiro</option>
+                <option value="membro">Membro</option>
+            </select>
+        </div>
         <div id="listaUsuarios">
            <p style="text-align:center; color:#999;">Carregando...</p>
         </div>
@@ -152,7 +166,8 @@
       const supabaseKey = 'sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q';
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-      let dadosUsuarios = [];
+      let dadosUsuarios = []; // Todos os usuários do banco
+      let dadosExibidos = []; // Usuários filtrados sendo mostrados
 
       window.onload = carregarTudo;
 
@@ -166,14 +181,14 @@
       async function carregarTudo() {
          const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
          try {
-             // Busca usuários e logs ao mesmo tempo para carregar mais rápido
              const [ { data: users }, { data: logs } ] = await Promise.all([
                  supabaseClient.from('usuarios').select('*').order('nome', { ascending: true }),
-                 supabaseClient.from('log').select('*').order('id', { ascending: false }).limit(100) // Limita os últimos 100 logs
+                 supabaseClient.from('log').select('*').order('id', { ascending: false }).limit(100) 
              ]);
 
              dadosUsuarios = users || [];
-             renderizarUsuarios(dadosUsuarios);
+             filtrarUsuarios(); // Chama o filtro para renderizar respeitando o que estiver digitado
+             
              renderizarLogs(logs || []);
          } catch(e) {
              console.error(e);
@@ -183,11 +198,35 @@
          }
       }
 
+      // ================= FUNÇÃO DO FILTRO =================
+      function filtrarUsuarios() {
+          const termoDigitado = document.getElementById('filtroNome').value.toLowerCase();
+          const categoriaSelecionada = document.getElementById('filtroCategoria').value.toLowerCase();
+
+          // Filtra a lista completa com base no texto e no select
+          dadosExibidos = dadosUsuarios.filter(u => {
+              const textoCombina = u.nome.toLowerCase().includes(termoDigitado) || u.usuario.toLowerCase().includes(termoDigitado);
+              
+              const categoriaCombina = (categoriaSelecionada === "") || 
+                                       (u.categoria && u.categoria.toLowerCase() === categoriaSelecionada);
+
+              return textoCombina && categoriaCombina;
+          });
+
+          renderizarUsuarios(dadosExibidos);
+      }
+
       function renderizarUsuarios(lista) {
          const div = document.getElementById('listaUsuarios'); div.innerHTML = '';
-         if(!lista || lista.length === 0) { div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum usuário encontrado.</p>'; return; }
+         if(!lista || lista.length === 0) { 
+             div.innerHTML = '<p style="text-align:center; color:#999; padding: 20px;">Nenhum usuário encontrado na pesquisa.</p>'; 
+             return; 
+         }
          
-         lista.forEach((u, index) => {
+         lista.forEach((u) => {
+             // Precisamos encontrar o índice real dele na lista principal para poder editar corretamente
+             const indexOriginal = dadosUsuarios.findIndex(orig => orig.id === u.id);
+
              const user = u.usuario; const nome = u.nome; const cat = u.categoria;
              div.innerHTML += `
              <div class="user-card">
@@ -197,7 +236,7 @@
                    <span class="badge-role ${cat}">${cat}</span>
                 </div>
                 <div class="action-btns">
-                   <button onclick="editarUsuario(${index})" class="btn-icon-action btn-edit"><i class="fas fa-pencil-alt"></i></button>
+                   <button onclick="editarUsuario(${indexOriginal})" class="btn-icon-action btn-edit"><i class="fas fa-pencil-alt"></i></button>
                    <button onclick="excluirUsuario('${u.id}', '${user}')" class="btn-icon-action btn-del"><i class="fas fa-trash-alt"></i></button>
                 </div>
              </div>`;
@@ -232,7 +271,7 @@
          document.getElementById('usuarioOriginal').value = u.id; // Guarda o ID do Supabase
          document.getElementById('cadUsuario').value = u.usuario;
          
-         // AQUI ESTÁ A MUDANÇA: readOnly = false para permitir a edição
+         // Permite a edição do login
          document.getElementById('cadUsuario').readOnly = false; 
          
          document.getElementById('cadSenha').value = u.senha;
@@ -259,27 +298,23 @@
 
          try {
              // =======================================================
-             // NOVA VALIDAÇÃO: CHECAR SE O NOME DE USUÁRIO JÁ EXISTE
+             // VALIDAÇÃO: CHECAR SE O NOME DE USUÁRIO JÁ EXISTE
              // =======================================================
              const { data: usuarioExistente } = await supabaseClient
                  .from('usuarios')
                  .select('id')
                  .eq('usuario', d.usuario);
 
-             // Se encontrou alguém no banco com esse login exato...
              if (usuarioExistente && usuarioExistente.length > 0) {
-                 
-                 // 1. Se for cadastro NOVO, bloqueia na hora.
                  if (!idUsuario) {
                      alert("⚠️ Esse Login de Acesso já existe. Por favor, escolha outro.");
                      btn.disabled = false; btn.innerText = "Salvar Usuário";
-                     return; // Interrompe o salvamento
+                     return; 
                  } 
-                 // 2. Se for EDIÇÃO, verifica se o login pertence a OUTRA pessoa
                  else if (usuarioExistente[0].id != idUsuario) {
                      alert("⚠️ Esse Login de Acesso já pertence a outro usuário. Escolha outro.");
                      btn.disabled = false; btn.innerText = "Salvar Usuário";
-                     return; // Interrompe o salvamento
+                     return; 
                  }
              }
              // =======================================================
@@ -324,7 +359,6 @@
       async function limparLogs() {
          if(confirm("ATENÇÃO: Deseja apagar todo o histórico de logs do sistema? Esta ação não pode ser desfeita.")) {
              try {
-                 // Exclui todos os logs (onde a datahora não é nula)
                  await supabaseClient.from('log').delete().not('datahora', 'is', null);
                  registrarLogAcao("Limpou o histórico de logs do sistema.");
                  alert("Logs apagados com sucesso!");
