@@ -245,7 +245,9 @@
 
       document.getElementById('formUsuario').onsubmit = async function(e) {
          e.preventDefault();
-         const btn = document.getElementById('btnSalvarUsuario'); btn.disabled = true; btn.innerText = "Salvando...";
+         const btn = document.getElementById('btnSalvarUsuario'); 
+         btn.disabled = true; 
+         btn.innerText = "Salvando...";
          
          const idUsuario = this.usuarioOriginal.value;
          const d = {
@@ -256,6 +258,32 @@
          };
 
          try {
+             // =======================================================
+             // NOVA VALIDAÇÃO: CHECAR SE O NOME DE USUÁRIO JÁ EXISTE
+             // =======================================================
+             const { data: usuarioExistente } = await supabaseClient
+                 .from('usuarios')
+                 .select('id')
+                 .eq('usuario', d.usuario);
+
+             // Se encontrou alguém no banco com esse login exato...
+             if (usuarioExistente && usuarioExistente.length > 0) {
+                 
+                 // 1. Se for cadastro NOVO, bloqueia na hora.
+                 if (!idUsuario) {
+                     alert("⚠️ Esse Login de Acesso já existe. Por favor, escolha outro.");
+                     btn.disabled = false; btn.innerText = "Salvar Usuário";
+                     return; // Interrompe o salvamento
+                 } 
+                 // 2. Se for EDIÇÃO, verifica se o login pertence a OUTRA pessoa
+                 else if (usuarioExistente[0].id != idUsuario) {
+                     alert("⚠️ Esse Login de Acesso já pertence a outro usuário. Escolha outro.");
+                     btn.disabled = false; btn.innerText = "Salvar Usuário";
+                     return; // Interrompe o salvamento
+                 }
+             }
+             // =======================================================
+
              if (idUsuario) {
                  // Atualizar usuário existente
                  await supabaseClient.from('usuarios').update(d).eq('id', idUsuario);
@@ -272,7 +300,7 @@
              carregarTudo();
          } catch(error) {
              console.error("Erro ao salvar:", error);
-             alert("Erro ao salvar o usuário. Verifique se o login já existe.");
+             alert("Erro de conexão ao salvar. Tente novamente.");
          } finally {
              btn.disabled = false; btn.innerText = "Salvar Usuário";
          }
