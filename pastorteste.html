@@ -571,6 +571,8 @@
           <div class="switch-container"><span class="switch-label">Cursão</span><label class="switch"><input type="checkbox" name="cursao" id="checkCur"><span class="slider"></span></label></div>
           <div class="switch-container"><span class="switch-label">CTL</span><label class="switch"><input type="checkbox" name="ctl" id="checkCtl"><span class="slider"></span></label></div>
           <div class="switch-container"><span class="switch-label">Encontro</span><label class="switch"><input type="checkbox" name="encontro" id="checkDiz"><span class="slider"></span></label></div>
+          <div class="switch-container"><span class="switch-label">Seminário</span><label class="switch"><input type="checkbox" name="seminario" id="checkSem"><span class="slider"></span></label></div>
+          <div class="switch-container"><span class="switch-label">Dizimista</span><label class="switch"><input type="checkbox" name="dizimista" id="checkDizi"><span class="slider"></span></label></div>
           <div style="display:flex; gap:10px; margin-top:15px;">
              <button type="button" onclick="mudarSecao('lista')" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Voltar</button>
              <button type="submit" id="btnSalvar" class="btn-save" style="flex:2;">Salvar</button>
@@ -687,7 +689,9 @@
                     m.cursao || 'Não',  
                     m.ctl || 'Não',     
                     m.encontro || 'Não',
-                    m.nascimento || ''  
+                    m.nascimento || '',
+                    m.seminario || 'Não', // NOVO: Índice 11
+                    m.dizimista || 'Não'  // NOVO: Índice 12
                 ];
             }) : [];
 
@@ -757,6 +761,8 @@
                   <div class="status-pill ${check(m[7])}">Cursão</div>
                   <div class="status-pill ${check(m[8])}">CTL</div>
                   <div class="status-pill ${check(m[9])}">Encontro</div>
+                  <div class="status-pill ${check(m[11])}">Seminário</div>
+                  <div class="status-pill ${check(m[12])}">Dizimista</div>
                </div>
                <div class="card-actions">
                   ${btnZap}
@@ -944,7 +950,7 @@
 
       function filtrarMembros() { const b = document.getElementById('inputBusca').value.toLowerCase(), c = document.getElementById('filtroCelula').value.toLowerCase(); document.querySelectorAll('.member-card').forEach(card => { const match = card.getAttribute('data-nome').includes(b) && (c==="" || card.getAttribute('data-celula').includes(c)); card.style.display = match ? 'flex' : 'none'; }); }
       function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'), s3 = document.getElementById('celLider'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Todas</option>'; s3.innerHTML='<option value="">Selecione...</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; s2.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; }); lideres.forEach(l => s3.innerHTML += `<option value="${l}">${l}</option>`); }
-      function editarMembro(id) { const m = dadosMembros.find(i => i[0] == id); if(!m) return; document.getElementById('idMembro').value = m[0]; document.getElementById('campoNome').value = m[1]; document.getElementById('campoNasc').value = m[10]; document.getElementById('campoTel').value = m[4]; document.getElementById('selectCelulas').value = m[3]; document.getElementById('campoCategoria').value = m[2]; document.getElementById('checkBat').checked = (m[6]==='Sim'); document.getElementById('checkCur').checked = (m[7]==='Sim'); document.getElementById('checkCtl').checked = (m[8]==='Sim'); document.getElementById('checkDiz').checked = (m[9]==='Sim'); mudarSecao('cadastro'); }
+      function editarMembro(id) { const m = dadosMembros.find(i => i[0] == id); if(!m) return; document.getElementById('idMembro').value = m[0]; document.getElementById('campoNome').value = m[1]; document.getElementById('campoNasc').value = m[10]; document.getElementById('campoTel').value = m[4]; document.getElementById('selectCelulas').value = m[3]; document.getElementById('campoCategoria').value = m[2]; document.getElementById('checkBat').checked = (m[6]==='Sim'); document.getElementById('checkCur').checked = (m[7]==='Sim'); document.getElementById('checkCtl').checked = (m[8]==='Sim'); document.getElementById('checkDiz').checked = (m[9]==='Sim'); document.getElementById('checkSem').checked = (m[11]==='Sim'); document.getElementById('checkDizi').checked = (m[12]==='Sim'); mudarSecao('cadastro'); }
       function novoCadastro() { document.getElementById('formMembro').reset(); document.getElementById('idMembro').value=''; mudarSecao('cadastro'); }
       
       document.getElementById('formMembro').onsubmit = async function(e) { 
@@ -954,9 +960,10 @@
               nome: this.nome.value, nascimento: this.nascimento.value || null, tipo: this.categoria.value, 
               celula: this.celula.value, telefone: this.telefone.value, 
               batizado: this.batizado.checked ? "Sim" : "Não", cursao: this.cursao.checked ? "Sim" : "Não", 
-              ctl: this.ctl.checked ? "Sim" : "Não", encontro: this.encontro.checked ? "Sim" : "Não", 
+              ctl: this.ctl.checked ? "Sim" : "Não", encontro: this.encontro.checked ? "Sim" : "Não",
+              seminario: this.seminario.checked ? "Sim" : "Não", dizimista: this.dizimista.checked ? "Sim" : "Não",
               arquivado: "Não" 
-          }; 
+          };
           
           try { 
               if(id) {
@@ -1241,6 +1248,8 @@
               "Cursão": m[7],
               "CTL": m[8],
               "Encontro": m[9],
+              "Seminário": m[11],
+              "Dizimista": m[12],
               "Nascimento": m[10]
           }));
 
@@ -1263,10 +1272,10 @@
           doc.setFontSize(10);
           doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 22);
 
-          const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Nasc."]];
+          const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz.", "Nasc."]];
           
           const corpo = dadosMembros.map(m => [
-              m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[10]
+              m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12], m[10]
           ]);
 
           doc.autoTable({
