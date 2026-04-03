@@ -1332,7 +1332,7 @@
           } catch (e) { console.error("Erro no log:", e); }
       }
 
-      function exportarExcel() {
+      async function exportarPDF() {
           const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
           const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
           const catFiltro = document.getElementById('filtroCategoria').value.toLowerCase();
@@ -1360,26 +1360,100 @@
 
           if (listaFiltrada.length === 0) return alert("Nenhum dado na tela para exportar");
 
-          const dadosFormatados = listaFiltrada.map(m => ({
-              "Nome": m[1],
-              "Categoria": m[2],
-              "Célula": m[3],
-              "WhatsApp": m[4],
-              "Batismo": m[6],
-              "Cursão": m[7],
-              "CTL": m[8],
-              "Encontro": m[9],
-              "Seminário": m[11],
-              "Dizimista": m[12],
-              "Nascimento": m[10]
-          }));
+          // Adiciona um feedback visual no botão enquanto gera o PDF
+          const btnPdf = document.querySelector('.btn-add-member[title="Exportar PDF"]');
+          const textoOriginalBtn = btnPdf.innerHTML;
+          btnPdf.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-          const worksheet = XLSX.utils.json_to_sheet(dadosFormatados);
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Membros");
-          
-          XLSX.writeFile(workbook, `Membros_Videira_Jatai_${new Date().toLocaleDateString()}.xlsx`);
-          registrarLogAcao("Exportou lista de membros filtrada para Excel");
+          try {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF('l', 'mm', 'a4');
+
+              // 1. Busca e converte a logo para Base64 (formato lido pelo jsPDF)
+              let logoBase64 = null;
+              try {
+                  const response = await fetch('https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png');
+                  const blob = await response.blob();
+                  logoBase64 = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve(reader.result);
+                      reader.readAsDataURL(blob);
+                  });
+              } catch (e) {
+                  console.warn("Aviso: Não foi possível carregar a logo no PDF.", e);
+              }
+
+              // 2. Constrói o texto dos filtros ativos
+              let textoFiltro = `Gerado em: ${new Date().toLocaleString()}`;
+              const selectCelula = document.getElementById('filtroCelula');
+              const selectCat = document.getElementById('filtroCategoria');
+              const selectTag = document.getElementById('filtroTag');
+              
+              if (celulaFiltro !== "") textoFiltro += ` | Célula: ${selectCelula.options[selectCelula.selectedIndex].text}`;
+              if (catFiltro !== "") textoFiltro += ` | Cat: ${selectCat.options[selectCat.selectedIndex].text}`;
+              if (tagFiltro !== "") textoFiltro += ` | Status: ${selectTag.options[selectTag.selectedIndex].text}`;
+              if (termoBusca !== "") textoFiltro += ` | Busca: "${termoBusca}"`;
+
+              // 3. Desenha o Cabeçalho
+              let startYDaTabela = 26;
+
+              if (logoBase64) {
+                  // Adiciona a imagem (X: 14, Y: 10, Largura: 16, Altura: 16)
+                  doc.addImage(logoBase64, 'PNG', 14, 10, 16, 16);
+                  
+                  // Título principal (com fonte em Negrito)
+                  doc.setFont(undefined, 'bold');
+                  doc.setFontSize(16);
+                  doc.text("Relatório de Membros - Videira Jataí", 34, 16);
+                  
+                  // Subtítulo / Filtros
+                  doc.setFont(undefined, 'normal');
+                  doc.setFontSize(9);
+                  doc.setTextColor(100, 100, 100); // Cor cinza para os filtros
+                  doc.text(textoFiltro, 34, 22);
+
+                  // Linha divisória fina e elegante
+                  doc.setDrawColor(200, 200, 200);
+                  doc.setLineWidth(0.5);
+                  doc.line(14, 28, 283, 28); // Vai da margem esquerda à direita
+                  
+                  // Empurra a tabela um pouco mais para baixo para não colar na linha
+                  startYDaTabela = 33; 
+              } else {
+                  // Fallback: Se a internet oscilar e a logo não baixar, desenha o cabeçalho simples
+                  doc.setFontSize(16);
+                  doc.text("Relatório de Membros - Videira Jataí", 14, 15);
+                  doc.setFontSize(10);
+                  doc.text(textoFiltro, 14, 22);
+              }
+
+              // 4. Prepara e desenha a Tabela
+              const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz.", "Nasc."]];
+              
+              const corpo = listaFiltrada.map(m => [
+                  m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12], m[10]
+              ]);
+
+              doc.autoTable({
+                  head: cabecalho,
+                  body: corpo,
+                  startY: startYDaTabela,
+                  theme: 'grid',
+                  headStyles: { fillColor: [128, 0, 32] }, // Cor Bordô da Videira
+                  styles: { fontSize: 8, cellPadding: 2 }
+              });
+
+              // 5. Salva o arquivo
+              doc.save(`Membros_Videira_Jatai_${new Date().toLocaleDateString()}.pdf`);
+              registrarLogAcao("Exportou lista de membros filtrada para PDF");
+
+          } catch(err) {
+              alert("Erro ao gerar o PDF. Verifique o console.");
+              console.error(err);
+          } finally {
+              // Devolve o ícone original do botão
+              btnPdf.innerHTML = textoOriginalBtn;
+          }
       }
 
       async function exportarPDF() {
