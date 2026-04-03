@@ -301,6 +301,8 @@
                     <label class="check-option"><input type="checkbox" id="addMembroCursao"><span class="checkmark">Cursão</span></label>
                     <label class="check-option"><input type="checkbox" id="addMembroCtl"><span class="checkmark">CTL</span></label>
                     <label class="check-option"><input type="checkbox" id="addMembroEncontro"><span class="checkmark">Encontro</span></label>
+                    <label class="check-option"><input type="checkbox" id="addMembroSeminario"><span class="checkmark">Seminário</span></label>
+                    <label class="check-option"><input type="checkbox" id="addMembroDizimista"><span class="checkmark">Dizimista</span></label>
                 </div>
                 <button type="submit" id="btnSalvarNovoMembro" class="btn-save">Cadastrar Membro</button>
             </form>
@@ -324,11 +326,13 @@
                 <div class="form-group"><label>Categoria</label><select id="editMembroCat"><option>Frequentador</option><option>Membro</option><option>Líder</option></select></div>
                 
                 <label style="margin-top:15px; display:block; font-weight:bold; color:var(--text-light);">Passos de Fé</label>
-                <div class="check-grid">
+<div class="check-grid">
                     <label class="check-option"><input type="checkbox" id="editMembroBatizado"><span class="checkmark">Batismo</span></label>
                     <label class="check-option"><input type="checkbox" id="editMembroCursao"><span class="checkmark">Cursão</span></label>
                     <label class="check-option"><input type="checkbox" id="editMembroCtl"><span class="checkmark">CTL</span></label>
                     <label class="check-option"><input type="checkbox" id="editMembroEncontro"><span class="checkmark">Encontro</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroSeminario"><span class="checkmark">Seminário</span></label>
+                    <label class="check-option"><input type="checkbox" id="editMembroDizimista"><span class="checkmark">Dizimista</span></label>
                 </div>
                 <button type="submit" id="btnSalvarEdicaoMembro" class="btn-save">Salvar Alterações</button>
             </form>
@@ -582,6 +586,8 @@ arquivados.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
                      <div class="status-pill ${check(m.cursao)}">Cursão</div>
                      <div class="status-pill ${check(m.ctl)}">CTL</div>
                      <div class="status-pill ${check(m.encontro)}">Encontro</div>
+                     <div class="status-pill ${check(m.seminario)}">Seminário</div>
+                     <div class="status-pill ${check(m.dizimista)}">Dizimista</div>
                   </div>
                   ${!isArquivado ? btnZap : ''}
                </div>`;
@@ -637,6 +643,8 @@ arquivados.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
           document.getElementById('editMembroCursao').checked = chk(m.cursao);
           document.getElementById('editMembroCtl').checked = chk(m.ctl);
           document.getElementById('editMembroEncontro').checked = chk(m.encontro);
+          document.getElementById('editMembroSeminario').checked = chk(m.seminario);
+          document.getElementById('editMembroDizimista').checked = chk(m.dizimista);
 
           document.getElementById('modalEditarMembro').classList.remove('hidden');
       }
@@ -655,7 +663,9 @@ arquivados.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
               batizado: document.getElementById('editMembroBatizado').checked ? "Sim" : "Não",
               cursao: document.getElementById('editMembroCursao').checked ? "Sim" : "Não",
               ctl: document.getElementById('editMembroCtl').checked ? "Sim" : "Não",
-              encontro: document.getElementById('editMembroEncontro').checked ? "Sim" : "Não"
+              encontro: document.getElementById('editMembroEncontro').checked ? "Sim" : "Não",
+              seminario: document.getElementById('editMembroSeminario').checked ? "Sim" : "Não",
+              dizimista: document.getElementById('editMembroDizimista').checked ? "Sim" : "Não"
           };
 
           try {
@@ -702,8 +712,9 @@ arquivados.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
               cursao: document.getElementById('addMembroCursao').checked ? "Sim" : "Não",
               ctl: document.getElementById('addMembroCtl').checked ? "Sim" : "Não",
               encontro: document.getElementById('addMembroEncontro').checked ? "Sim" : "Não",
-              arquivado: "Não",
-              dizimista: "Não" // Padronizado igual no painel do Líder
+              seminario: document.getElementById('addMembroSeminario').checked ? "Sim" : "Não",
+              dizimista: document.getElementById('addMembroDizimista').checked ? "Sim" : "Não",
+              arquivado: "Não"
           };
 
           try {
