@@ -540,13 +540,12 @@
             let telClean = tel.replace(/\D/g, '');
             let btnZap = (telClean.length > 8) ? `<a href="https://wa.me/55${telClean}" target="_blank" class="btn-zap"><i class="fab fa-whatsapp"></i> Conversar</a>` : '';
             let nasc = m.nascimento ? `<span style="font-size:0.8rem; margin-left:auto; color:#999;"><i class="fas fa-birthday-cake"></i> ${formatData(m.nascimento)}</span>` : '';
-            let badgeDizimista = (String(m.dizimista).toLowerCase() === 'sim' || m.dizimista === true) ? `<span style="font-size:0.7rem; margin-left:5px; color:#166534; background:#dcfce7; padding:2px 6px; border-radius:4px; border:1px solid #bbf7d0;"><i class="fas fa-seedling"></i> Dizimista</span>` : '';
 
             grid.innerHTML += `
               <div class="member-card" data-nome="${nome.toLowerCase()}" data-celula="${celula.toLowerCase()}">
                  <div class="card-header"><h4 class="card-name">${nome}</h4><span class="cat-badge cat-${categoria}">${categoria}</span></div>
-                 <div class="card-info" style="flex-wrap: wrap;"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${badgeDizimista} ${nasc}</div>
-                <div class="status-row">
+                 <div class="card-info" style="flex-wrap: wrap;"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${nasc}</div>
+                 <div class="status-row">
                     <div class="status-pill ${check(m.batizado)}">Batismo</div>
                     <div class="status-pill ${check(m.cursao)}">Cursão</div>
                     <div class="status-pill ${check(m.ctl)}">CTL</div>
