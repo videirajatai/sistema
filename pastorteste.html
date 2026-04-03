@@ -1332,6 +1332,56 @@
           } catch (e) { console.error("Erro no log:", e); }
       }
 
+      function exportarExcel() {
+          const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
+          const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
+          const catFiltro = document.getElementById('filtroCategoria').value.toLowerCase();
+          const tagFiltro = document.getElementById('filtroTag').value.toLowerCase();
+
+          const listaFiltrada = dadosMembros.filter(m => {
+              const nome = m[1].toLowerCase();
+              const celula = (m[3] || '').toLowerCase();
+              const categoria = (m[2] || '').toLowerCase();
+              
+              let tagsArr = [];
+              if(m[6] === 'Sim') tagsArr.push('batizado');
+              if(m[7] === 'Sim') tagsArr.push('cursão');
+              if(m[8] === 'Sim') tagsArr.push('ctl');
+              if(m[9] === 'Sim') tagsArr.push('encontro');
+              if(m[11] === 'Sim') tagsArr.push('seminário');
+              if(m[12] === 'Sim') tagsArr.push('dizimista');
+              let tagsStr = tagsArr.join(' ');
+
+              return nome.includes(termoBusca) && 
+                     (celulaFiltro === "" || celula.includes(celulaFiltro)) &&
+                     (catFiltro === "" || categoria === catFiltro) &&
+                     (tagFiltro === "" || tagsStr.includes(tagFiltro));
+          });
+
+          if (listaFiltrada.length === 0) return alert("Nenhum dado na tela para exportar");
+
+          const dadosFormatados = listaFiltrada.map(m => ({
+              "Nome": m[1],
+              "Categoria": m[2],
+              "Célula": m[3],
+              "WhatsApp": m[4],
+              "Batismo": m[6],
+              "Cursão": m[7],
+              "CTL": m[8],
+              "Encontro": m[9],
+              "Seminário": m[11],
+              "Dizimista": m[12],
+              "Nascimento": m[10]
+          }));
+
+          const worksheet = XLSX.utils.json_to_sheet(dadosFormatados);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Membros");
+          
+          XLSX.writeFile(workbook, `Membros_Videira_Jatai_${new Date().toLocaleDateString()}.xlsx`);
+          registrarLogAcao("Exportou lista de membros filtrada para Excel");
+      }
+
       async function exportarPDF() {
           const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
           const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
@@ -1454,72 +1504,6 @@
               // Devolve o ícone original do botão
               btnPdf.innerHTML = textoOriginalBtn;
           }
-      }
-
-      async function exportarPDF() {
-          const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
-          const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
-          const catFiltro = document.getElementById('filtroCategoria').value.toLowerCase();
-          const tagFiltro = document.getElementById('filtroTag').value.toLowerCase();
-
-          const listaFiltrada = dadosMembros.filter(m => {
-              const nome = m[1].toLowerCase();
-              const celula = (m[3] || '').toLowerCase();
-              const categoria = (m[2] || '').toLowerCase();
-              
-              let tagsArr = [];
-              if(m[6] === 'Sim') tagsArr.push('batizado');
-              if(m[7] === 'Sim') tagsArr.push('cursão');
-              if(m[8] === 'Sim') tagsArr.push('ctl');
-              if(m[9] === 'Sim') tagsArr.push('encontro');
-              if(m[11] === 'Sim') tagsArr.push('seminário');
-              if(m[12] === 'Sim') tagsArr.push('dizimista');
-              let tagsStr = tagsArr.join(' ');
-
-              return nome.includes(termoBusca) && 
-                     (celulaFiltro === "" || celula.includes(celulaFiltro)) &&
-                     (catFiltro === "" || categoria === catFiltro) &&
-                     (tagFiltro === "" || tagsStr.includes(tagFiltro));
-          });
-
-          if (listaFiltrada.length === 0) return alert("Nenhum dado na tela para exportar");
-
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF('l', 'mm', 'a4');
-
-          doc.setFontSize(16);
-          doc.text("Relatório de Membros - Videira Jataí", 14, 15);
-          doc.setFontSize(10);
-          
-          let textoFiltro = `Gerado em: ${new Date().toLocaleString()}`;
-          const selectCelula = document.getElementById('filtroCelula');
-          const selectCat = document.getElementById('filtroCategoria');
-          const selectTag = document.getElementById('filtroTag');
-          
-          if (celulaFiltro !== "") textoFiltro += ` | Célula: ${selectCelula.options[selectCelula.selectedIndex].text}`;
-          if (catFiltro !== "") textoFiltro += ` | Cat: ${selectCat.options[selectCat.selectedIndex].text}`;
-          if (tagFiltro !== "") textoFiltro += ` | Status: ${selectTag.options[selectTag.selectedIndex].text}`;
-          if (termoBusca !== "") textoFiltro += ` | Busca: "${termoBusca}"`;
-          
-          doc.text(textoFiltro, 14, 22);
-
-          const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz.", "Nasc."]];
-          
-          const corpo = listaFiltrada.map(m => [
-              m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12], m[10]
-          ]);
-
-          doc.autoTable({
-              head: cabecalho,
-              body: corpo,
-              startY: 26,
-              theme: 'grid',
-              headStyles: { fillColor: [128, 0, 32] },
-              styles: { fontSize: 8 }
-          });
-
-          doc.save(`Membros_Videira_Jatai_${new Date().toLocaleDateString()}.pdf`);
-          registrarLogAcao("Exportou lista de membros filtrada para PDF");
       }
 
       function fazerLogout() {
