@@ -1420,9 +1420,11 @@
               const doc = new jsPDF('l', 'mm', 'a4');
 
               // 1. Busca e converte a logo para Base64 (formato lido pelo jsPDF)
+              // 1. Busca e converte a logo local para Base64 (Sem problemas de bloqueio)
               let logoBase64 = null;
               try {
-                  const response = await fetch('https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png');
+                  // Como o logo.png está na mesma pasta/repositório, basta chamar pelo nome
+                  const response = await fetch('logo.png');
                   const blob = await response.blob();
                   logoBase64 = await new Promise((resolve) => {
                       const reader = new FileReader();
