@@ -223,11 +223,13 @@
           <label>Célula</label><select name="celula" id="selectCelulas" required></select>
           <label>Categoria</label><select name="categoria"><option>Membro</option><option selected>Frequentador</option><option>Líder</option></select>
           <label style="margin-top:15px;">Passos de Fé</label>
-          <div class="check-grid">
+         <div class="check-grid">
              <label class="check-option"><input type="checkbox" name="batizado"><span class="checkmark">Batismo</span></label>
              <label class="check-option"><input type="checkbox" name="cursao"><span class="checkmark">Cursão</span></label>
              <label class="check-option"><input type="checkbox" name="ctl"><span class="checkmark">CTL</span></label>
              <label class="check-option"><input type="checkbox" name="encontro"><span class="checkmark">Encontro</span></label>
+             <label class="check-option"><input type="checkbox" name="seminario"><span class="checkmark">Seminário</span></label>
+             <label class="check-option"><input type="checkbox" name="dizimista"><span class="checkmark">Dizimista</span></label>
           </div>
           <div style="display:flex; gap:10px;">
              <button type="button" onclick="mudarSecao('lista')" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
@@ -531,11 +533,13 @@
               <div class="member-card" data-nome="${nome.toLowerCase()}" data-celula="${celula.toLowerCase()}">
                  <div class="card-header"><h4 class="card-name">${nome}</h4><span class="cat-badge cat-${categoria}">${categoria}</span></div>
                  <div class="card-info" style="flex-wrap: wrap;"><i class="fas fa-users" style="color:#bbb;"></i> ${celula} ${badgeDizimista} ${nasc}</div>
-                 <div class="status-row">
+                <div class="status-row">
                     <div class="status-pill ${check(m.batizado)}">Batismo</div>
                     <div class="status-pill ${check(m.cursao)}">Cursão</div>
                     <div class="status-pill ${check(m.ctl)}">CTL</div>
                     <div class="status-pill ${check(m.encontro)}">Encontro</div>
+                    <div class="status-pill ${check(m.seminario)}">Seminário</div>
+                    <div class="status-pill ${check(m.dizimista)}">Dizimista</div>
                  </div>
                  ${btnZap}
               </div>`;
@@ -694,7 +698,7 @@
             celula: this.celula.value, telefone: this.telefone.value, 
             batizado: this.batizado.checked ? "Sim" : "Não", cursao: this.cursao.checked ? "Sim" : "Não", 
             ctl: this.ctl.checked ? "Sim" : "Não", encontro: this.encontro.checked ? "Sim" : "Não",
-            dizimista: "Não" 
+            seminario: this.seminario.checked ? "Sim" : "Não", dizimista: this.dizimista.checked ? "Sim" : "Não" 
          };
          
          try {
