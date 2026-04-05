@@ -349,7 +349,10 @@
         <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
           
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
-            <h4 style="margin:0; color: var(--text-light); flex-grow: 1;"><span id="totalMembros">0</span> Membros</h4>
+           <h4 style="margin:0; color: var(--text-light); flex-grow: 1;">
+            <span id="totalMembros">0</span> Membros 
+            <span id="contagemFiltrados" style="font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-left: 8px; display: none;"></span>
+          </h4>
             
             <div style="display:flex; gap: 8px;">
               <button onclick="exportarExcel()" class="btn-add-member" style="background: #166534; color: white;" title="Exportar Excel">
@@ -1029,20 +1032,53 @@
           } finally { btn.disabled=false; btn.innerText="Registrar Movimentação"; }
       }
 
-      function filtrarMembros() { 
+     function filtrarMembros() { 
           const b = document.getElementById('inputBusca').value.toLowerCase();
           const c = document.getElementById('filtroCelula').value.toLowerCase();
           const cat = document.getElementById('filtroCategoria').value.toLowerCase();
           const tag = document.getElementById('filtroTag').value.toLowerCase();
 
-          document.querySelectorAll('.member-card').forEach(card => { 
+          let visiveis = 0; 
+          // Restringe a busca APENAS à grade de membros ativos para evitar conflito com os arquivados
+          const gridCards = document.getElementById('gridMembros').querySelectorAll('.member-card');
+
+          gridCards.forEach(card => { 
               const matchBusca = card.getAttribute('data-nome').includes(b);
               const matchCelula = (c === "" || card.getAttribute('data-celula').includes(c));
               const matchCat = (cat === "" || card.getAttribute('data-categoria') === cat);
               const matchTag = (tag === "" || card.getAttribute('data-tags').includes(tag));
               
-              card.style.display = (matchBusca && matchCelula && matchCat && matchTag) ? 'flex' : 'none'; 
+              if (matchBusca && matchCelula && matchCat && matchTag) {
+                  card.style.display = 'flex';
+                  visiveis++; // Conta os cards reais na tela
+              } else {
+                  card.style.display = 'none';
+              }
           }); 
+
+          const spanFiltrados = document.getElementById('contagemFiltrados');
+          // Verifica se algum filtro foi digitado/selecionado
+          const temFiltroAtivo = b !== "" || c !== "" || cat !== "" || tag !== "";
+          
+          if (temFiltroAtivo) {
+              // Injeta a quantidade e o "X" (ícone do FontAwesome) para limpar
+              spanFiltrados.innerHTML = `(${visiveis} filtrados) <i class="fas fa-times-circle" style="cursor:pointer; color:#ef4444; margin-left:4px;" onclick="limparFiltrosMembros()" title="Limpar todos os filtros"></i>`;
+              spanFiltrados.style.display = 'inline-block';
+          } else {
+              // Se não tem filtro nenhum, garante que volta a esconder e restaurar tudo
+              spanFiltrados.style.display = 'none';
+          }
+      }
+
+      function limparFiltrosMembros() {
+          // Zera todos os inputs
+          document.getElementById('inputBusca').value = '';
+          document.getElementById('filtroCelula').value = '';
+          document.getElementById('filtroCategoria').value = '';
+          document.getElementById('filtroTag').value = '';
+          
+          // Manda rodar o filtro de novo com tudo vazio (fazendo todos aparecerem)
+          filtrarMembros(); 
       }
       
       function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'), s3 = document.getElementById('celLider'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Células</option>'; s3.innerHTML='<option value="">Selecione...</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; s2.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; }); lideres.forEach(l => s3.innerHTML += `<option value="${l}">${l}</option>`); }
@@ -1382,7 +1418,7 @@
           registrarLogAcao("Exportou lista de membros filtrada para Excel");
       }
 
-      async function exportarPDF() {
+     async function exportarPDF() {
           const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
           const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
           const catFiltro = document.getElementById('filtroCategoria').value.toLowerCase();
@@ -1410,42 +1446,103 @@
 
           if (listaFiltrada.length === 0) return alert("Nenhum dado na tela para exportar");
 
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF('l', 'mm', 'a4');
+          // Adiciona um feedback visual no botão enquanto gera o PDF
+          const btnPdf = document.querySelector('.btn-add-member[title="Exportar PDF"]');
+          const textoOriginalBtn = btnPdf.innerHTML;
+          btnPdf.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-          doc.setFontSize(16);
-          doc.text("Relatório de Membros - Videira Jataí", 14, 15);
-          doc.setFontSize(10);
-          
-          let textoFiltro = `Gerado em: ${new Date().toLocaleString()}`;
-          const selectCelula = document.getElementById('filtroCelula');
-          const selectCat = document.getElementById('filtroCategoria');
-          const selectTag = document.getElementById('filtroTag');
-          
-          if (celulaFiltro !== "") textoFiltro += ` | Célula: ${selectCelula.options[selectCelula.selectedIndex].text}`;
-          if (catFiltro !== "") textoFiltro += ` | Cat: ${selectCat.options[selectCat.selectedIndex].text}`;
-          if (tagFiltro !== "") textoFiltro += ` | Status: ${selectTag.options[selectTag.selectedIndex].text}`;
-          if (termoBusca !== "") textoFiltro += ` | Busca: "${termoBusca}"`;
-          
-          doc.text(textoFiltro, 14, 22);
+          try {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF('l', 'mm', 'a4');
 
-          const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz.", "Nasc."]];
-          
-          const corpo = listaFiltrada.map(m => [
-              m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12], m[10]
-          ]);
+              // 1. Busca e converte a logo local para Base64
+              let logoBase64 = null;
+              try {
+                  const response = await fetch('logo.png');
+                  const blob = await response.blob();
+                  logoBase64 = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve(reader.result);
+                      reader.readAsDataURL(blob);
+                  });
+              } catch (e) {
+                  console.warn("Aviso: Não foi possível carregar a logo no PDF.", e);
+              }
 
-          doc.autoTable({
-              head: cabecalho,
-              body: corpo,
-              startY: 26,
-              theme: 'grid',
-              headStyles: { fillColor: [128, 0, 32] },
-              styles: { fontSize: 8 }
-          });
+              // 2. Constrói o texto dos filtros ativos e adiciona o TOTAL
+              let textoFiltro = `Gerado em: ${new Date().toLocaleString()}`;
+              const selectCelula = document.getElementById('filtroCelula');
+              const selectCat = document.getElementById('filtroCategoria');
+              const selectTag = document.getElementById('filtroTag');
+              
+              if (celulaFiltro !== "") textoFiltro += ` | Célula: ${selectCelula.options[selectCelula.selectedIndex].text}`;
+              if (catFiltro !== "") textoFiltro += ` | Cat: ${selectCat.options[selectCat.selectedIndex].text}`;
+              if (tagFiltro !== "") textoFiltro += ` | Status: ${selectTag.options[selectTag.selectedIndex].text}`;
+              if (termoBusca !== "") textoFiltro += ` | Busca: "${termoBusca}"`;
+              
+              // INCLUINDO O TOTAL AQUI:
+              textoFiltro += ` | Total listado: ${listaFiltrada.length} membro(s)`;
 
-          doc.save(`Membros_Videira_Jatai_${new Date().toLocaleDateString()}.pdf`);
-          registrarLogAcao("Exportou lista de membros filtrada para PDF");
+              // 3. Desenha o Cabeçalho
+              let startYDaTabela = 26;
+
+              if (logoBase64) {
+                  // Adiciona a imagem (X: 14, Y: 10, Largura: 16, Altura: 16)
+                  doc.addImage(logoBase64, 'PNG', 14, 10, 16, 16);
+                  
+                  // Título principal (com fonte em Negrito)
+                  doc.setFont(undefined, 'bold');
+                  doc.setFontSize(16);
+                  doc.text("Relatório de Membros - Videira Jataí", 34, 16);
+                  
+                  // Subtítulo / Filtros + Total
+                  doc.setFont(undefined, 'normal');
+                  doc.setFontSize(9);
+                  doc.setTextColor(100, 100, 100); // Cor cinza para os filtros
+                  doc.text(textoFiltro, 34, 22);
+
+                  // Linha divisória fina e elegante
+                  doc.setDrawColor(200, 200, 200);
+                  doc.setLineWidth(0.5);
+                  doc.line(14, 28, 283, 28); // Vai da margem esquerda à direita
+                  
+                  // Empurra a tabela um pouco mais para baixo para não colar na linha
+                  startYDaTabela = 33; 
+              } else {
+                  // Fallback: Se a logo não baixar
+                  doc.setFontSize(16);
+                  doc.text("Relatório de Membros - Videira Jataí", 14, 15);
+                  doc.setFontSize(10);
+                  doc.text(textoFiltro, 14, 22);
+              }
+
+              // 4. Prepara e desenha a Tabela
+              const cabecalho = [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz.", "Nasc."]];
+              
+              const corpo = listaFiltrada.map(m => [
+                  m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12], m[10]
+              ]);
+
+              doc.autoTable({
+                  head: cabecalho,
+                  body: corpo,
+                  startY: startYDaTabela,
+                  theme: 'grid',
+                  headStyles: { fillColor: [128, 0, 32] }, // Cor Bordô da Videira
+                  styles: { fontSize: 8, cellPadding: 2 }
+              });
+
+              // 5. Salva o arquivo
+              doc.save(`Membros_Videira_Jatai_${new Date().toLocaleDateString()}.pdf`);
+              registrarLogAcao("Exportou lista de membros filtrada para PDF");
+
+          } catch(err) {
+              alert("Erro ao gerar o PDF. Verifique o console.");
+              console.error(err);
+          } finally {
+              // Devolve o ícone original do botão
+              btnPdf.innerHTML = textoOriginalBtn;
+          }
       }
 
       function fazerLogout() {
