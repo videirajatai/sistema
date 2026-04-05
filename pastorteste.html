@@ -349,9 +349,9 @@
         <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
           
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
-            <h4 style="margin:0; color: var(--text-light); flex-grow: 1;">
+           <h4 style="margin:0; color: var(--text-light); flex-grow: 1;">
             <span id="totalMembros">0</span> Membros 
-            <span id="contagemFiltrados" style="font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-left: 8px; display: none;">(0 filtrados)</span>
+            <span id="contagemFiltrados" style="font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-left: 8px; display: none;"></span>
           </h4>
             
             <div style="display:flex; gap: 8px;">
@@ -1032,15 +1032,17 @@
           } finally { btn.disabled=false; btn.innerText="Registrar Movimentação"; }
       }
 
-      function filtrarMembros() { 
+     function filtrarMembros() { 
           const b = document.getElementById('inputBusca').value.toLowerCase();
           const c = document.getElementById('filtroCelula').value.toLowerCase();
           const cat = document.getElementById('filtroCategoria').value.toLowerCase();
           const tag = document.getElementById('filtroTag').value.toLowerCase();
 
-          let visiveis = 0; // Variável para contar quantos passaram no filtro
+          let visiveis = 0; 
+          // Restringe a busca APENAS à grade de membros ativos para evitar conflito com os arquivados
+          const gridCards = document.getElementById('gridMembros').querySelectorAll('.member-card');
 
-          document.querySelectorAll('.member-card').forEach(card => { 
+          gridCards.forEach(card => { 
               const matchBusca = card.getAttribute('data-nome').includes(b);
               const matchCelula = (c === "" || card.getAttribute('data-celula').includes(c));
               const matchCat = (cat === "" || card.getAttribute('data-categoria') === cat);
@@ -1048,23 +1050,35 @@
               
               if (matchBusca && matchCelula && matchCat && matchTag) {
                   card.style.display = 'flex';
-                  visiveis++; // Soma +1 toda vez que um card fica visível
+                  visiveis++; // Conta os cards reais na tela
               } else {
                   card.style.display = 'none';
               }
           }); 
 
-          // Atualiza o texto discreto na tela
           const spanFiltrados = document.getElementById('contagemFiltrados');
-          const total = parseInt(document.getElementById('totalMembros').innerText) || 0;
+          // Verifica se algum filtro foi digitado/selecionado
+          const temFiltroAtivo = b !== "" || c !== "" || cat !== "" || tag !== "";
           
-          // Só mostra o "(X filtrados)" se o número for menor que o total da igreja
-          if (visiveis < total) {
-              spanFiltrados.innerText = `(${visiveis} filtrados)`;
+          if (temFiltroAtivo) {
+              // Injeta a quantidade e o "X" (ícone do FontAwesome) para limpar
+              spanFiltrados.innerHTML = `(${visiveis} filtrados) <i class="fas fa-times-circle" style="cursor:pointer; color:#ef4444; margin-left:4px;" onclick="limparFiltrosMembros()" title="Limpar todos os filtros"></i>`;
               spanFiltrados.style.display = 'inline-block';
           } else {
+              // Se não tem filtro nenhum, garante que volta a esconder e restaurar tudo
               spanFiltrados.style.display = 'none';
           }
+      }
+
+      function limparFiltrosMembros() {
+          // Zera todos os inputs
+          document.getElementById('inputBusca').value = '';
+          document.getElementById('filtroCelula').value = '';
+          document.getElementById('filtroCategoria').value = '';
+          document.getElementById('filtroTag').value = '';
+          
+          // Manda rodar o filtro de novo com tudo vazio (fazendo todos aparecerem)
+          filtrarMembros(); 
       }
       
       function preencherSelects(celulas) { const s1 = document.getElementById('selectCelulas'), s2 = document.getElementById('filtroCelula'), s3 = document.getElementById('celLider'); s1.innerHTML='<option value="">Selecione...</option>'; s2.innerHTML='<option value="">Células</option>'; s3.innerHTML='<option value="">Selecione...</option>'; celulas.forEach(c => { s1.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; s2.innerHTML += `<option value="${c[0]}">${c[0]}</option>`; }); lideres.forEach(l => s3.innerHTML += `<option value="${l}">${l}</option>`); }
