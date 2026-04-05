@@ -1382,7 +1382,7 @@
           registrarLogAcao("Exportou lista de membros filtrada para Excel");
       }
 
-      async function exportarPDF() {
+     async function exportarPDF() {
           const termoBusca = document.getElementById('inputBusca').value.toLowerCase();
           const celulaFiltro = document.getElementById('filtroCelula').value.toLowerCase();
           const catFiltro = document.getElementById('filtroCategoria').value.toLowerCase();
@@ -1419,11 +1419,9 @@
               const { jsPDF } = window.jspdf;
               const doc = new jsPDF('l', 'mm', 'a4');
 
-              // 1. Busca e converte a logo para Base64 (formato lido pelo jsPDF)
-              // 1. Busca e converte a logo local para Base64 (Sem problemas de bloqueio)
+              // 1. Busca e converte a logo local para Base64
               let logoBase64 = null;
               try {
-                  // Como o logo.png está na mesma pasta/repositório, basta chamar pelo nome
                   const response = await fetch('logo.png');
                   const blob = await response.blob();
                   logoBase64 = await new Promise((resolve) => {
@@ -1435,7 +1433,7 @@
                   console.warn("Aviso: Não foi possível carregar a logo no PDF.", e);
               }
 
-              // 2. Constrói o texto dos filtros ativos
+              // 2. Constrói o texto dos filtros ativos e adiciona o TOTAL
               let textoFiltro = `Gerado em: ${new Date().toLocaleString()}`;
               const selectCelula = document.getElementById('filtroCelula');
               const selectCat = document.getElementById('filtroCategoria');
@@ -1445,6 +1443,9 @@
               if (catFiltro !== "") textoFiltro += ` | Cat: ${selectCat.options[selectCat.selectedIndex].text}`;
               if (tagFiltro !== "") textoFiltro += ` | Status: ${selectTag.options[selectTag.selectedIndex].text}`;
               if (termoBusca !== "") textoFiltro += ` | Busca: "${termoBusca}"`;
+              
+              // INCLUINDO O TOTAL AQUI:
+              textoFiltro += ` | Total listado: ${listaFiltrada.length} membro(s)`;
 
               // 3. Desenha o Cabeçalho
               let startYDaTabela = 26;
@@ -1458,7 +1459,7 @@
                   doc.setFontSize(16);
                   doc.text("Relatório de Membros - Videira Jataí", 34, 16);
                   
-                  // Subtítulo / Filtros
+                  // Subtítulo / Filtros + Total
                   doc.setFont(undefined, 'normal');
                   doc.setFontSize(9);
                   doc.setTextColor(100, 100, 100); // Cor cinza para os filtros
@@ -1472,7 +1473,7 @@
                   // Empurra a tabela um pouco mais para baixo para não colar na linha
                   startYDaTabela = 33; 
               } else {
-                  // Fallback: Se a internet oscilar e a logo não baixar, desenha o cabeçalho simples
+                  // Fallback: Se a logo não baixar
                   doc.setFontSize(16);
                   doc.text("Relatório de Membros - Videira Jataí", 14, 15);
                   doc.setFontSize(10);
