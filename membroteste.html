@@ -175,6 +175,36 @@
         .pix-copy-box button:active {
             background: #059669;
         }
+
+            /* MODO LEITURA - TELA CHEIA */
+            .modo-leitura-ativo header,
+            .modo-leitura-ativo .bottom-nav,
+            .modo-leitura-ativo .biblia-controles,
+            .modo-leitura-ativo .saudacao-header,
+            .modo-leitura-ativo #card-celula {
+                display: none !important;
+            }
+            
+            .modo-leitura-ativo #content-area {
+                padding: 0 !important;
+                background: white;
+            }
+            
+            .modo-leitura-ativo .biblia-texto-area {
+                min-height: 100vh;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                padding: 20px !important;
+            }
+            
+            .modo-leitura-ativo #btn-modo-leitura {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                background: rgba(255,255,255,0.9);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
     </style>
 </head>
 <body>
@@ -202,14 +232,56 @@
         </div>
 
         <div id="aba-biblia" class="tab-content active">
-            <div class="biblia-controles">
-                <select id="biblia-livro" onchange="atualizarCapitulos()"></select>
-                <select id="biblia-capitulo" onchange="buscarCapituloBiblia()"></select>
+                <!-- CONTROLES PRINCIPAIS -->
+                <div class="biblia-controles">
+                    <select id="biblia-livro" onchange="atualizarCapitulos()" style="flex: 2;"></select>
+                    <select id="biblia-capitulo" onchange="buscarCapituloBiblia()" style="flex: 1;"></select>
+                </div>
+                
+                <!-- BARRA DE FERRAMENTAS DA BÍBLIA -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
+                    <div style="display: flex; gap: 8px;">
+                        <!-- Botões Anterior/Próximo -->
+                        <button onclick="capituloAnterior()" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main);">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <button onclick="proximoCapitulo()" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main);">
+                            Próximo <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <!-- Controle de Fonte -->
+                        <button onclick="ajustarFonte(-1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main);">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-light); min-width: 40px; justify-content: center;" id="tamanho-fonte">100%</span>
+                        <button onclick="ajustarFonte(1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main);">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        
+                        <!-- Modo Leitura (Tela Cheia) -->
+                        <button onclick="toggleModoLeitura()" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main);" id="btn-modo-leitura">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- SELETOR DE VERSÃO -->
+                <div style="margin-bottom: 15px;">
+                    <select id="biblia-versao" onchange="selecionarVersao()" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f8fafc; cursor: pointer; font-family: 'Inter', sans-serif;">
+                        <option value="am" selected>A Mensagem (Bíblia Contemporânea)</option>
+                        <option value="nvp">Em breve: Nova Versão Padronizada</option>
+                        <option value="acf">Em breve: Almeida Corrigida Fiel</option>
+                        <option value="nvi">Em breve: Nova Versão Internacional</option>
+                    </select>
+                </div>
+                
+                <!-- ÁREA DO TEXTO BÍBLICO -->
+                <div class="biblia-texto-area" id="biblia-conteudo" style="transition: font-size 0.2s ease;">
+                    <p class="biblia-placeholder"><i class="fas fa-spinner fa-spin"></i> Carregando texto...</p>
+                </div>
             </div>
-            <div class="biblia-texto-area" id="biblia-conteudo">
-                <p class="biblia-placeholder"><i class="fas fa-spinner fa-spin"></i> Carregando texto...</p>
-            </div>
-        </div>
 
         <div id="aba-agenda" class="tab-content">
             <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="far fa-calendar-alt"></i> Próximos Eventos</h4>
@@ -233,7 +305,7 @@
                 <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
                 
                 <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
-                    <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
+                   <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
                 </div>
                 
                 <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
@@ -263,7 +335,7 @@
     <nav class="bottom-nav">
         <button class="nav-item active" onclick="mudarAba('aba-biblia', this)">
             <i class="fas fa-bible"></i>
-            Bíblia
+            Bíblia A Mensagem
         </button>
         <button class="nav-item" onclick="mudarAba('aba-agenda', this)">
             <i class="far fa-calendar-alt"></i>
@@ -358,6 +430,7 @@
         window.onload = () => {
             carregarLivrosBiblia(); 
             carregarDados(null);
+            restaurarPreferenciasBiblia();
         };
 
         async function carregarDados(icon) {
@@ -556,36 +629,170 @@
             }
         }
 
-        async function buscarCapituloBiblia() {
-            const livroId = document.getElementById('biblia-livro').value;
-            const capitulo = document.getElementById('biblia-capitulo').value;
-            const selectLivro = document.getElementById('biblia-livro');
-            
-            if(!livroId || !capitulo) return;
 
-            const nomeLivro = selectLivro.options[selectLivro.selectedIndex].text;
+        // ================= VARIÁVEIS GLOBAIS DA BÍBLIA =================
+let tamanhoFonteAtual = 100; // percentual
+let modoLeituraAtivo = false;
+
+// ================= FUNÇÕES DE NAVEGAÇÃO =================
+function capituloAnterior() {
+    const selectCapitulo = document.getElementById('biblia-capitulo');
+    const valorAtual = parseInt(selectCapitulo.value);
+    
+    if (valorAtual > 1) {
+        selectCapitulo.value = valorAtual - 1;
+        buscarCapituloBiblia();
+    } else {
+        // Se for capítulo 1, tenta ir para o livro anterior
+        const selectLivro = document.getElementById('biblia-livro');
+        const indexAtual = selectLivro.selectedIndex;
+        
+        if (indexAtual > 0) {
+            selectLivro.selectedIndex = indexAtual - 1;
+            atualizarCapitulos();
             
-            const conteudo = document.getElementById('biblia-conteudo');
-            conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Carregando texto...</p>";
-            
-            try {
-                const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livroId}/${capitulo}.json`;
-                const resposta = await fetch(urlGithub);
-                if (!resposta.ok) throw new Error("Capítulo não encontrado");
-                
-                const versiculos = await resposta.json();
-                let htmlText = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${nomeLivro} ${capitulo}</h3>`;
-                
-                versiculos.forEach(v => {
-                    htmlText += `<div style="margin-bottom: 15px;">`;
-                    if (v.title) htmlText += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
-                    htmlText += `<p style="margin: 0; text-align: justify;"><sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>${v.content}</p></div>`;
-                });
-                conteudo.innerHTML = htmlText;
-            } catch (e) {
-                conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar o capítulo. Verifique sua conexão.</p>`;
-            }
+            // Vai para o último capítulo do livro anterior
+            const ultimoCapitulo = document.getElementById('biblia-capitulo').options.length;
+            document.getElementById('biblia-capitulo').value = ultimoCapitulo;
+            buscarCapituloBiblia();
         }
+    }
+}
+
+function proximoCapitulo() {
+    const selectLivro = document.getElementById('biblia-livro');
+    const selectCapitulo = document.getElementById('biblia-capitulo');
+    const valorAtual = parseInt(selectCapitulo.value);
+    const totalCapitulos = selectCapitulo.options.length;
+    
+    if (valorAtual < totalCapitulos) {
+        selectCapitulo.value = valorAtual + 1;
+        buscarCapituloBiblia();
+    } else {
+        // Se for último capítulo, vai para o próximo livro
+        const indexAtual = selectLivro.selectedIndex;
+        
+        if (indexAtual < selectLivro.options.length - 1) {
+            selectLivro.selectedIndex = indexAtual + 1;
+            atualizarCapitulos();
+            document.getElementById('biblia-capitulo').value = 1;
+            buscarCapituloBiblia();
+        }
+    }
+}
+
+// ================= CONTROLE DE FONTE =================
+function ajustarFonte(delta) {
+    const conteudo = document.getElementById('biblia-conteudo');
+    tamanhoFonteAtual += delta * 10;
+    
+    // Limites: mínimo 70%, máximo 200%
+    if (tamanhoFonteAtual < 70) tamanhoFonteAtual = 70;
+    if (tamanhoFonteAtual > 200) tamanhoFonteAtual = 200;
+    
+    conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+    document.getElementById('tamanho-fonte').innerText = `${tamanhoFonteAtual}%`;
+    
+    // Salva preferência no localStorage
+    localStorage.setItem('biblia-tamanho-fonte', tamanhoFonteAtual);
+}
+
+// ================= MODO LEITURA (TELA CHEIA) =================
+function toggleModoLeitura() {
+    const body = document.body;
+    const btn = document.getElementById('btn-modo-leitura');
+    
+    modoLeituraAtivo = !modoLeituraAtivo;
+    
+    if (modoLeituraAtivo) {
+        body.classList.add('modo-leitura-ativo');
+        btn.innerHTML = '<i class="fas fa-compress"></i>';
+        btn.title = "Sair do modo leitura";
+        
+        // Ajusta padding para leitura confortável
+        document.getElementById('content-area').style.padding = '0';
+    } else {
+        body.classList.remove('modo-leitura-ativo');
+        btn.innerHTML = '<i class="fas fa-expand"></i>';
+        btn.title = "Modo leitura (tela cheia)";
+        document.getElementById('content-area').style.padding = '15px';
+    }
+    
+    localStorage.setItem('biblia-modo-leitura', modoLeituraAtivo);
+}
+
+// ================= SELETOR DE VERSÃO =================
+function selecionarVersao() {
+    const select = document.getElementById('biblia-versao');
+    const versao = select.value;
+    
+    if (versao !== 'am') {
+        // Mostra mensagem "Em breve"
+        alert(`📖 A versão "${select.options[select.selectedIndex].text}" estará disponível em breve! Estamos trabalhando para trazer mais traduções da Bíblia.`);
+        
+        // Volta para "A Mensagem"
+        select.value = 'am';
+    }
+    // Se for 'am', já está selecionado e não faz nada
+}
+
+// ================= RESTAURAR PREFERÊNCIAS =================
+function restaurarPreferenciasBiblia() {
+    // Restaura tamanho da fonte
+    const fonteSalva = localStorage.getItem('biblia-tamanho-fonte');
+    if (fonteSalva) {
+        tamanhoFonteAtual = parseInt(fonteSalva);
+        document.getElementById('biblia-conteudo').style.fontSize = `${tamanhoFonteAtual}%`;
+        document.getElementById('tamanho-fonte').innerText = `${tamanhoFonteAtual}%`;
+    }
+    
+    // Restaura modo leitura
+    const modoLeituraSalvo = localStorage.getItem('biblia-modo-leitura');
+    if (modoLeituraSalvo === 'true') {
+        toggleModoLeitura();
+    }
+}
+
+        
+// Adicione no INÍCIO da função buscarCapituloBiblia() existente:
+async function buscarCapituloBiblia() {
+    const livroId = document.getElementById('biblia-livro').value;
+    const capitulo = document.getElementById('biblia-capitulo').value;
+    const selectLivro = document.getElementById('biblia-livro');
+    
+    if(!livroId || !capitulo) return;
+
+    const nomeLivro = selectLivro.options[selectLivro.selectedIndex].text;
+    
+    const conteudo = document.getElementById('biblia-conteudo');
+    conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Carregando texto...</p>";
+    
+    // Aplica tamanho de fonte atual ao placeholder também
+    conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+    
+    try {
+        const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livroId}/${capitulo}.json`;
+        const resposta = await fetch(urlGithub);
+        if (!resposta.ok) throw new Error("Capítulo não encontrado");
+        
+        const versiculos = await resposta.json();
+        let htmlText = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${nomeLivro} ${capitulo}</h3>`;
+        
+        versiculos.forEach(v => {
+            htmlText += `<div style="margin-bottom: 15px;">`;
+            if (v.title) htmlText += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
+            htmlText += `<p style="margin: 0; text-align: justify;"><sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>${v.content}</p></div>`;
+        });
+        conteudo.innerHTML = htmlText;
+        
+        // Reaplica o tamanho da fonte após carregar o conteúdo
+        conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+        
+    } catch (e) {
+        conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar o capítulo. Verifique sua conexão.</p>`;
+        conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+    }
+}
     </script>
 </body>
 </html>
