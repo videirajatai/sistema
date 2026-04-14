@@ -137,7 +137,7 @@
         .saudacao-header h2 { margin: 0; color: var(--primary); font-size: 1.3rem; }
         .saudacao-header p { margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem; }
 
-        /* ESTILOS DA ABA OFERTAS (NOVOS) */
+        /* ESTILOS DA ABA OFERTAS */
         .pix-copy-box {
             display: flex;
             align-items: center;
@@ -176,237 +176,229 @@
             background: #059669;
         }
 
-           /* ================= BOTÕES FLUTUANTES DE NAVEGAÇÃO ================= */
-.nav-flutuante {
-    position: fixed;
-    bottom: 130px; /* Mais baixo, próximo das abas */
-    transform: translateY(0);
-    width: 50px;
-    height: 50px;
-    background: rgba(96, 0, 24, 0.9);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 90; /* Abaixo do menu inferior (z-index: 20) mas visível */
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-    transition: all 0.3s ease;
-    opacity: 0.75;
-}
+        /* ================= BOTÕES FLUTUANTES DE NAVEGAÇÃO ================= */
+        .nav-flutuante {
+            position: fixed;
+            bottom: 150px;
+            transform: translateY(0);
+            width: 50px;
+            height: 50px;
+            background: rgba(96, 0, 24, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999 !important;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            transition: all 0.3s ease;
+            opacity: 0.75;
+        }
 
-.nav-flutuante:hover {
-    opacity: 1;
-    transform: scale(1.05);
-    background: rgba(96, 0, 24, 1);
-}
+        .nav-flutuante:hover {
+            opacity: 1;
+            transform: scale(1.05);
+            background: rgba(96, 0, 24, 1);
+        }
 
-.nav-flutuante.anterior {
-    left: 50px; /* Mais fechado, não tão no canto */
-}
+        .nav-flutuante.anterior {
+            left: 50px;
+        }
 
-.nav-flutuante.proximo {
-    right: 50px; /* Mais fechado, não tão no canto */
-}
+        .nav-flutuante.proximo {
+            right: 50px;
+        }
 
-.nav-flutuante i {
-    font-size: 1.4rem;
-}
+        .nav-flutuante i {
+            font-size: 1.4rem;
+        }
 
-/* Ajuste para telas muito pequenas */
-@media (max-width: 480px) {
-    .nav-flutuante {
-        width: 45px;
-        height: 45px;
-        bottom: 85px;
-        opacity: 0.7;
-    }
-    
-    .nav-flutuante.anterior { 
-        left: 12px; 
-    }
-    
-    .nav-flutuante.proximo { 
-        right: 12px; 
-    }
-    
-    .nav-flutuante i {
-        font-size: 1.2rem;
-    }
-}
+        /* Ajuste para telas muito pequenas */
+        @media (max-width: 480px) {
+            .nav-flutuante {
+                width: 45px;
+                height: 45px;
+                bottom: 120px;
+                opacity: 0.7;
+            }
+            
+            .nav-flutuante.anterior { 
+                left: 20px; 
+            }
+            
+            .nav-flutuante.proximo { 
+                right: 20px; 
+            }
+            
+            .nav-flutuante i {
+                font-size: 1.2rem;
+            }
+        }
 
-/* Quando o modo leitura estiver ativo, ajusta a posição */
-.modo-leitura-ativo .nav-flutuante {
-    bottom: 30px; /* No modo leitura, fica mais baixo ainda */
-    opacity: 0.5;
-    background: rgba(96, 0, 24, 0.7);
-}
+        /* Quando o modo leitura estiver ativo, ajusta a posição */
+        .modo-leitura-ativo .nav-flutuante {
+            bottom: 30px;
+            opacity: 0.5;
+            background: rgba(96, 0, 24, 0.7);
+        }
 
-.modo-leitura-ativo .nav-flutuante:hover {
-    opacity: 1;
-    background: rgba(96, 0, 24, 1);
-}
+        .modo-leitura-ativo .nav-flutuante:hover {
+            opacity: 1;
+            background: rgba(96, 0, 24, 1);
+        }
 
-/* Garante que os botões não fiquem em cima do menu inferior */
-@media (min-width: 481px) {
-    .nav-flutuante {
-        bottom: 90px;
-    }
-}
+        /* ================= MODO LEITURA MELHORADO ================= */
+        .modo-leitura-ativo {
+            background: #f5f0e8 !important;
+        }
 
-/* ================= MODO LEITURA MELHORADO ================= */
-.modo-leitura-ativo {
-    background: #f5f0e8 !important; /* Fundo sépia suave para leitura */
-}
+        .modo-leitura-ativo header,
+        .modo-leitura-ativo .bottom-nav,
+        .modo-leitura-ativo .biblia-controles,
+        .modo-leitura-ativo .saudacao-header,
+        .modo-leitura-ativo #card-celula,
+        .modo-leitura-ativo [style*="margin-bottom: 15px"]:has(#biblia-versao),
+        .modo-leitura-ativo .biblia-controles + div[style*="justify-content: space-between"] {
+            display: none !important;
+        }
 
-.modo-leitura-ativo header,
-.modo-leitura-ativo .bottom-nav,
-.modo-leitura-ativo .biblia-controles,
-.modo-leitura-ativo .saudacao-header,
-.modo-leitura-ativo #card-celula,
-.modo-leitura-ativo [style*="margin-bottom: 15px"]:has(#biblia-versao),
-.modo-leitura-ativo .biblia-controles + div[style*="justify-content: space-between"] {
-    display: none !important;
-}
+        .modo-leitura-ativo #content-area {
+            padding: 0 !important;
+            height: 100vh !important;
+            overflow-y: auto !important;
+            background: #f5f0e8 !important;
+        }
 
-.modo-leitura-ativo #content-area {
-    padding: 0 !important;
-    height: 100vh !important;
-    overflow-y: auto !important;
-    background: #f5f0e8 !important;
-}
+        .modo-leitura-ativo .biblia-texto-area {
+            min-height: 100vh !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 60px 20px 40px 20px !important;
+            max-width: 800px !important;
+            margin: 0 auto !important;
+            background: transparent !important;
+            line-height: 1.9 !important;
+        }
 
-.modo-leitura-ativo .biblia-texto-area {
-    min-height: 100vh !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    padding: 60px 20px 40px 20px !important;
-    max-width: 800px !important;
-    margin: 0 auto !important;
-    background: transparent !important;
-    line-height: 1.9 !important;
-}
+        /* Barra superior minimalista no modo leitura */
+        .modo-leitura-ativo .modo-leitura-toolbar {
+            display: flex !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 20px;
+            background: rgba(245, 240, 232, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: flex-end;
+            gap: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
 
-/* Barra superior minimalista no modo leitura */
-.modo-leitura-ativo .modo-leitura-toolbar {
-    display: flex !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 20px;
-    background: rgba(245, 240, 232, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    justify-content: flex-end;
-    gap: 15px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-}
+        .modo-leitura-toolbar button {
+            background: transparent;
+            border: none;
+            color: #600018;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-.modo-leitura-toolbar button {
-    background: transparent;
-    border: none;
-    color: #600018;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 20px;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
+        .modo-leitura-toolbar button:hover {
+            background: rgba(96, 0, 24, 0.1);
+        }
 
-.modo-leitura-toolbar button:hover {
-    background: rgba(96, 0, 24, 0.1);
-}
+        .modo-leitura-toolbar button i {
+            font-size: 1rem;
+        }
 
-.modo-leitura-toolbar button i {
-    font-size: 1rem;
-}
+        /* ================= MODO ESCURO ================= */
+        .modo-escuro-ativo {
+            background: #1a1a1a !important;
+        }
 
-/* ================= MODO ESCURO ================= */
-.modo-escuro-ativo {
-    background: #1a1a1a !important;
-}
+        .modo-escuro-ativo #content-area {
+            background: #1a1a1a !important;
+        }
 
-.modo-escuro-ativo #content-area {
-    background: #1a1a1a !important;
-}
+        .modo-escuro-ativo .biblia-texto-area {
+            background: #1e1e1e !important;
+            color: #e0e0e0 !important;
+        }
 
-.modo-escuro-ativo .biblia-texto-area {
-    background: #1e1e1e !important;
-    color: #e0e0e0 !important;
-}
+        .modo-escuro-ativo .biblia-texto-area h3 {
+            color: var(--ouro-videira) !important;
+        }
 
-.modo-escuro-ativo .biblia-texto-area h3 {
-    color: var(--ouro-videira) !important;
-}
+        .modo-escuro-ativo .biblia-texto-area h4 {
+            color: #b0b0b0 !important;
+        }
 
-.modo-escuro-ativo .biblia-texto-area h4 {
-    color: #b0b0b0 !important;
-}
+        .modo-escuro-ativo .biblia-texto-area p {
+            color: #d0d0d0 !important;
+        }
 
-.modo-escuro-ativo .biblia-texto-area p {
-    color: #d0d0d0 !important;
-}
+        .modo-escuro-ativo .biblia-texto-area sup {
+            color: var(--ouro-videira) !important;
+        }
 
-.modo-escuro-ativo .biblia-texto-area sup {
-    color: var(--ouro-videira) !important;
-}
+        /* Modo leitura + modo escuro combinados */
+        .modo-leitura-ativo.modo-escuro-ativo {
+            background: #0f0f0f !important;
+        }
 
-/* Modo leitura + modo escuro combinados */
-.modo-leitura-ativo.modo-escuro-ativo {
-    background: #0f0f0f !important;
-}
+        .modo-leitura-ativo.modo-escuro-ativo #content-area,
+        .modo-leitura-ativo.modo-escuro-ativo .biblia-texto-area {
+            background: #0f0f0f !important;
+        }
 
-.modo-leitura-ativo.modo-escuro-ativo #content-area,
-.modo-leitura-ativo.modo-escuro-ativo .biblia-texto-area {
-    background: #0f0f0f !important;
-}
+        .modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar {
+            background: rgba(15, 15, 15, 0.95) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
 
-.modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar {
-    background: rgba(15, 15, 15, 0.95) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-}
+        .modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar button {
+            color: #d0d0d0 !important;
+        }
 
-.modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar button {
-    color: #d0d0d0 !important;
-}
+        .modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar button:hover {
+            background: rgba(255,255,255,0.1) !important;
+        }
 
-.modo-leitura-ativo.modo-escuro-ativo .modo-leitura-toolbar button:hover {
-    background: rgba(255,255,255,0.1) !important;
-}
+        /* Botão flutuante de fechar modo leitura */
+        .btn-fechar-leitura {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: rgba(96, 0, 24, 0.8);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
 
-/* Botão flutuante de fechar modo leitura */
-.btn-fechar-leitura {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1001;
-    background: rgba(96, 0, 24, 0.8);
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    transition: all 0.2s;
-}
-
-.btn-fechar-leitura:hover {
-    background: #600018;
-    transform: scale(1.05);
-}
-    
+        .btn-fechar-leitura:hover {
+            background: #600018;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -434,77 +426,69 @@
         </div>
 
         <div id="aba-biblia" class="tab-content active">
-                    <!-- CONTROLES PRINCIPAIS -->
-                    <div class="biblia-controles">
-                        <select id="biblia-livro" onchange="atualizarCapitulos()" style="flex: 2;"></select>
-                        <select id="biblia-capitulo" onchange="buscarCapituloBiblia()" style="flex: 1;"></select>
-                    </div>
-                    
-                    <!-- BARRA DE FERRAMENTAS -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="ajustarFonte(-1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);">
-                                <i class="fas fa-minus"></i> <span style="margin-left: 3px;">A-</span>
-                            </button>
-                            <span style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-light); min-width: 45px; justify-content: center;" id="tamanho-fonte">100%</span>
-                            <button onclick="ajustarFonte(1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);">
-                                <span style="margin-right: 3px;">A+</span> <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        
-                        <div style="display: flex; gap: 6px;">
-                            <!-- Modo Escuro -->
-                            <button onclick="toggleModoEscuro()" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);" id="btn-modo-escuro" title="Modo Escuro">
-                                <i class="fas fa-moon"></i>
-                            </button>
-                            
-                            <!-- Modo Leitura -->
-                            <button onclick="toggleModoLeitura()" style="background: var(--primary); border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: white; font-weight: 600;" id="btn-modo-leitura">
-                                <i class="fas fa-book-open"></i> <span style="margin-left: 5px;">Modo Leitura</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- SELETOR DE VERSÃO -->
-                    <div style="margin-bottom: 15px;">
-                        <select id="biblia-versao" onchange="selecionarVersao()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; background: #f8fafc; cursor: pointer; font-family: 'Inter', sans-serif;">
-                            <option value="am" selected>📖 A Mensagem (Bíblia Contemporânea)</option>
-                            <option value="nvp">⏳ Em breve: Nova Versão Padronizada</option>
-                            <option value="acf">⏳ Em breve: Almeida Corrigida Fiel</option>
-                            <option value="nvi">⏳ Em breve: Nova Versão Internacional</option>
-                        </select>
-                    </div>
-                    
-                    <!-- ÁREA DO TEXTO BÍBLICO -->
-                    <div class="biblia-texto-area" id="biblia-conteudo" style="transition: all 0.2s ease;">
-                        <p class="biblia-placeholder"><i class="fas fa-spinner fa-spin"></i> Carregando texto...</p>
-                    </div>
-                    
-                    <!-- BOTÕES FLUTUANTES DE NAVEGAÇÃO -->
-                    <button class="nav-flutuante anterior" onclick="capituloAnterior()" title="Capítulo Anterior">
-                        <i class="fas fa-chevron-left"></i>
+            <!-- CONTROLES PRINCIPAIS -->
+            <div class="biblia-controles">
+                <select id="biblia-livro" onchange="atualizarCapitulos()" style="flex: 2;"></select>
+                <select id="biblia-capitulo" onchange="buscarCapituloBiblia()" style="flex: 1;"></select>
+            </div>
+            
+            <!-- BARRA DE FERRAMENTAS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="ajustarFonte(-1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);">
+                        <i class="fas fa-minus"></i> <span style="margin-left: 3px;">A-</span>
                     </button>
-                    <button class="nav-flutuante proximo" onclick="proximoCapitulo()" title="Próximo Capítulo">
-                        <i class="fas fa-chevron-right"></i>
+                    <span style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-light); min-width: 45px; justify-content: center;" id="tamanho-fonte">100%</span>
+                    <button onclick="ajustarFonte(1)" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);">
+                        <span style="margin-right: 3px;">A+</span> <i class="fas fa-plus"></i>
                     </button>
-                    
-                    <!-- TOOLBAR DO MODO LEITURA (inicialmente oculta) -->
-                    <div class="modo-leitura-toolbar" style="display: none;">
-                        <button onclick="toggleModoEscuro()" title="Modo Escuro">
-                            <i class="fas fa-moon"></i> Escuro
-                        </button>
-                        <button onclick="ajustarFonte(-1)" title="Diminuir Fonte">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <span style="color: #600018; font-weight: 600;" id="tamanho-fonte-leitura">100%</span>
-                        <button onclick="ajustarFonte(1)" title="Aumentar Fonte">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <button onclick="toggleModoLeitura()" title="Sair do Modo Leitura" style="background: #600018; color: white; padding: 8px 15px;">
-                            <i class="fas fa-times"></i> Sair
-                        </button>
-                    </div>
                 </div>
+                
+                <div style="display: flex; gap: 6px;">
+                    <!-- Modo Escuro -->
+                    <button onclick="toggleModoEscuro()" style="background: var(--card-bg); border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 20px; cursor: pointer; color: var(--text-main);" id="btn-modo-escuro" title="Modo Escuro">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    
+                    <!-- Modo Leitura -->
+                    <button onclick="toggleModoLeitura()" style="background: var(--primary); border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; color: white; font-weight: 600;" id="btn-modo-leitura">
+                        <i class="fas fa-book-open"></i> <span style="margin-left: 5px;">Modo Leitura</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- SELETOR DE VERSÃO -->
+            <div style="margin-bottom: 15px;">
+                <select id="biblia-versao" onchange="selecionarVersao()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; background: #f8fafc; cursor: pointer; font-family: 'Inter', sans-serif;">
+                    <option value="am" selected>📖 A Mensagem (Bíblia Contemporânea)</option>
+                    <option value="nvp">⏳ Em breve: Nova Versão Padronizada</option>
+                    <option value="acf">⏳ Em breve: Almeida Corrigida Fiel</option>
+                    <option value="nvi">⏳ Em breve: Nova Versão Internacional</option>
+                </select>
+            </div>
+            
+            <!-- ÁREA DO TEXTO BÍBLICO -->
+            <div class="biblia-texto-area" id="biblia-conteudo" style="transition: all 0.2s ease;">
+                <p class="biblia-placeholder"><i class="fas fa-spinner fa-spin"></i> Carregando texto...</p>
+            </div>
+            
+            <!-- TOOLBAR DO MODO LEITURA (inicialmente oculta) -->
+            <div class="modo-leitura-toolbar" style="display: none;">
+                <button onclick="toggleModoEscuro()" title="Modo Escuro">
+                    <i class="fas fa-moon"></i> Escuro
+                </button>
+                <button onclick="ajustarFonte(-1)" title="Diminuir Fonte">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <span style="color: #600018; font-weight: 600;" id="tamanho-fonte-leitura">100%</span>
+                <button onclick="ajustarFonte(1)" title="Aumentar Fonte">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button onclick="toggleModoLeitura()" title="Sair do Modo Leitura" style="background: #600018; color: white; padding: 8px 15px;">
+                    <i class="fas fa-times"></i> Sair
+                </button>
+            </div>
+        </div>
 
         <div id="aba-agenda" class="tab-content">
             <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="far fa-calendar-alt"></i> Próximos Eventos</h4>
@@ -558,7 +542,7 @@
     <nav class="bottom-nav">
         <button class="nav-item active" onclick="mudarAba('aba-biblia', this)">
             <i class="fas fa-bible"></i>
-            Bíblia A Mensagem
+            Bíblia
         </button>
         <button class="nav-item" onclick="mudarAba('aba-agenda', this)">
             <i class="far fa-calendar-alt"></i>
@@ -573,6 +557,14 @@
             Ofertar
         </button>
     </nav>
+
+    <!-- BOTÕES FLUTUANTES DE NAVEGAÇÃO (FORA DE TUDO) -->
+    <button class="nav-flutuante anterior" onclick="capituloAnterior()" title="Capítulo Anterior">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button class="nav-flutuante proximo" onclick="proximoCapitulo()" title="Próximo Capítulo">
+        <i class="fas fa-chevron-right"></i>
+    </button>
 
     <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
