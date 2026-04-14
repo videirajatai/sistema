@@ -94,7 +94,7 @@
                 
                 <div id="area-form">
                     <div class="input-group">
-                        <label>Usuário</label>
+                        <label>Usuário ou e-mail</label>
                         <input type="text" id="usuario-input" placeholder="Usuário" onkeypress="verificarEnter(event, 'login')" autocomplete="off">
                     </div>
                     <div class="input-group">
@@ -195,132 +195,145 @@
 
         // ================= FUNÇÃO DE LOGIN ORIGINAL MANTIDA =================
         async function verificarLogin() {
-            const user = document.getElementById('usuario-input').value.trim().toLowerCase();
-            const pass = document.getElementById('senha-input').value.trim();
-            const erro = document.getElementById('mensagem-erro');
-            const btn = document.getElementById('btn-entrar');
-            
-            // Validação inicial
-            if(!user || !pass) { 
-                erro.innerText = "⚠️ Preencha usuário e senha."; 
-                erro.style.display = 'block'; 
-                return; 
-            }
+    const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
+    const pass = document.getElementById('senha-input').value.trim();
+    const erro = document.getElementById('mensagem-erro');
+    const btn = document.getElementById('btn-entrar');
+    
+    // Validação inicial
+    if(!entrada || !pass) { 
+        erro.innerText = "⚠️ Preencha usuário/e-mail e senha."; 
+        erro.style.display = 'block'; 
+        return; 
+    }
 
-            btn.innerText = "Autenticando..."; 
-            btn.disabled = true; 
-            erro.style.display = 'none';
+    btn.innerText = "Autenticando..."; 
+    btn.disabled = true; 
+    erro.style.display = 'none';
 
-            try {
-                // Consulta no Supabase validando usuário e senha (idêntico ao original)
-                let resposta = await fetch(`${SB_URL}/rest/v1/usuarios?usuario=eq.${encodeURIComponent(user)}&senha=eq.${encodeURIComponent(pass)}&select=*`, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': SB_KEY,
-                        'Authorization': `Bearer ${SB_KEY}`
-                    }
-                });
-                
-                if (!resposta.ok) throw new Error("Credenciais inválidas");
+    try {
+        let resposta;
+        const ehEmail = entrada.includes('@'); // <--- DETECTA SE É E-MAIL
 
-                let resultado = await resposta.json();
-
-                // Se encontrou o usuário
-                if (resultado && resultado.length > 0) {
-                    const dadosUsuario = resultado[0];
-                    const nomeReal = dadosUsuario.nome;
-
-                    // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos (ex: "Líder" vira "lider")
-                    const categoria = (dadosUsuario.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-
-                    // ---> CHAMA O LOG DE LOGIN AQUI <---
-                    registrarLog(user, nomeReal, "Fez login no sistema");
-
-                    // Salva os dados de sessão
-                    sessionStorage.setItem('usuarioLogado', nomeReal);
-                    sessionStorage.setItem('loginDigitado', user); // <--- ADD ISSO PARA USARMOS NAS OUTRAS TELAS
-                    sessionStorage.setItem('urlApi', urlBackend);
-                    
-                    // Mapeia quais painéis o usuário pode acessar
-                    let paginas = [];
-                    
-                    if (categoria === 'administrador') {
-                        paginas = [
-                            { nome: "Painel Admin", url: "admin" },
-                            { nome: "Painel do Pastor", url: "pastor" },
-                            { nome: "Painel Discipulador", url: "discipulador" },
-                            { nome: "Painel do Líder", url: "lider" },
-                            { nome: "Financeiro Mobile", url: "financeiromobile" },
-                            { nome: "Painel Financeiro", url: "financeiro" },
-                            { nome: "Painel do Membro", url: "membro" }
-                        ];
-                    } else if (categoria === 'pastor') {
-                        paginas = [
-                            { nome: "Painel do Pastor", url: "pastor" },
-                            { nome: "Painel Admin", url: "admin" }
-                        ];
-                    } else if (categoria === 'discipulador') {
-                        paginas = [
-                            { nome: "Painel Discipulador", url: "discipulador" },
-                            { nome: "Painel do Líder", url: "lider" }
-                        ];
-                    } else if (categoria === 'tesoureiro') {
-                        paginas = [
-                            { nome: "Financeiro PC", url: "financeiro" },
-                            { nome: "Financeiro Mobile", url: "financeiromobile" }
-                        ];
-                    } else if (categoria === 'membro') {
-                        // ADICIONADO PARA OS NOVOS CADASTROS
-                        paginas = [
-                            { nome: "Área do Membro", url: "membro" } // Crie o membro.html depois
-                        ];
-                    } else {
-                        // lider ou qualquer outra coisa cai aqui
-                        paginas = [
-                            { nome: "Painel do Líder", url: "lider" }
-                        ];
-                    }
-                    
-                    const urlsPermitidas = paginas.map(p => p.url);
-                    sessionStorage.setItem('paginasPermitidas', JSON.stringify(urlsPermitidas));
-
-                    // Redirecionamento ou Tela de Escolha
-                    if (paginas.length === 1) {
-                        entrarNoPainel(nomeReal, paginas[0].url);
-                    } else {
-                        document.getElementById('area-form').style.display = 'none';
-                        document.getElementById('area-escolha').style.display = 'block';
-                        document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
-                        document.getElementById('subtitulo-login').innerText = "Qual painel você deseja acessar?";
-
-                        const divBotoes = document.getElementById('botoes-painel');
-                        divBotoes.innerHTML = '';
-                        paginas.forEach(pag => {
-                            let b = document.createElement('button');
-                            b.innerText = pag.nome;
-                            b.onclick = () => entrarNoPainel(nomeReal, pag.url);
-                            divBotoes.appendChild(b);
-                        });
-                    }
-                    
-                } else {
-                    // Array vazio = usuário ou senha incorretos
-                    erro.innerText = "⚠️ Usuário ou senha incorretos.";
-                    erro.style.display = 'block';
-                    document.getElementById('senha-input').value = "";
-                    document.getElementById('senha-input').focus();
-                    btn.innerText = "Entrar no Sistema"; 
-                    btn.disabled = false;
+        if (ehEmail) {
+            // CASO 1: LOGIN COM E-MAIL
+            resposta = await fetch(`${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(entrada)}&senha=eq.${encodeURIComponent(pass)}&select=*`, {
+                method: 'GET',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`
                 }
-            } catch (e) {
-                // Trata o erro se a senha for digitada com letras num campo int8, ou sem internet
-                erro.innerText = "⚠️ Usuário ou senha incorretos.";
-                erro.style.display = 'block';
-                document.getElementById('senha-input').value = "";
-                btn.innerText = "Entrar no Sistema"; 
-                btn.disabled = false;
-            }
+            });
+        } else {
+            // CASO 2: LOGIN COM USUÁRIO (ORIGINAL)
+            resposta = await fetch(`${SB_URL}/rest/v1/usuarios?usuario=eq.${encodeURIComponent(entrada)}&senha=eq.${encodeURIComponent(pass)}&select=*`, {
+                method: 'GET',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`
+                }
+            });
         }
+        
+        if (!resposta.ok) throw new Error("Credenciais inválidas");
+
+        let resultado = await resposta.json();
+
+        // Se encontrou o usuário
+        if (resultado && resultado.length > 0) {
+            const dadosUsuario = resultado[0];
+            const nomeReal = dadosUsuario.nome;
+            // Importante: para o log, usamos o nome de usuário real do banco, não o email digitado
+            const usuarioReal = dadosUsuario.usuario; 
+
+            // Pega a categoria, joga pra minúsculo, tira espaços e remove acentos
+            const categoria = (dadosUsuario.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+
+            // Registra o log usando o nome de usuário real
+            registrarLog(usuarioReal, nomeReal, "Fez login no sistema");
+
+            // Salva os dados de sessão
+            sessionStorage.setItem('usuarioLogado', nomeReal);
+            sessionStorage.setItem('loginDigitado', usuarioReal); // Usa o nome de usuário real para as outras telas
+            sessionStorage.setItem('urlApi', urlBackend);
+            
+            // --- RESTANTE DO CÓDIGO DE PERMISSÕES MANTIDO IGUAL ---
+            let paginas = [];
+            
+            if (categoria === 'administrador') {
+                paginas = [
+                    { nome: "Painel Admin", url: "admin" },
+                    { nome: "Painel do Pastor", url: "pastor" },
+                    { nome: "Painel Discipulador", url: "discipulador" },
+                    { nome: "Painel do Líder", url: "lider" },
+                    { nome: "Financeiro Mobile", url: "financeiromobile" },
+                    { nome: "Painel Financeiro", url: "financeiro" },
+                    { nome: "Painel do Membro", url: "membro" }
+                ];
+            } else if (categoria === 'pastor') {
+                paginas = [
+                    { nome: "Painel do Pastor", url: "pastor" },
+                    { nome: "Painel Admin", url: "admin" }
+                ];
+            } else if (categoria === 'discipulador') {
+                paginas = [
+                    { nome: "Painel Discipulador", url: "discipulador" },
+                    { nome: "Painel do Líder", url: "lider" }
+                ];
+            } else if (categoria === 'tesoureiro') {
+                paginas = [
+                    { nome: "Financeiro PC", url: "financeiro" },
+                    { nome: "Financeiro Mobile", url: "financeiromobile" }
+                ];
+            } else if (categoria === 'membro') {
+                paginas = [
+                    { nome: "Área do Membro", url: "membro" }
+                ];
+            } else {
+                paginas = [
+                    { nome: "Painel do Líder", url: "lider" }
+                ];
+            }
+            
+            const urlsPermitidas = paginas.map(p => p.url);
+            sessionStorage.setItem('paginasPermitidas', JSON.stringify(urlsPermitidas));
+
+            // Redirecionamento ou Tela de Escolha
+            if (paginas.length === 1) {
+                entrarNoPainel(nomeReal, paginas[0].url);
+            } else {
+                document.getElementById('area-form').style.display = 'none';
+                document.getElementById('area-escolha').style.display = 'block';
+                document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
+                document.getElementById('subtitulo-login').innerText = "Qual painel você deseja acessar?";
+
+                const divBotoes = document.getElementById('botoes-painel');
+                divBotoes.innerHTML = '';
+                paginas.forEach(pag => {
+                    let b = document.createElement('button');
+                    b.innerText = pag.nome;
+                    b.onclick = () => entrarNoPainel(nomeReal, pag.url);
+                    divBotoes.appendChild(b);
+                });
+            }
+            
+        } else {
+            // Array vazio = usuário/e-mail ou senha incorretos
+            erro.innerText = "⚠️ Usuário/e-mail ou senha incorretos.";
+            erro.style.display = 'block';
+            document.getElementById('senha-input').value = "";
+            document.getElementById('senha-input').focus();
+            btn.innerText = "Entrar no Sistema"; 
+            btn.disabled = false;
+        }
+    } catch (e) {
+        erro.innerText = "⚠️ Usuário/e-mail ou senha incorretos.";
+        erro.style.display = 'block';
+        document.getElementById('senha-input').value = "";
+        btn.innerText = "Entrar no Sistema"; 
+        btn.disabled = false;
+    }
+}
 
         // ================= FUNÇÃO DE ANIMAÇÃO DE ENTRADA =================
         function entrarNoPainel(nome, urlDestino) {
