@@ -176,14 +176,14 @@
             background: #059669;
         }
 
-           /* ================= BOTÕES FLUTUANTES DE NAVEGAÇÃO BIBLIA================= */
+           /* ================= BOTÕES FLUTUANTES DE NAVEGAÇÃO ================= */
 .nav-flutuante {
     position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 45px;
-    height: 45px;
-    background: rgba(96, 0, 24, 0.85);
+    bottom: 100px; /* Mais baixo, próximo das abas */
+    transform: translateY(0);
+    width: 50px;
+    height: 50px;
+    background: rgba(96, 0, 24, 0.9);
     color: white;
     border: none;
     border-radius: 50%;
@@ -191,40 +191,70 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 100;
+    z-index: 90; /* Abaixo do menu inferior (z-index: 20) mas visível */
     backdrop-filter: blur(8px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
     transition: all 0.3s ease;
-    opacity: 0.6;
+    opacity: 0.75;
 }
 
 .nav-flutuante:hover {
     opacity: 1;
-    transform: translateY(-50%) scale(1.05);
+    transform: scale(1.05);
     background: rgba(96, 0, 24, 1);
 }
 
 .nav-flutuante.anterior {
-    left: 10px;
+    left: 20px; /* Mais fechado, não tão no canto */
 }
 
 .nav-flutuante.proximo {
-    right: 10px;
+    right: 20px; /* Mais fechado, não tão no canto */
 }
 
 .nav-flutuante i {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
 }
 
-/* Esconde botões flutuantes em telas muito pequenas se preferir */
+/* Ajuste para telas muito pequenas */
 @media (max-width: 480px) {
     .nav-flutuante {
-        width: 40px;
-        height: 40px;
-        opacity: 0.5;
+        width: 45px;
+        height: 45px;
+        bottom: 85px;
+        opacity: 0.7;
     }
-    .nav-flutuante.anterior { left: 5px; }
-    .nav-flutuante.proximo { right: 5px; }
+    
+    .nav-flutuante.anterior { 
+        left: 12px; 
+    }
+    
+    .nav-flutuante.proximo { 
+        right: 12px; 
+    }
+    
+    .nav-flutuante i {
+        font-size: 1.2rem;
+    }
+}
+
+/* Quando o modo leitura estiver ativo, ajusta a posição */
+.modo-leitura-ativo .nav-flutuante {
+    bottom: 30px; /* No modo leitura, fica mais baixo ainda */
+    opacity: 0.5;
+    background: rgba(96, 0, 24, 0.7);
+}
+
+.modo-leitura-ativo .nav-flutuante:hover {
+    opacity: 1;
+    background: rgba(96, 0, 24, 1);
+}
+
+/* Garante que os botões não fiquem em cima do menu inferior */
+@media (min-width: 481px) {
+    .nav-flutuante {
+        bottom: 90px;
+    }
 }
 
 /* ================= MODO LEITURA MELHORADO ================= */
