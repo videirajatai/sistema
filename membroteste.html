@@ -612,26 +612,29 @@
             
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             elementoBtn.classList.add('active');
+            
+            // Mostra/esconde botões flutuantes conforme a aba
+            const botoesFlutuantes = document.querySelectorAll('.nav-flutuante');
+            if (idAba === 'aba-biblia') {
+                botoesFlutuantes.forEach(btn => btn.style.display = 'flex');
+            } else {
+                botoesFlutuantes.forEach(btn => btn.style.display = 'none');
+            }
         }
 
-        // ================= FUNÇÃO COPIAR PIX (NOVA) =================
+        // ================= FUNÇÃO COPIAR PIX =================
         function copiarPix() {
             const input = document.getElementById('chavePix');
-            
-            // Seleciona o texto de forma compatível com celular
             input.select();
             input.setSelectionRange(0, 99999); 
             
-            // Copia para a área de transferência
             navigator.clipboard.writeText(input.value).then(() => {
                 const btn = document.getElementById('btnCopiarPix');
                 const htmlOriginal = btn.innerHTML;
                 
-                // Feedback Visual
                 btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-                btn.style.background = '#059669'; // Fica um verde mais escuro
+                btn.style.background = '#059669';
                 
-                // Volta ao normal depois de 2 segundos
                 setTimeout(() => {
                     btn.innerHTML = htmlOriginal;
                     btn.style.background = '#10b981';
@@ -646,6 +649,9 @@
             carregarLivrosBiblia(); 
             carregarDados(null);
             restaurarPreferenciasBiblia();
+            
+            // Garante que os botões flutuantes comecem visíveis (aba Bíblia é a ativa)
+            document.querySelectorAll('.nav-flutuante').forEach(btn => btn.style.display = 'flex');
         };
 
         async function carregarDados(icon) {
@@ -677,12 +683,11 @@
                 document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Erro ao carregar palavras.</p>';
             }
 
-            // 2. CARREGAR AGENDA (GOOGLE SCRIPT - CORRIGIDO PARA POST COM JSON)
+            // 2. CARREGAR AGENDA (GOOGLE SCRIPT)
             try {
                 const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, {
                     method: 'POST',
                     body: JSON.stringify({ action: "buscarAgenda" })
-                    // Sem Content-Type para evitar bloqueios de CORS no Google Apps Script
                 });
                 
                 const responseData = await respostaAgenda.json();
@@ -742,7 +747,6 @@
                 return;
             }
 
-            // O GS retorna: [Data(0), Título(1), Descrição(2), Tipo(3), Categoria(4)]
             dados.forEach(a => {
                 const dataEv = a[0] || '';
                 const tituloEv = a[1] || 'Evento';
@@ -798,7 +802,7 @@
             }
         }
 
-        // ================= SISTEMA DA BÍBLIA AUTOMATIZADO =================
+        // ================= SISTEMA DA BÍBLIA =================
         const dadosBiblia = [
             { id: "genesis", nome: "Gênesis", caps: 50 }, { id: "exodo", nome: "Êxodo", caps: 40 }, { id: "levitico", nome: "Levítico", caps: 27 }, { id: "numeros", nome: "Números", caps: 36 },
             { id: "deuteronomio", nome: "Deuteronômio", caps: 34 }, { id: "josue", nome: "Josué", caps: 24 }, { id: "juizes", nome: "Juízes", caps: 21 }, { id: "rute", nome: "Rute", caps: 4 },
@@ -844,204 +848,192 @@
             }
         }
 
-
         // ================= VARIÁVEIS GLOBAIS DA BÍBLIA =================
-// ================= VARIÁVEIS GLOBAIS =================
-let tamanhoFonteAtual = 100;
-let modoLeituraAtivo = false;
-let modoEscuroAtivo = false;
+        let tamanhoFonteAtual = 100;
+        let modoLeituraAtivo = false;
+        let modoEscuroAtivo = false;
 
-// ================= FUNÇÕES DE NAVEGAÇÃO =================
-function capituloAnterior() {
-    const selectCapitulo = document.getElementById('biblia-capitulo');
-    const valorAtual = parseInt(selectCapitulo.value);
-    
-    if (valorAtual > 1) {
-        selectCapitulo.value = valorAtual - 1;
-        buscarCapituloBiblia();
-    } else {
-        const selectLivro = document.getElementById('biblia-livro');
-        const indexAtual = selectLivro.selectedIndex;
-        
-        if (indexAtual > 0) {
-            selectLivro.selectedIndex = indexAtual - 1;
-            atualizarCapitulos();
-            const ultimoCapitulo = document.getElementById('biblia-capitulo').options.length;
-            document.getElementById('biblia-capitulo').value = ultimoCapitulo;
-            buscarCapituloBiblia();
+        // ================= FUNÇÕES DE NAVEGAÇÃO =================
+        function capituloAnterior() {
+            const selectCapitulo = document.getElementById('biblia-capitulo');
+            const valorAtual = parseInt(selectCapitulo.value);
+            
+            if (valorAtual > 1) {
+                selectCapitulo.value = valorAtual - 1;
+                buscarCapituloBiblia();
+            } else {
+                const selectLivro = document.getElementById('biblia-livro');
+                const indexAtual = selectLivro.selectedIndex;
+                
+                if (indexAtual > 0) {
+                    selectLivro.selectedIndex = indexAtual - 1;
+                    atualizarCapitulos();
+                    const ultimoCapitulo = document.getElementById('biblia-capitulo').options.length;
+                    document.getElementById('biblia-capitulo').value = ultimoCapitulo;
+                    buscarCapituloBiblia();
+                }
+            }
         }
-    }
-}
 
-function proximoCapitulo() {
-    const selectLivro = document.getElementById('biblia-livro');
-    const selectCapitulo = document.getElementById('biblia-capitulo');
-    const valorAtual = parseInt(selectCapitulo.value);
-    const totalCapitulos = selectCapitulo.options.length;
-    
-    if (valorAtual < totalCapitulos) {
-        selectCapitulo.value = valorAtual + 1;
-        buscarCapituloBiblia();
-    } else {
-        const indexAtual = selectLivro.selectedIndex;
-        
-        if (indexAtual < selectLivro.options.length - 1) {
-            selectLivro.selectedIndex = indexAtual + 1;
-            atualizarCapitulos();
-            document.getElementById('biblia-capitulo').value = 1;
-            buscarCapituloBiblia();
+        function proximoCapitulo() {
+            const selectLivro = document.getElementById('biblia-livro');
+            const selectCapitulo = document.getElementById('biblia-capitulo');
+            const valorAtual = parseInt(selectCapitulo.value);
+            const totalCapitulos = selectCapitulo.options.length;
+            
+            if (valorAtual < totalCapitulos) {
+                selectCapitulo.value = valorAtual + 1;
+                buscarCapituloBiblia();
+            } else {
+                const indexAtual = selectLivro.selectedIndex;
+                
+                if (indexAtual < selectLivro.options.length - 1) {
+                    selectLivro.selectedIndex = indexAtual + 1;
+                    atualizarCapitulos();
+                    document.getElementById('biblia-capitulo').value = 1;
+                    buscarCapituloBiblia();
+                }
+            }
         }
-    }
-}
 
-// ================= CONTROLE DE FONTE =================
-function ajustarFonte(delta) {
-    const conteudo = document.getElementById('biblia-conteudo');
-    tamanhoFonteAtual += delta * 10;
-    
-    if (tamanhoFonteAtual < 70) tamanhoFonteAtual = 70;
-    if (tamanhoFonteAtual > 200) tamanhoFonteAtual = 200;
-    
-    conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
-    
-    // Atualiza os displays de tamanho
-    const displays = ['tamanho-fonte', 'tamanho-fonte-leitura'];
-    displays.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = `${tamanhoFonteAtual}%`;
-    });
-    
-    localStorage.setItem('biblia-tamanho-fonte', tamanhoFonteAtual);
-}
+        // ================= CONTROLE DE FONTE =================
+        function ajustarFonte(delta) {
+            const conteudo = document.getElementById('biblia-conteudo');
+            tamanhoFonteAtual += delta * 10;
+            
+            if (tamanhoFonteAtual < 70) tamanhoFonteAtual = 70;
+            if (tamanhoFonteAtual > 200) tamanhoFonteAtual = 200;
+            
+            conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+            
+            const displays = ['tamanho-fonte', 'tamanho-fonte-leitura'];
+            displays.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = `${tamanhoFonteAtual}%`;
+            });
+            
+            localStorage.setItem('biblia-tamanho-fonte', tamanhoFonteAtual);
+        }
 
-// ================= MODO ESCURO =================
-function toggleModoEscuro() {
-    const body = document.body;
-    const btn = document.getElementById('btn-modo-escuro');
-    
-    modoEscuroAtivo = !modoEscuroAtivo;
-    
-    if (modoEscuroAtivo) {
-        body.classList.add('modo-escuro-ativo');
-        if (btn) btn.innerHTML = '<i class="fas fa-sun"></i>';
-        
-        // Atualiza ícone na toolbar do modo leitura também
-        const btnToolbar = document.querySelector('.modo-leitura-toolbar button[onclick="toggleModoEscuro()"]');
-        if (btnToolbar) btnToolbar.innerHTML = '<i class="fas fa-sun"></i> Claro';
-    } else {
-        body.classList.remove('modo-escuro-ativo');
-        if (btn) btn.innerHTML = '<i class="fas fa-moon"></i>';
-        
-        const btnToolbar = document.querySelector('.modo-leitura-toolbar button[onclick="toggleModoEscuro()"]');
-        if (btnToolbar) btnToolbar.innerHTML = '<i class="fas fa-moon"></i> Escuro';
-    }
-    
-    localStorage.setItem('biblia-modo-escuro', modoEscuroAtivo);
-}
+        // ================= MODO ESCURO =================
+        function toggleModoEscuro() {
+            const body = document.body;
+            const btn = document.getElementById('btn-modo-escuro');
+            
+            modoEscuroAtivo = !modoEscuroAtivo;
+            
+            if (modoEscuroAtivo) {
+                body.classList.add('modo-escuro-ativo');
+                if (btn) btn.innerHTML = '<i class="fas fa-sun"></i>';
+                
+                const btnToolbar = document.querySelector('.modo-leitura-toolbar button[onclick="toggleModoEscuro()"]');
+                if (btnToolbar) btnToolbar.innerHTML = '<i class="fas fa-sun"></i> Claro';
+            } else {
+                body.classList.remove('modo-escuro-ativo');
+                if (btn) btn.innerHTML = '<i class="fas fa-moon"></i>';
+                
+                const btnToolbar = document.querySelector('.modo-leitura-toolbar button[onclick="toggleModoEscuro()"]');
+                if (btnToolbar) btnToolbar.innerHTML = '<i class="fas fa-moon"></i> Escuro';
+            }
+            
+            localStorage.setItem('biblia-modo-escuro', modoEscuroAtivo);
+        }
 
-// ================= MODO LEITURA (IMERSIVO) =================
-function toggleModoLeitura() {
-    const body = document.body;
-    const btn = document.getElementById('btn-modo-leitura');
-    const toolbar = document.querySelector('.modo-leitura-toolbar');
-    
-    modoLeituraAtivo = !modoLeituraAtivo;
-    
-    if (modoLeituraAtivo) {
-        body.classList.add('modo-leitura-ativo');
-        if (toolbar) toolbar.style.display = 'flex';
-        if (btn) btn.innerHTML = '<i class="fas fa-book-open"></i> <span>Modo Leitura</span>';
-        
-        // Sincroniza tamanho da fonte no display da toolbar
-        document.getElementById('tamanho-fonte-leitura').innerText = `${tamanhoFonteAtual}%`;
-        
-        // Rola suavemente para o topo
-        document.getElementById('content-area').scrollTop = 0;
-    } else {
-        body.classList.remove('modo-leitura-ativo');
-        if (toolbar) toolbar.style.display = 'none';
-        if (btn) btn.innerHTML = '<i class="fas fa-book-open"></i> <span>Modo Leitura</span>';
-    }
-    
-    localStorage.setItem('biblia-modo-leitura', modoLeituraAtivo);
-}
+        // ================= MODO LEITURA =================
+        function toggleModoLeitura() {
+            const body = document.body;
+            const btn = document.getElementById('btn-modo-leitura');
+            const toolbar = document.querySelector('.modo-leitura-toolbar');
+            
+            modoLeituraAtivo = !modoLeituraAtivo;
+            
+            if (modoLeituraAtivo) {
+                body.classList.add('modo-leitura-ativo');
+                if (toolbar) toolbar.style.display = 'flex';
+                if (btn) btn.innerHTML = '<i class="fas fa-book-open"></i> <span>Modo Leitura</span>';
+                
+                document.getElementById('tamanho-fonte-leitura').innerText = `${tamanhoFonteAtual}%`;
+                document.getElementById('content-area').scrollTop = 0;
+            } else {
+                body.classList.remove('modo-leitura-ativo');
+                if (toolbar) toolbar.style.display = 'none';
+                if (btn) btn.innerHTML = '<i class="fas fa-book-open"></i> <span>Modo Leitura</span>';
+            }
+            
+            localStorage.setItem('biblia-modo-leitura', modoLeituraAtivo);
+        }
 
-// ================= SELETOR DE VERSÃO =================
-// ================= SELETOR DE VERSÃO =================
-function selecionarVersao() {
-    const select = document.getElementById('biblia-versao');
-    const versao = select.value;
-    
-    if (versao !== 'am') {
-        alert(`📖 A versão "${select.options[select.selectedIndex].text}" estará disponível em breve!`);
-        select.value = 'am';
-    }
-}
+        // ================= SELETOR DE VERSÃO =================
+        function selecionarVersao() {
+            const select = document.getElementById('biblia-versao');
+            const versao = select.value;
+            
+            if (versao !== 'am') {
+                alert(`📖 A versão "${select.options[select.selectedIndex].text}" estará disponível em breve!`);
+                select.value = 'am';
+            }
+        }
 
-// ================= RESTAURAR PREFERÊNCIAS =================
-function restaurarPreferenciasBiblia() {
-    // Restaura tamanho da fonte
-    const fonteSalva = localStorage.getItem('biblia-tamanho-fonte');
-    if (fonteSalva) {
-        tamanhoFonteAtual = parseInt(fonteSalva);
-        document.getElementById('biblia-conteudo').style.fontSize = `${tamanhoFonteAtual}%`;
-        ['tamanho-fonte', 'tamanho-fonte-leitura'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerText = `${tamanhoFonteAtual}%`;
-        });
-    }
-    
-    // Restaura modo escuro
-    const escuroSalvo = localStorage.getItem('biblia-modo-escuro');
-    if (escuroSalvo === 'true') {
-        toggleModoEscuro();
-    }
-    
-    // Restaura modo leitura
-    const leituraSalvo = localStorage.getItem('biblia-modo-leitura');
-    if (leituraSalvo === 'true') {
-        toggleModoLeitura();
-    }
-}
+        // ================= RESTAURAR PREFERÊNCIAS =================
+        function restaurarPreferenciasBiblia() {
+            const fonteSalva = localStorage.getItem('biblia-tamanho-fonte');
+            if (fonteSalva) {
+                tamanhoFonteAtual = parseInt(fonteSalva);
+                document.getElementById('biblia-conteudo').style.fontSize = `${tamanhoFonteAtual}%`;
+                ['tamanho-fonte', 'tamanho-fonte-leitura'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = `${tamanhoFonteAtual}%`;
+                });
+            }
+            
+            const escuroSalvo = localStorage.getItem('biblia-modo-escuro');
+            if (escuroSalvo === 'true') {
+                toggleModoEscuro();
+            }
+            
+            const leituraSalvo = localStorage.getItem('biblia-modo-leitura');
+            if (leituraSalvo === 'true') {
+                toggleModoLeitura();
+            }
+        }
 
-// ================= ATUALIZAR buscarCapituloBiblia =================
-async function buscarCapituloBiblia() {
-    const livroId = document.getElementById('biblia-livro').value;
-    const capitulo = document.getElementById('biblia-capitulo').value;
-    const selectLivro = document.getElementById('biblia-livro');
-    
-    if(!livroId || !capitulo) return;
+        // ================= BUSCAR CAPÍTULO =================
+        async function buscarCapituloBiblia() {
+            const livroId = document.getElementById('biblia-livro').value;
+            const capitulo = document.getElementById('biblia-capitulo').value;
+            const selectLivro = document.getElementById('biblia-livro');
+            
+            if(!livroId || !capitulo) return;
 
-    const nomeLivro = selectLivro.options[selectLivro.selectedIndex].text;
-    
-    const conteudo = document.getElementById('biblia-conteudo');
-    conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Carregando texto...</p>";
-    conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
-    
-    try {
-        const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livroId}/${capitulo}.json`;
-        const resposta = await fetch(urlGithub);
-        if (!resposta.ok) throw new Error("Capítulo não encontrado");
-        
-        const versiculos = await resposta.json();
-        let htmlText = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${nomeLivro} ${capitulo}</h3>`;
-        
-        versiculos.forEach(v => {
-            htmlText += `<div style="margin-bottom: 15px;">`;
-            if (v.title) htmlText += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
-            htmlText += `<p style="margin: 0; text-align: justify;"><sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>${v.content}</p></div>`;
-        });
-        conteudo.innerHTML = htmlText;
-        conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
-        
-        // Rola para o topo ao mudar de capítulo
-        document.getElementById('content-area').scrollTop = 0;
-        
-    } catch (e) {
-        conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar o capítulo.</p>`;
-        conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
-    }
-}
+            const nomeLivro = selectLivro.options[selectLivro.selectedIndex].text;
+            
+            const conteudo = document.getElementById('biblia-conteudo');
+            conteudo.innerHTML = "<p class='biblia-placeholder'><i class='fas fa-spinner fa-spin'></i> Carregando texto...</p>";
+            conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+            
+            try {
+                const urlGithub = `https://raw.githubusercontent.com/videirajatai/testes/main/biblia/${livroId}/${capitulo}.json`;
+                const resposta = await fetch(urlGithub);
+                if (!resposta.ok) throw new Error("Capítulo não encontrado");
+                
+                const versiculos = await resposta.json();
+                let htmlText = `<h3 style="color: var(--ouro-videira); margin-bottom: 25px; text-transform: capitalize;">${nomeLivro} ${capitulo}</h3>`;
+                
+                versiculos.forEach(v => {
+                    htmlText += `<div style="margin-bottom: 15px;">`;
+                    if (v.title) htmlText += `<h4 style="color: #475569; font-size: 0.95rem; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase;">${v.title}</h4>`;
+                    htmlText += `<p style="margin: 0; text-align: justify;"><sup style="color: var(--ouro-videira); font-weight: bold; margin-right: 4px;">${v.number}</sup>${v.content}</p></div>`;
+                });
+                conteudo.innerHTML = htmlText;
+                conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+                
+                document.getElementById('content-area').scrollTop = 0;
+                
+            } catch (e) {
+                conteudo.innerHTML = `<p style="color: #dc3545; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar o capítulo.</p>`;
+                conteudo.style.fontSize = `${tamanhoFonteAtual}%`;
+            }
+        }
     </script>
 </body>
 </html>
