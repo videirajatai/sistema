@@ -797,7 +797,6 @@
   const palavra = listaPalavras[index];
   if (!palavra) return;
 
-  // Formatar data
   let dataFormatada = palavra.data || '';
   try {
     if (dataFormatada.includes('-')) {
@@ -808,9 +807,7 @@
 
   const titulo = palavra.tema || 'Palavra / Estudo';
   const texto = palavra.texto || 'Texto não disponível.';
-  const logoSrc = "https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png";
 
-  // Criar elemento temporário
   const element = document.createElement('div');
   element.style.position = 'absolute';
   element.style.left = '-9999px';
@@ -822,7 +819,8 @@
   element.innerHTML = `
     <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 25px;">
-        <img src="${logoSrc}" style="width: 100px; margin-bottom: 10px;">
+        <!-- Ícone de igreja em texto, sem depender de CORS -->
+        <div style="font-size: 48px;">⛪</div>
         <h2 style="margin: 0; color: #800020;">Igreja Videira de Jataí</h2>
         <p style="margin: 5px 0; font-weight: 500;">Pr. Gemerson Araujo</p>
         <hr style="border-top: 2px solid #D4AF37; width: 80px;">
@@ -846,16 +844,14 @@
   `;
 
   document.body.appendChild(element);
-
-  // Aguarda um pequeno delay para garantir que a imagem carregue
   await new Promise(resolve => setTimeout(resolve, 200));
 
   const opt = {
-    margin:        [0.5, 0.5, 0.5, 0.5],
-    filename:     `${titulo.replace(/[^a-z0-9]/gi, '_')}_${dataFormatada}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, letterRendering: true, useCORS: true },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    margin: [0.5, 0.5, 0.5, 0.5],
+    filename: `${titulo.replace(/[^a-z0-9]/gi, '_')}_${dataFormatada}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, letterRendering: true, useCORS: false }, // useCORS false para evitar erros
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
   };
 
   try {
