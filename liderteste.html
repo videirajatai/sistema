@@ -807,9 +807,18 @@
   } catch(e) {}
 
   const titulo = palavra.tema || 'Palavra / Estudo';
-  const texto = palavra.texto || 'Texto não disponível.';
+  let texto = palavra.texto || 'Texto não disponível.';
 
-  // Criar um iframe invisível para gerar o PDF
+  // Converter quebras de linha (\n) em <br> e parágrafos duplos em </p><p>
+  texto = texto
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{2,}/g, '</p><p>')   // dois ou mais \n viram fechamento/abertura de parágrafo
+    .replace(/\n/g, '<br>');          // quebra simples vira <br>
+  
+  // Envelopar em <p> se não tiver
+  if (!texto.startsWith('<p>')) texto = `<p>${texto}</p>`;
+  if (!texto.endsWith('</p>')) texto = `${texto}</p>`;
+
   const iframe = document.createElement('iframe');
   iframe.style.position = 'absolute';
   iframe.style.left = '-9999px';
@@ -828,25 +837,94 @@
       <meta charset="UTF-8">
       <title>${titulo}</title>
       <style>
-        body {
-          font-family: 'Inter', sans-serif;
-          padding: 20px;
+        * {
           margin: 0;
-          background: white;
-          width: 800px;
-          margin: 0 auto;
+          padding: 0;
+          box-sizing: border-box;
         }
-        .header { text-align: center; margin-bottom: 25px; }
-        .logo-emoji { font-size: 48px; }
-        h2 { margin: 0; color: #800020; }
-        .pastor { margin: 5px 0; font-weight: 500; }
-        hr { border-top: 2px solid #D4AF37; width: 80px; }
-        .data { color: #555; }
-        .titulo-palavra { color: #800020; border-left: 5px solid #D4AF37; padding-left: 15px; margin-bottom: 20px; }
-        .texto { line-height: 1.6; text-align: justify; white-space: pre-wrap; margin-bottom: 30px; }
-        .observacoes { margin-top: 50px; }
-        .linha { border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px; }
-        .footer { font-size: 0.8rem; color: gray; margin-top: 30px; text-align: center; }
+        body {
+          font-family: 'Times New Roman', Georgia, serif;
+          font-size: 12pt;
+          line-height: 1.5;
+          padding: 40px 35px;
+          margin: 0 auto;
+          max-width: 800px;
+          background: white;
+          color: #1e1e1e;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 35px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 20px;
+        }
+        .logo-emoji {
+          font-size: 52px;
+          margin-bottom: 5px;
+        }
+        h2 {
+          margin: 0;
+          color: #800020;
+          font-size: 24px;
+          letter-spacing: -0.5px;
+        }
+        .pastor {
+          margin: 8px 0 12px;
+          font-weight: 500;
+          color: #444;
+        }
+        hr {
+          border: none;
+          border-top: 2px solid #D4AF37;
+          width: 100px;
+          margin: 15px auto;
+        }
+        .data {
+          color: #555;
+          font-size: 11pt;
+          margin-top: 10px;
+        }
+        .titulo-palavra {
+          color: #800020;
+          font-size: 20px;
+          font-weight: bold;
+          border-left: 5px solid #D4AF37;
+          padding-left: 18px;
+          margin: 30px 0 20px 0;
+        }
+        .texto {
+          text-align: justify;
+          margin-bottom: 45px;
+        }
+        .texto p {
+          margin-bottom: 1.2em;
+          text-indent: 2em;
+        }
+        .texto br {
+          display: none;
+        }
+        .observacoes {
+          margin-top: 50px;
+          border-top: 1px dashed #aaa;
+          padding-top: 25px;
+        }
+        .observacoes p {
+          font-weight: bold;
+          margin-bottom: 20px;
+        }
+        .linha {
+          border-bottom: 1px solid #ccc;
+          margin: 25px 0;
+          height: 20px;
+        }
+        .footer {
+          font-size: 9pt;
+          color: #888;
+          text-align: center;
+          margin-top: 50px;
+          border-top: 1px solid #eee;
+          padding-top: 15px;
+        }
       </style>
     </head>
     <body>
@@ -862,7 +940,7 @@
       <div class="texto">${texto}</div>
 
       <div class="observacoes">
-        <p style="font-weight: bold;">✍️ Observações do líder:</p>
+        <p>✍️ Observações do líder:</p>
         <div class="linha"></div>
         <div class="linha"></div>
         <div class="linha"></div>
@@ -874,11 +952,10 @@
   `);
   doc.close();
 
-  // Aguardar o iframe carregar completamente
   await new Promise(resolve => setTimeout(resolve, 500));
 
   const opt = {
-    margin: [0.5, 0.5, 0.5, 0.5],
+    margin: [0.6, 0.6, 0.6, 0.6],
     filename: `${titulo.replace(/[^a-z0-9]/gi, '_')}_${dataFormatada}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, letterRendering: true, useCORS: false },
@@ -886,14 +963,12 @@
   };
 
   try {
-    // Gerar o PDF a partir do conteúdo do iframe
     const element = iframe.contentDocument.body;
     await html2pdf().set(opt).from(element).save();
   } catch (err) {
     console.error("Erro ao gerar PDF:", err);
     alert("Não foi possível gerar o PDF. Tente novamente.");
   } finally {
-    // Remover o iframe após gerar
     document.body.removeChild(iframe);
   }
 }
