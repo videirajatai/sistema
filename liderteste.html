@@ -794,76 +794,79 @@
       // GERAR PDF DIRETAMENTE (sem janela de impressão)
       // ==========================================
       async function gerarPDFPalavra(index) {
-        const palavra = listaPalavras[index];
-        if (!palavra) return;
+  const palavra = listaPalavras[index];
+  if (!palavra) return;
 
-        // Formatar data
-        let dataFormatada = palavra.data || '';
-        try {
-          if (dataFormatada.includes('-')) {
-            const partes = dataFormatada.split('-');
-            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-          }
-        } catch(e) {}
+  // Formatar data
+  let dataFormatada = palavra.data || '';
+  try {
+    if (dataFormatada.includes('-')) {
+      const partes = dataFormatada.split('-');
+      dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+  } catch(e) {}
 
-        const titulo = palavra.tema || 'Palavra / Estudo';
-        const texto = palavra.texto || 'Texto não disponível.';
-        const logoSrc = "https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png";
+  const titulo = palavra.tema || 'Palavra / Estudo';
+  const texto = palavra.texto || 'Texto não disponível.';
+  const logoSrc = "https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png";
 
-        // Criar um elemento div temporário para gerar o PDF
-        const element = document.createElement('div');
-        element.style.position = 'absolute';
-        element.style.left = '-9999px';
-        element.style.top = '-9999px';
-        element.style.width = '800px';
-        element.style.background = 'white';
-        element.style.padding = '20px';
-        element.style.fontFamily = "'Inter', sans-serif";
-        element.innerHTML = `
-          <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 25px;">
-              <img src="${logoSrc}" style="width: 100px; margin-bottom: 10px;">
-              <h2 style="margin: 0; color: #800020;">Igreja Videira de Jataí</h2>
-              <p style="margin: 5px 0; font-weight: 500;">Pr. Gemerson Araujo</p>
-              <hr style="border-top: 2px solid #D4AF37; width: 80px;">
-              <p style="color: #555;"><strong>📅 Data da Palavra:</strong> ${dataFormatada}</p>
-            </div>
+  // Criar elemento temporário
+  const element = document.createElement('div');
+  element.style.position = 'absolute';
+  element.style.left = '-9999px';
+  element.style.top = '0';
+  element.style.width = '800px';
+  element.style.background = 'white';
+  element.style.padding = '20px';
+  element.style.fontFamily = "'Inter', sans-serif";
+  element.innerHTML = `
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <img src="${logoSrc}" style="width: 100px; margin-bottom: 10px;">
+        <h2 style="margin: 0; color: #800020;">Igreja Videira de Jataí</h2>
+        <p style="margin: 5px 0; font-weight: 500;">Pr. Gemerson Araujo</p>
+        <hr style="border-top: 2px solid #D4AF37; width: 80px;">
+        <p style="color: #555;"><strong>📅 Data da Palavra:</strong> ${dataFormatada}</p>
+      </div>
 
-            <div style="margin-bottom: 30px;">
-              <h3 style="color: #800020; border-left: 5px solid #D4AF37; padding-left: 15px;">${titulo}</h3>
-              <div style="line-height: 1.6; text-align: justify; white-space: pre-wrap;">${texto}</div>
-            </div>
+      <div style="margin-bottom: 30px;">
+        <h3 style="color: #800020; border-left: 5px solid #D4AF37; padding-left: 15px;">${titulo}</h3>
+        <div style="line-height: 1.6; text-align: justify; white-space: pre-wrap;">${texto}</div>
+      </div>
 
-            <div style="margin-top: 50px;">
-              <p style="font-weight: bold;">✍️ Observações do líder:</p>
-              <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
-              <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
-              <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
-              <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
-              <p style="font-size: 0.8rem; color: gray; margin-top: 30px;">Documento gerado pelo Sistema Videira</p>
-            </div>
-          </div>
-        `;
+      <div style="margin-top: 50px;">
+        <p style="font-weight: bold;">✍️ Observações do líder:</p>
+        <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
+        <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
+        <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
+        <div style="border-bottom: 1px solid #ccc; margin: 20px 0; height: 30px;"></div>
+        <p style="font-size: 0.8rem; color: gray; margin-top: 30px;">Documento gerado pelo Sistema Videira</p>
+      </div>
+    </div>
+  `;
 
-        document.body.appendChild(element);
+  document.body.appendChild(element);
 
-        const opt = {
-          margin:        [0.5, 0.5, 0.5, 0.5],
-          filename:     `${titulo.replace(/[^a-z0-9]/gi, '_')}_${dataFormatada}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, letterRendering: true },
-          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
+  // Aguarda um pequeno delay para garantir que a imagem carregue
+  await new Promise(resolve => setTimeout(resolve, 200));
 
-        try {
-          await html2pdf().set(opt).from(element).save();
-        } catch (err) {
-          console.error("Erro ao gerar PDF:", err);
-          alert("Não foi possível gerar o PDF. Tente novamente.");
-        } finally {
-          document.body.removeChild(element);
-        }
-      }
+  const opt = {
+    margin:        [0.5, 0.5, 0.5, 0.5],
+    filename:     `${titulo.replace(/[^a-z0-9]/gi, '_')}_${dataFormatada}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, letterRendering: true, useCORS: true },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch (err) {
+    console.error("Erro ao gerar PDF:", err);
+    alert("Não foi possível gerar o PDF. Tente novamente.");
+  } finally {
+    document.body.removeChild(element);
+  }
+}
 
       // ==========================================
       // SALVAMENTOS (SUPABASE + GOOGLE SCRIPT)
