@@ -162,7 +162,7 @@
                     <input type="email" id="rec-email" placeholder="Digite seu e-mail" onkeypress="verificarEnter(event, 'recuperar')">
                 </div>
                 
-                <button id="btn-recuperar" onclick="()">Enviar Link</button>
+                <button id="btn-recuperar" onclick="enviarRecuperacao()">Enviar Link</button>
                 <p id="mensagem-erro-rec" class="mensagem-erro"></p>
                 
                 <button class="btn-secondary" onclick="mudarTela('bloco-login')" style="margin-top: 15px; padding: 10px; font-size: 14px;">Voltar para o Login</button>
@@ -537,8 +537,7 @@
             erro.style.display = 'none';
 
             try {
-                // ATENÇÃO: Essa URL é para onde o Supabase vai mandar o usuário de volta 
-                // quando ele clicar no link do e-mail. Ajuste se necessário!
+                // Ajuste a URL caso seu sistema rode em outro link principal
                 const urlDestino = window.location.origin + "/nova-senha.html";
 
                 const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
@@ -547,7 +546,7 @@
 
                 if (error) throw error;
 
-                alert("E-mail de recuperação enviado! Verifique sua caixa de entrada (e a pasta de Spam).");
+                alert("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
                 document.getElementById('rec-email').value = "";
                 mudarTela('bloco-login');
 
@@ -559,7 +558,6 @@
                 btn.disabled = false;
             }
         }
-
         
         
 
