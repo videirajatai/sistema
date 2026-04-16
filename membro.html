@@ -7,6 +7,7 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
@@ -309,15 +310,14 @@
             window.location.href = 'index.html';
         }
 
-                // ================= CONFIGURAÇÕES DE BANCO E APIS =================
+               // ================= CONFIGURAÇÕES DE BANCO E APIS =================
         const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co"; 
-        // CHAVE JWT ATUALIZADA (ESSENCIAL PARA RLS)
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA";
         
-        const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "https://script.google.com/macros/s/AKfycbxnystn3UqAKnfLUgw7tXS8CzrnpxTS0iax80rhMCRs-T47ibodGYvbRw2KRrtsnCzn/exec";
+        // Criando o cliente oficial (O que resolve o erro de não aparecer os dados)
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
-        let listaPalavras = [];
-        let listaAgenda = [];
+        const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
 
         // ================= MUDANÇA DE ABAS =================
         function mudarAba(idAba, elementoBtn) {
@@ -361,46 +361,44 @@
             carregarDados(null);
         };
 
-       async function carregarDados(icon) {
+      async function carregarDados(icon) {
             if(icon) icon.classList.add('fa-spin');
             
-            // 1. CARREGAR PALAVRAS (SUPABASE COM RLS)
+            // 1. CARREGAR PALAVRAS (SUPABASE COM CLIENTE OFICIAL PARA RLS)
             try {
-                const respostaPalavras = await fetch(`${SB_URL}/rest/v1/palavras?select=*`, {
-                    headers: { 
-                        'apikey': SB_KEY, 
-                        'Authorization': `Bearer ${SB_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (respostaPalavras.ok) {
-                    listaPalavras = await respostaPalavras.json();
+                const { data, error } = await supabaseClient
+                    .from('palavras')
+                    .select('*');
+
+                if (error) throw error;
+
+                if (data) {
+                    listaPalavras = data;
                     
-                    // Ordenação por data (da mais recente para a mais antiga)
+                    // MANTENDO SUA LÓGICA ORIGINAL DE ORDENAÇÃO
                     listaPalavras.sort((a, b) => {
                         const pegarTempo = (d) => {
                             if (!d) return 0;
                             if (d.includes('-')) { const p = d.split('-'); return new Date(p[0], p[1]-1, p[2]).getTime(); }
+                            if (d.includes('/')) { const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); }
                             return new Date(d).getTime();
                         };
                         return pegarTempo(b.data) - pegarTempo(a.data);
                     });
                     
                     renderizarPalavras(listaPalavras);
-                } else {
-                    throw new Error("Erro na resposta do banco");
                 }
             } catch (e) {
                 console.error("Erro ao carregar palavras:", e);
-                document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Não foi possível carregar os estudos no momento.</p>';
+                document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Erro ao carregar palavras.</p>';
             }
 
-            // 2. CARREGAR AGENDA (GOOGLE SCRIPT)
+            // 2. CARREGAR AGENDA (GOOGLE SCRIPT - MANTENDO SUA LÓGICA DE POST)
             try {
                 const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, {
                     method: 'POST',
                     body: JSON.stringify({ action: "buscarAgenda" })
+                    // Sem Content-Type para evitar bloqueios de CORS no Google Apps Script
                 });
                 
                 const responseData = await respostaAgenda.json();
@@ -409,10 +407,11 @@
                     listaAgenda = responseData.dados;
                     renderizarAgenda(listaAgenda);
                 } else {
+                    console.error("Erro do servidor:", responseData.mensagem);
                     renderizarAgenda([]); 
                 }
             } catch(e) {
-                console.error("Erro na Agenda:", e);
+                console.error("Erro na comunicação com a Agenda:", e);
                 renderizarAgenda([]);
             }
 
