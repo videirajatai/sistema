@@ -243,7 +243,7 @@
              const nome = u.nome; 
              const cat = u.categoria;
              const email = u.email || 'E-mail não cadastrado';
-             const telefone = u.telefone || 'Sem telefone';
+             const telefone = u.whatsapp || 'Sem telefone';
              
              div.innerHTML += `
              <div class="user-card">
@@ -291,7 +291,7 @@
          document.getElementById('usuarioOriginal').value = u.id;
          document.getElementById('cadUsuario').value = u.usuario;
          document.getElementById('cadNome').value = u.nome;
-         document.getElementById('cadTelefone').value = u.telefone || '';
+         document.getElementById('cadTelefone').value = u.whatsapp || '';
          document.getElementById('cadCategoria').value = u.categoria;
          
          document.getElementById('tituloFormUsuario').innerText = "Editar Usuário";
