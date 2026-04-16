@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    
 
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="shortcut icon" type="image/png" href="logo.png">
@@ -52,6 +54,7 @@
       .btn-icon-action { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; }
       .btn-edit { background: #f0f4f8; color: #0056b3; }
       .btn-del { background: #fdf5f6; color: var(--danger-text); }
+      .btn-key { background: #fef9e7; color: #b8860b; }
 
       /* LISTA DE LOGS */
       .log-card { background: white; padding: 12px 15px; border-radius: 8px; border-left: 3px solid #ccc; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -71,13 +74,10 @@
     </style>
   </head>
   <body>
-    <body>
-    <body>
     <!-- ========================================== -->
     <!-- VERIFICAÇÃO DE ACESSO VIA SUPABASE (ADMIN)  -->
     <!-- ========================================== -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
+        <script>
       (async () => {
           const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co";
           const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA";
@@ -164,12 +164,11 @@
           <label>Nome do Responsável</label>
           <input type="text" name="nome" id="cadNome" required placeholder="Ex: Thiago Silva">
           
-          <label>Login de Acesso</label>
+          <label>Login de Acesso (Usuário)</label>
           <input type="text" name="usuario" id="cadUsuario" required placeholder="Ex: thiago.lider" style="text-transform: lowercase;">
           
-          <!--<label>Senha</label>-->
-          <!--<input type="text" name="senha" id="cadSenha" required placeholder="Defina uma senha segura">-->
-          <!--<input type="password" name="senha" id="cadSenha" required placeholder="Defina uma senha numérica" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">-->
+          <label>Telefone / WhatsApp</label>
+          <input type="tel" name="telefone" id="cadTelefone" placeholder="(64) 99999-9999">
           
           <label>Nível de Acesso (Categoria)</label>
           <select name="categoria" id="cadCategoria" required>
@@ -201,11 +200,12 @@
     </div>
 
     <script>
-      const supabaseUrl = 'https://ryvfogmfpjyamgqsltks.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA';
+     
+      
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-            let dadosUsuarios = []; 
-            let dadosExibidos = [];
+      
+      let dadosUsuarios = []; 
+      let dadosExibidos = [];
 
       window.onload = carregarTudo;
 
@@ -265,17 +265,25 @@
              // Precisamos encontrar o índice real dele na lista principal para poder editar corretamente
              const indexOriginal = dadosUsuarios.findIndex(orig => orig.id === u.id);
 
-             const user = u.usuario; const nome = u.nome; const cat = u.categoria;
+             const user = u.usuario; 
+             const nome = u.nome; 
+             const cat = u.categoria;
+             const email = u.email || '';
+             const telefone = u.telefone || 'Sem telefone';
+             
              div.innerHTML += `
              <div class="user-card">
                 <div class="user-info">
                    <h4>${nome}</h4>
                    <p><i class="fas fa-user-circle"></i> Login: <strong>${user}</strong></p>
+                   <p><i class="fas fa-envelope"></i> ${email}</p>
+                   <p><i class="fas fa-phone"></i> ${telefone}</p>
                    <span class="badge-role ${cat}">${cat}</span>
                 </div>
                 <div class="action-btns">
-                   <button onclick="editarUsuario(${indexOriginal})" class="btn-icon-action btn-edit"><i class="fas fa-pencil-alt"></i></button>
-                   <button onclick="excluirUsuario('${u.id}', '${user}')" class="btn-icon-action btn-del"><i class="fas fa-trash-alt"></i></button>
+                   <button onclick="redefinirSenha('${email}')" class="btn-icon-action btn-key" title="Redefinir Senha"><i class="fas fa-key"></i></button>
+                   <button onclick="editarUsuario(${indexOriginal})" class="btn-icon-action btn-edit" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                   <button onclick="excluirUsuario('${u.id}', '${user}')" class="btn-icon-action btn-del" title="Excluir"><i class="fas fa-trash-alt"></i></button>
                 </div>
              </div>`;
          });
@@ -308,12 +316,8 @@
          const u = dadosUsuarios[index];
          document.getElementById('usuarioOriginal').value = u.id; // Guarda o ID do Supabase
          document.getElementById('cadUsuario').value = u.usuario;
-         
-         // Permite a edição do login
-         document.getElementById('cadUsuario').readOnly = false; 
-         
-         document.getElementById('cadSenha').value = u.senha;
          document.getElementById('cadNome').value = u.nome;
+         document.getElementById('cadTelefone').value = u.telefone || '';
          document.getElementById('cadCategoria').value = u.categoria;
          
          document.getElementById('tituloFormUsuario').innerText = "Editar Usuário";
@@ -329,8 +333,8 @@
          const idUsuario = this.usuarioOriginal.value;
          const d = {
             usuario: this.usuario.value.trim().toLowerCase(),
-            senha: this.senha.value.trim(),
             nome: this.nome.value,
+            telefone: this.telefone.value,
             categoria: this.categoria.value
          };
 
@@ -405,6 +409,32 @@
                  alert("Erro ao limpar os logs.");
              }
          }
+      }
+
+      // NOVA FUNÇÃO: REDEFINIR SENHA
+      async function redefinirSenha(email) {
+          if (!email) {
+              alert("Este usuário não possui e-mail cadastrado.");
+              return;
+          }
+          
+          if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) {
+              return;
+          }
+          
+          try {
+              const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                  redirectTo: window.location.origin + '/nova-senha.html'
+              });
+              
+              if (error) throw error;
+              
+              registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
+              alert("Link de redefinição enviado com sucesso! O usuário receberá um e-mail.");
+          } catch (e) {
+              console.error("Erro ao enviar link:", e);
+              alert("Erro ao enviar link de redefinição: " + e.message);
+          }
       }
 
       // FUNÇÃO PARA REGISTRAR AS AÇÕES DO ADMIN NO LOG
