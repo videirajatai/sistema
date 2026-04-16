@@ -72,8 +72,9 @@
   </head>
   <body>
     <body>
+    <body>
     <!-- ========================================== -->
-    <!-- NOVA VERIFICAÇÃO DE ACESSO (PADRÃO PASTOR) -->
+    <!-- VERIFICAÇÃO DE ACESSO VIA SUPABASE (ADMIN)  -->
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -98,16 +99,17 @@
           const cat = (usuario?.categoria || "membro").toLowerCase();
 
           // Apenas ADMINISTRADOR pode acessar este painel
-          if (cat !== "Administrador") {
+          if (cat !== "administrador") {
               alert("Acesso restrito. Apenas administradores podem acessar este painel.");
               if (cat === "membro") window.location.href = "membro.html";
               else if (cat === "lider" || cat === "líder") window.location.href = "lider.html";
               else if (cat === "pastor") window.location.href = "pastor.html";
               else if (cat === "tesoureiro") window.location.href = "financeiromobile.html";
               else window.location.href = "index.html";
+              return;
           }
 
-          // Salva as informações necessárias no sessionStorage (mantendo compatibilidade)
+          // Salva informações no sessionStorage (para uso em logs e outras funções)
           sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
           sessionStorage.setItem('loginDigitado', user.email);
       })();
