@@ -2,170 +2,74 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Redefinir Senha - Videira Jataí</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="logo.png">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha - Videira</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body, html { 
-            height: 100%; 
-            margin: 0;
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
-            font-family: 'Inter', sans-serif;
-        }
-
-        .card-login {
-            background: #ffffff; 
-            padding: 40px 35px; 
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.05); 
-            width: 90%; 
-            max-width: 380px; 
-            text-align: center;
-        }
-
-        .logo { width: 90px; height: auto; margin-bottom: 15px; }
-        h2 { color: #600018; font-size: 22px; margin-bottom: 6px; font-weight: 700; margin-top: 0;}
-        p.subtitulo { color: #718096; font-size: 14px; margin-bottom: 30px; }
-
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-size: 12px; color: #718096; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
-        
-        input[type="password"] {
-            width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
-            font-size: 15px; color: #2d3748; outline: none; transition: 0.3s; background-color: #f7fafc;
-            box-sizing: border-box;
-        }
-        input[type="password"]:focus { border-color: #600018; background-color: #ffffff; }
-
-        button {
-            width: 100%; padding: 16px; margin-top: 10px; background-color: #600018; color: #ffffff;
-            border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s;
-            box-sizing: border-box;
-        }
-        button:hover { background-color: #4a0012; transform: translateY(-1px); }
-        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
-
-        .mensagem { font-size: 14px; margin-top: 20px; display: none; font-weight: 500; padding: 10px; border-radius: 8px; }
-        .erro { color: #e53e3e; background: #fff5f5; border: 1px solid #fed7d7; }
-        .sucesso { color: #047857; background: #d1fae5; border: 1px solid #a7f3d0; }
-        
-        .btn-voltar {
-            display: inline-block; margin-top: 20px; color: #600018; font-size: 14px; font-weight: 600; text-decoration: none;
-        }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f7f6; font-family: sans-serif; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;}
+        button { width: 100%; padding: 12px; background: #600018; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .erro { color: red; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="card-login" id="cartao-formulario">
-        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo">
+    <div class="card">
         <h2>Criar Nova Senha</h2>
-        <p class="subtitulo">Digite sua nova senha de acesso.</p>
+        <p>Digite sua nova senha de 4 números abaixo.</p>
         
-        <div id="area-inputs">
-            <div class="input-group">
-                <label>Nova Senha</label>
-                <input type="password" id="senha1" placeholder="Mínimo 4 dígitos" inputmode="numeric" pattern="[0-9]*">                                  
-            </div>
-            <div class="input-group">
-                <label>Confirme a Senha</label>
-                <input type="password" id="senha2" placeholder="Repita a nova senha" inputmode="numeric" pattern="[0-9]*">
-            </div>
-            
-            <button id="btn-salvar" onclick="salvarNovaSenha()">Salvar Nova Senha</button>
-        </div>
-
-        <div id="msg-box" class="mensagem"></div>
+        <input type="password" id="nova-senha" placeholder="Nova Senha (ex: 1234)" inputmode="numeric">
+        <input type="password" id="confirma-senha" placeholder="Repita a Nova Senha" inputmode="numeric">
         
-        <a href="index.html" class="btn-voltar" id="link-voltar" style="display: none;">← Voltar para o Login</a>
+        <button id="btn-salvar" onclick="salvarNovaSenha()">Salvar Nova Senha</button>
+        <p id="msg-erro" class="erro"></p>
     </div>
 
     <script>
+        // MESMOS DADOS DO SEU INDEX
         const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co"; 
         const SB_KEY = "sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q";
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
-        // Verifica se existe um token na URL ao abrir a página
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenAtivo = urlParams.get('token');
-
-        window.onload = () => {
-            if (!tokenAtivo) {
-                mostrarMensagem("erro", "⚠️ Link de recuperação inválido ou inexistente.");
-                document.getElementById('area-inputs').style.display = 'none';
-            }
-        };
+        // O Supabase já reconhece automaticamente o token que veio no link do e-mail!
 
         async function salvarNovaSenha() {
-            const s1 = document.getElementById('senha1').value.trim();
-            const s2 = document.getElementById('senha2').value.trim();
+            const senha1 = document.getElementById('nova-senha').value.trim();
+            const senha2 = document.getElementById('confirma-senha').value.trim();
+            const erro = document.getElementById('msg-erro');
             const btn = document.getElementById('btn-salvar');
 
-            if (!s1 || !s2) {
-                mostrarMensagem("erro", "⚠️ Preencha os dois campos.");
-                return;
+            if (!senha1 || !senha2) {
+                erro.innerText = "Preencha os dois campos!";
+                erro.style.display = 'block'; return;
             }
-            if (s1 !== s2) {
-                mostrarMensagem("erro", "⚠️ As senhas não são iguais.");
-                return;
-            }
-            if (s1.length < 4) {
-                mostrarMensagem("erro", "⚠️ A senha deve ter pelo menos 4 caracteres.");
-                return;
+            if (senha1 !== senha2) {
+                erro.innerText = "As senhas não são iguais!";
+                erro.style.display = 'block'; return;
             }
 
-            btn.innerText = "Salvando...";
-            btn.disabled = true;
+            btn.innerText = "Salvando..."; btn.disabled = true; erro.style.display = 'none';
 
-            try {
-                // Manda o Supabase atualizar a senha ONDE o token_recuperacao for igual ao da URL
-                // E logo em seguida apagamos o token (definindo como nulo) para o link parar de funcionar
-                const urlUpdate = `${SB_URL}/rest/v1/usuarios?token_recuperacao=eq.${tokenAtivo}`;
-                
-                const resposta = await fetch(urlUpdate, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SB_KEY,
-                        'Authorization': `Bearer ${SB_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation' // Pede pro Supabase devolver o que ele atualizou
-                    },
-                    body: JSON.stringify({ 
-                        senha: s1, 
-                        token_recuperacao: null // Invalida o link imediatamente
-                    })
-                });
+            // O NOSSO TRUQUE MÁGICO DE VOLTA AQUI!
+            // Completa os 4 números com a palavra secreta antes de mandar pro banco
+            const senhaOficial = senha1 + "-videira";
 
-                const dadosRetorno = await resposta.json();
+            // Atualiza a senha no cofre do Supabase
+            const { data, error } = await supabaseClient.auth.updateUser({
+                password: senhaOficial
+            });
 
-                // Se o Supabase alterou algo, o array não estará vazio
-                if (dadosRetorno && dadosRetorno.length > 0) {
-                    document.getElementById('area-inputs').style.display = 'none';
-                    mostrarMensagem("sucesso", "✅ Senha alterada com sucesso! Você já pode fazer login.");
-                    document.getElementById('link-voltar').style.display = 'inline-block';
-                } else {
-                    mostrarMensagem("erro", "⚠️ Link expirado ou inválido. Solicite um novo link.");
-                    btn.innerText = "Salvar Nova Senha";
-                    btn.disabled = false;
-                }
-
-            } catch (e) {
-                mostrarMensagem("erro", "⚠️ Erro de conexão com o servidor.");
-                btn.innerText = "Salvar Nova Senha";
-                btn.disabled = false;
+            if (error) {
+                erro.innerText = "Erro ao redefinir: " + error.message;
+                erro.style.display = 'block';
+                btn.innerText = "Salvar Nova Senha"; btn.disabled = false;
+            } else {
+                alert("Senha redefinida com sucesso! Você já pode fazer login.");
+                // Redireciona de volta para o login
+                window.location.href = "index.html"; 
             }
-        }
-
-        function mostrarMensagem(tipo, texto) {
-            const msgBox = document.getElementById('msg-box');
-            msgBox.className = `mensagem ${tipo}`;
-            msgBox.innerText = texto;
-            msgBox.style.display = 'block';
         }
     </script>
 </body>
