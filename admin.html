@@ -66,44 +66,33 @@
     <!-- ========================================== -->
     <!-- VERIFICAÇÃO DE ACESSO (PADRÃO PASTOR)       -->
     <!-- ========================================== -->
-    <script>
-      (async () => {
-          // Usa as variáveis globais do config.js
-          const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+     <script>
+        (async () => {
+              const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
 
-          const { data: { user } } = await supabaseTemp.auth.getUser();
+            const { data: { user } } = await supabaseTemp.auth.getUser();
 
-          if (!user) {
-              window.location.href = "index.html";
-              return;
-          }
+            if (!user) {
+                window.location.href = "index.html";
+                return;
+            }
 
-          const { data: usuario } = await supabaseTemp
-              .from('usuarios')
-              .select('categoria')
-              .eq('email', user.email)
-              .single();
+            const { data: usuario } = await supabaseTemp
+                .from('usuarios')
+                .select('categoria')
+                .eq('email', user.email)
+                .single();
 
-          const cat = (usuario?.categoria || "membro").toLowerCase();
+            const cat = (usuario?.categoria || "membro").toLowerCase();
 
-          // Apenas ADMINISTRADOR pode acessar este painel
-          const permitidos = ["Administrador"];
+            // SÓ PASTOR E ADMINISTRADOR ENTRAM AQUI
+            const permitidos = ["administrador"];
 
-          if (!permitidos.includes(cat)) {
-              alert("Acesso restrito. Apenas administradores podem acessar este painel.");
-              // Redireciona de acordo com a categoria real
-              if (cat === "membro") window.location.href = "membro.html";
-              else if (cat === "lider" || cat === "líder") window.location.href = "lider.html";
-              else if (cat === "pastor") window.location.href = "pastor.html";
-              else if (cat === "tesoureiro") window.location.href = "financeiromobile.html";
-              else window.location.href = "index.html";
-              return;
-          }
-
-          // Salva informações no sessionStorage (para uso em logs e outras funções)
-          sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
-          sessionStorage.setItem('loginDigitado', user.email);
-      })();
+            if (!permitidos.includes(cat)) {
+                alert("Acesso restrito. Sua tentativa de acesso foi registrada.");
+                window.location.href = (cat === "membro") ? "membro.html" : "lider.html";
+            }
+        })();
     </script>
 
     <div class="container">
