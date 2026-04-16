@@ -361,41 +361,46 @@
             carregarDados(null);
         };
 
-        async function carregarDados(icon) {
+       async function carregarDados(icon) {
             if(icon) icon.classList.add('fa-spin');
             
-            // 1. CARREGAR PALAVRAS (SUPABASE)
+            // 1. CARREGAR PALAVRAS (SUPABASE COM RLS)
             try {
                 const respostaPalavras = await fetch(`${SB_URL}/rest/v1/palavras?select=*`, {
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                    headers: { 
+                        'apikey': SB_KEY, 
+                        'Authorization': `Bearer ${SB_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 if (respostaPalavras.ok) {
                     listaPalavras = await respostaPalavras.json();
                     
+                    // Ordenação por data (da mais recente para a mais antiga)
                     listaPalavras.sort((a, b) => {
                         const pegarTempo = (d) => {
                             if (!d) return 0;
                             if (d.includes('-')) { const p = d.split('-'); return new Date(p[0], p[1]-1, p[2]).getTime(); }
-                            if (d.includes('/')) { const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); }
                             return new Date(d).getTime();
                         };
                         return pegarTempo(b.data) - pegarTempo(a.data);
                     });
                     
                     renderizarPalavras(listaPalavras);
+                } else {
+                    throw new Error("Erro na resposta do banco");
                 }
             } catch (e) {
                 console.error("Erro ao carregar palavras:", e);
-                document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Erro ao carregar palavras.</p>';
+                document.getElementById('listaPalavras').innerHTML = '<p style="text-align:center; color:#dc3545;">Não foi possível carregar os estudos no momento.</p>';
             }
 
-            // 2. CARREGAR AGENDA (GOOGLE SCRIPT - CORRIGIDO PARA POST COM JSON)
+            // 2. CARREGAR AGENDA (GOOGLE SCRIPT)
             try {
                 const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, {
                     method: 'POST',
                     body: JSON.stringify({ action: "buscarAgenda" })
-                    // Sem Content-Type para evitar bloqueios de CORS no Google Apps Script
                 });
                 
                 const responseData = await respostaAgenda.json();
@@ -404,17 +409,15 @@
                     listaAgenda = responseData.dados;
                     renderizarAgenda(listaAgenda);
                 } else {
-                    console.error("Erro do servidor:", responseData.mensagem);
                     renderizarAgenda([]); 
                 }
             } catch(e) {
-                console.error("Erro na comunicação com a Agenda:", e);
+                console.error("Erro na Agenda:", e);
                 renderizarAgenda([]);
             }
 
             if(icon) icon.classList.remove('fa-spin');
         }
-
         // ================= RENDERIZAÇÃO =================
         function renderizarPalavras(lista) {
             const div = document.getElementById('listaPalavras');
