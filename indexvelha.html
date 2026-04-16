@@ -198,7 +198,8 @@
 
         async function verificarLogin() {
             const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
-            const pass = document.getElementById('senha-input').value.trim();
+            const passDigitado = document.getElementById('senha-input').value.trim();
+            const pass = passDigitado + "-videira";
             const erro = document.getElementById('mensagem-erro');
             const btn = document.getElementById('btn-entrar');
 
@@ -362,6 +363,9 @@
             const whatsapp = document.getElementById('cad-whatsapp').value.trim();
             const usuario = document.getElementById('cad-usuario').value.trim().toLowerCase();
             const senha = document.getElementById('cad-senha').value.trim();
+
+            const senhaDigitada = document.getElementById('cad-senha').value.trim();
+            const senha = senhaDigitada + "-videira";
             
             const btn = document.getElementById('btn-cadastrar');
             const erro = document.getElementById('mensagem-erro-cad');
