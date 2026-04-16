@@ -178,13 +178,36 @@
   </head>
   <body>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      const paginasPermitidas = JSON.parse(sessionStorage.getItem('paginasPermitidas') || "[]");
-      if(!sessionStorage.getItem('usuarioLogado') || !paginasPermitidas.includes("lider")) {
-          window.location.href = "index.html";
-      }
-    </script>
+        (async () => {
+            const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co";
+            const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA";
+            const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
 
+            const { data: { user } } = await supabaseTemp.auth.getUser();
+
+            if (!user) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Busca a categoria real no banco (não aceita falsificação de sessionStorage)
+            const { data: usuario } = await supabaseTemp
+                .from('usuarios')
+                .select('categoria')
+                .eq('email', user.email)
+                .single();
+
+            const cat = usuario?.categoria || "membro";
+
+            // Se for membro, não pode ver o painel do líder
+            if (cat.toLowerCase() === "membro") {
+                alert("Acesso negado. Redirecionando para sua área.");
+                window.location.href = "membro.html";
+            }
+        })();
+    </script>
     <div class="container">
       
       <div class="header">
@@ -423,11 +446,13 @@
     </div>
 
     <script>
-      const API_URL = sessionStorage.getItem('urlApi');
+     const API_URL = sessionStorage.getItem('urlApi');
 
-      // --- CREDENCIAIS DO SUPABASE ---
+      // --- CREDENCIAIS DO SUPABASE (ATUALIZADAS) ---
       const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co"; 
-      const SB_KEY = "sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q";
+      const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA";
+
+      const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
       let dadosMembros = [], dadosCelulas = [], listaPalavras = [], listaAgenda = [];
       
@@ -475,33 +500,19 @@
           }
       }
 
-      // 3. MOTORES SUPABASE (Para o Resto)
+  
+      // 3. MOTORES SUPABASE (Usando a biblioteca oficial)
       async function lerSupabase(tabela) {
-          const res = await fetch(`${SB_URL}/rest/v1/${tabela}?select=*`, {
-              method: 'GET',
-              headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-          });
-          if (!res.ok) throw new Error(`Erro ao ler tabela: ${tabela}`);
-          return await res.json();
+          const { data, error } = await supabaseClient.from(tabela).select('*');
+          if (error) throw new Error(`Erro ao ler ${tabela}: ${error.message}`);
+          return data;
       }
 
       async function salvarSupabase(tabela, dados) {
-          const res = await fetch(`${SB_URL}/rest/v1/${tabela}`, {
-              method: 'POST',
-              headers: { 
-                  'apikey': SB_KEY, 
-                  'Authorization': `Bearer ${SB_KEY}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=minimal' 
-              },
-              body: JSON.stringify(dados)
-          });
-          if (!res.ok) throw new Error(`Erro ao salvar no Supabase. Verifique o RLS.`);
+          const { error } = await supabaseClient.from(tabela).insert([dados]);
+          if (error) throw new Error(`Erro ao salvar: ${error.message}`);
           
-          // Rastreador automático para Membros, Relatórios e Sugestões
-          let identificador = dados.nome || dados.celula || "Mensagem/Sugestão";
-          registrarLogAcao(`Criou registro na aba ${tabela}: ${identificador}`);
-          
+          registrarLogAcao(`Criou registro na aba ${tabela}`);
           return "Salvo com sucesso! 🚀";
       }
 
