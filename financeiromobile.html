@@ -314,8 +314,12 @@
   </head>
   <body>
     <script>
-      const paginasPermitidas = JSON.parse(sessionStorage.getItem('paginasPermitidas') || "[]");
-      if(!sessionStorage.getItem('usuarioLogado') || !paginasPermitidas.includes("financeiromobile")) {
+      // TRAVA DE SEGURANÇA POR CATEGORIA
+      const usuarioLogado = sessionStorage.getItem('usuarioLogado');
+      const categoriaUser = sessionStorage.getItem('categoria'); 
+      const permitidos = ["Tesoureiro", "Pastor", "Administrador"];
+
+      if(!usuarioLogado || !permitidos.includes(categoriaUser)) {
           window.location.href = "index.html";
       }
   </script>
@@ -613,15 +617,13 @@
     <div id="biblia-overlay" onclick="fecharBiblia()"></div>
 
     <script>
+     // ==========================================
+      // CONFIGURAÇÃO SUPABASE OFICIAL (JWT)
       // ==========================================
-      // CONFIGURAÇÃO supabaseClient
-      // ==========================================
-      // Insira as credenciais do seu projeto supabaseClient aqui
       const supabaseUrl = 'https://ryvfogmfpjyamgqsltks.supabase.co';
-      const supabaseKey = 'sb_publishable_nFMOC-fPkJnsmf5_noOTBg_tKV6Cr1q';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA';
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-      // Apenas para as funções que não poderiam ser alteradas (ex: Agenda)
       const API_URL = sessionStorage.getItem('urlApi'); 
       let dadosMembros = [], dadosCelulas = [], dadosFinanceiros = [], lideres = [], dadosRelatorios = [], listaPalavras = [], listaAgenda = [];
       
@@ -1220,24 +1222,21 @@
       }
 
       // FUNÇÃO DE LOG GLOBAL PARA OS PAINÉIS
-      // FUNÇÃO DE LOG GLOBAL (CORRIGIDA PARA O PAINEL PASTORAL)
       async function registrarLogAcao(acaoRealizada) {
           const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
-          const user = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+          const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
           const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
           
           try {
-              await fetch(`${supabaseUrl}/rest/v1/log`, {
-                  method: 'POST',
-                  headers: {
-                      'apikey': supabaseKey,
-                      'Authorization': `Bearer ${supabaseKey}`,
-                      'Content-Type': 'application/json',
-                      'Prefer': 'return=minimal'
-                  },
-                  body: JSON.stringify({ datahora: dataHoraAtual, usuario: user, nomelider: nomeReal, acao: acaoRealizada })
-              });
-          } catch (e) { console.error("Erro no log:", e); }
+              await supabaseClient.from('log').insert([{ 
+                  datahora: dataHoraAtual, 
+                  usuario: userEmail, 
+                  nomelider: nomeReal, 
+                  acao: acaoRealizada 
+              }]);
+          } catch (e) { 
+              console.error("Erro ao salvar o log:", e); 
+          }
       }
 
 function fazerLogout() {
