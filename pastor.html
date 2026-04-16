@@ -771,55 +771,85 @@
       }
 
       async function carregarTudo() {
-        const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
+        const icon = document.getElementById('iconRefresh'); 
+        if(icon) icon.classList.add('fa-spin');
+        
         try {
-            // Busca membros não arquivados
+            // 1. BUSCA DADOS NO SUPABASE (Membros e Células)
             const { data: memData, error: memError } = await supabaseClient
                 .from('membros')
                 .select('*')
-                .eq('arquivado', 'Não')
-                .order('nome', { ascending: true });
+                .or('arquivado.eq.Não,arquivado.eq.nao,arquivado.eq.Nao,arquivado.is.null');
                 
-            if (memError) throw memError;
+            if (memError) console.error("Erro Membros:", memError);
 
             const { data: celData } = await supabaseClient.from('celulas').select('*');
 
-            dadosMembros = memData ? memData.map(m => [
-                m.id, 
-                m.nome || 'Sem Nome', 
-                m.tipo || 'Membro',        
-                m.celula || 'Sem Célula', 
-                m.telefone || '', 
-                '',                                  
-                m.batizado || 'Não',
-                m.cursao || 'Não',  
-                m.ctl || 'Não',     
-                m.encontro || 'Não',
-                m.nascimento || '',
-                m.seminario || 'Não',
-                m.dizimista || 'Não'
-            ]) : [];
+            // 2. MAPEAMENTO EXATO DOS ÍNDICES (Mantendo m[11] e m[12] para seus cards)
+            dadosMembros = memData ? memData.map(m => {
+                let tipoBanco = m.tipo ? m.tipo.trim().toLowerCase() : 'membro';
+                let tipoCorreto = 'Membro';
+                if (tipoBanco === 'lider' || tipoBanco === 'líder') tipoCorreto = 'Líder';
+                else if (tipoBanco === 'pastor') tipoCorreto = 'Pastor';
+                else if (tipoBanco === 'discipulador') tipoCorreto = 'Discipulador';
+                else if (tipoBanco === 'frequentador') tipoCorreto = 'Frequentador';
+                else tipoCorreto = m.tipo; 
 
-            // ORDENAÇÃO HIERÁRQUICA
+                return [
+                    m.id,          // 0
+                    m.nome || 'Sem Nome', // 1
+                    tipoCorreto,   // 2
+                    m.celula || 'Sem Célula', // 3
+                    m.telefone || '', // 4
+                    '',            // 5
+                    m.batizado || 'Não', // 6
+                    m.cursao || 'Não',   // 7
+                    m.ctl || 'Não',      // 8
+                    m.encontro || 'Não', // 9
+                    m.nascimento || '',  // 10
+                    m.seminario || 'Não', // 11 (Importante para seu filtro/edit)
+                    m.dizimista || 'Não'  // 12 (Importante para seu filtro/edit)
+                ];
+            }) : [];
+
+            // 3. ORDENAÇÃO HIERÁRQUICA ORIGINAL (Pastor no topo)
             const pesoCargos = { "Pastor": 1, "Discipulador": 2, "Líder": 3, "Membro": 4, "Frequentador": 5 };
-            dadosMembros.sort((a, b) => (pesoCargos[a[2]] || 99) - (pesoCargos[b[2]] || 99) || a[1].localeCompare(b[1]));
+            dadosMembros.sort((a, b) => {
+                let pesoA = pesoCargos[a[2]] || 99; 
+                let pesoB = pesoCargos[b[2]] || 99;
+                if (pesoA !== pesoB) return pesoA - pesoB; 
+                return a[1].localeCompare(b[1]);
+            });
 
+            // 4. ATUALIZA INTERFACE E SELECTS
             dadosCelulas = celData ? celData.map(c => [c.nome, c.lider, c.dia_horario || '-', c.endereco]) : [];
-            
-            lideres = dadosMembros
-                .filter(m => ['Líder', 'Pastor', 'Discipulador'].includes(m[2]))
-                .map(m => m[1]);
+            lideres = dadosMembros.filter(m => ['Líder', 'Pastor', 'Discipulador'].includes(m[2])).map(m => m[1]);
 
             document.getElementById('totalMembros').innerText = dadosMembros.length;
             renderizarCards(dadosMembros); 
             renderizarCelulas(dadosCelulas);
             preencherSelects(dadosCelulas); 
             preencherSelectMembrosFin(dadosMembros);
-            carregarFinanceiro();
 
-        } catch(e) { console.error(e); } finally { if(icon) icon.classList.remove('fa-spin'); }
+            // 5. CARREGA FINANCEIRO (Sem travar o resto)
+            try { carregarFinanceiro(); } catch(e) { console.error("Erro Fin:", e); }
+
+            // 6. CARREGA AGENDA DO GOOGLE (API_URL)
+            try {
+                const agendaRes = await fetchGoogle('buscarAgenda');
+                listaAgenda = agendaRes || [];
+                renderizarAgenda(listaAgenda);
+            } catch(e) { 
+                console.error("Erro Agenda:", e);
+                renderizarAgenda([]); 
+            }
+
+        } catch(e) { 
+            console.error("Erro Geral carregarTudo:", e); 
+        } finally { 
+            if(icon) icon.classList.remove('fa-spin'); 
+        }
       }
-
       function renderizarCards(lista) {
         const grid = document.getElementById('gridMembros'); grid.innerHTML = '';
         const check = (val) => (val === 'Sim' || val === true) ? 'active' : '';
