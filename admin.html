@@ -87,7 +87,7 @@
           const cat = (usuario?.categoria || "membro").toLowerCase();
 
           // Apenas ADMINISTRADOR pode acessar este painel
-          const permitidos = ["administrador"];
+          const permitidos = ["Administrador"];
 
           if (!permitidos.includes(cat)) {
               alert("Acesso restrito. Apenas administradores podem acessar este painel.");
