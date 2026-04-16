@@ -5,83 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Painel Administrador - Videira Jataí</title>
     
+    <!-- CONFIGURAÇÃO CENTRALIZADA -->
+    <script src="config.js"></script>
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase ============================================================= -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    
 
-  <link rel="icon" type="image/png" href="logo.png">
-  <link rel="shortcut icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
 
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="Sistema Videira">
-  <meta name="apple-mobile-web-app-title" content="Sistema Videira">
-  <meta name="theme-color" content="#0f172a"> 
-  <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a"> 
+    <link rel="manifest" href="manifest.json">
   
-    
     <style>
+     
       .container { max-width: 800px; margin: 0 auto; padding: 15px; }
-
-      /* HEADER */
       .header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid #000; }
       .header h3 { margin: 0; color: #000; font-weight: 800; text-transform: uppercase; font-size: 1.1rem; }
       .btn-refresh { background: none; border: none; font-size: 1.2rem; color: var(--text-light); cursor: pointer; transition: 0.3s; }
-
-      /* MENU NAVEGAÇÃO */
       .nav-menu { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
       .nav-btn { flex: 1 1 45%; min-width: 100px; padding: 12px; border: none; border-radius: 10px; background: white; color: var(--text-light); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); font-size: 0.85rem; }
       .nav-btn i { font-size: 1.2rem; }
       .nav-btn.active { background: #000; color: white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
-
-      /* BARRA DE PESQUISA */
       .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; }
       .filter-bar input, .filter-bar select { margin-bottom: 0; padding: 10px; font-size: 0.9rem; border-color: #ddd; }
-      
-      /* LISTA DE USUÁRIOS */
       .user-card { background: white; padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
       .user-info h4 { margin: 0 0 4px 0; color: var(--text-main); font-size: 1rem; }
       .user-info p { margin: 0; font-size: 0.8rem; color: #777; }
       .badge-role { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; background: #eee; color: #555; margin-top: 5px; }
       .badge-role.Administrador { background: #000; color: #fff; }
       .badge-role.Pastor { background: rgba(128, 0, 32, 0.1); color: #800020; }
-      
       .action-btns { display: flex; gap: 8px; }
       .btn-icon-action { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; }
       .btn-edit { background: #f0f4f8; color: #0056b3; }
       .btn-del { background: #fdf5f6; color: var(--danger-text); }
       .btn-key { background: #fef9e7; color: #b8860b; }
-
-      /* LISTA DE LOGS */
       .log-card { background: white; padding: 12px 15px; border-radius: 8px; border-left: 3px solid #ccc; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
       .log-card.Sucesso { border-left-color: var(--success-text); }
       .log-date { font-size: 0.75rem; color: #999; margin-bottom: 3px; }
       .log-text { font-size: 0.85rem; color: #333; margin: 0; line-height: 1.4; }
       .log-text strong { color: var(--primary); }
-
-      /* FORMS */
       .form-box { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
       label { display: block; margin-bottom: 5px; color: var(--text-light); font-weight: 600; font-size: 0.85rem; }
       input, select { width: 100%; padding: 12px; background: var(--input-bg); margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box; }
       .btn-save { width: 100%; padding: 14px; background: #000; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
       .btn-add { background: var(--success-text); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
-      
       .hidden { display: none !important; }
     </style>
   </head>
   <body>
-    <!-- ========================================== -->
-    <!-- VERIFICAÇÃO DE ACESSO VIA SUPABASE (ADMIN)  -->
-    <!-- ========================================== -->
-        <script>
+    <!-- VERIFICAÇÃO DE ACESSO (usa variáveis globais do config.js) -->
+    <script>
       (async () => {
-          const SB_URL = "https://ryvfogmfpjyamgqsltks.supabase.co";
-          const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dmZvZ21mcGp5YW1ncXNsdGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTI2NTksImV4cCI6MjA4ODU2ODY1OX0.FSqv0YJwJH5-2Cl4ryhz6o3u7dzfzjD1MOjz2Di1_DA";
-          const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
+          const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
           const { data: { user } } = await supabaseTemp.auth.getUser();
 
@@ -98,18 +83,16 @@
 
           const cat = (usuario?.categoria || "membro").toLowerCase();
 
-          // Apenas ADMINISTRADOR pode acessar este painel
-          if (cat !== "administrador") {
+          if (cat !== "Administrador") {
               alert("Acesso restrito. Apenas administradores podem acessar este painel.");
               if (cat === "membro") window.location.href = "membro.html";
-              else if (cat === "lider" || cat === "líder") window.location.href = "lider.html";
+              else if (cat === "lider" || cat === "Líder") window.location.href = "lider.html";
               else if (cat === "pastor") window.location.href = "pastor.html";
               else if (cat === "tesoureiro") window.location.href = "financeiromobile.html";
               else window.location.href = "index.html";
               return;
           }
 
-          // Salva informações no sessionStorage (para uso em logs e outras funções)
           sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
           sessionStorage.setItem('loginDigitado', user.email);
       })();
@@ -200,9 +183,10 @@
     </div>
 
     <script>
-     
-      
-      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // ==========================================
+      // CONFIGURAÇÃO DO SUPABASE (USANDO VARIÁVEIS GLOBAIS DO config.js)
+      // ==========================================
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       
       let dadosUsuarios = []; 
       let dadosExibidos = [];
@@ -225,29 +209,24 @@
              ]);
 
              dadosUsuarios = users || [];
-             filtrarUsuarios(); // Chama o filtro para renderizar respeitando o que estiver digitado
-             
+             filtrarUsuarios();
              renderizarLogs(logs || []);
          } catch(e) {
-             console.error(e);
-             alert("Erro ao carregar dados do servidor.");
+             console.error("Erro ao carregar dados:", e);
+             alert("Erro ao carregar dados do servidor. Verifique sua conexão.");
          } finally {
              if(icon) icon.classList.remove('fa-spin');
          }
       }
 
-      // ================= FUNÇÃO DO FILTRO =================
       function filtrarUsuarios() {
           const termoDigitado = document.getElementById('filtroNome').value.toLowerCase();
           const categoriaSelecionada = document.getElementById('filtroCategoria').value.toLowerCase();
 
-          // Filtra a lista completa com base no texto e no select
           dadosExibidos = dadosUsuarios.filter(u => {
               const textoCombina = u.nome.toLowerCase().includes(termoDigitado) || u.usuario.toLowerCase().includes(termoDigitado);
-              
               const categoriaCombina = (categoriaSelecionada === "") || 
                                        (u.categoria && u.categoria.toLowerCase() === categoriaSelecionada);
-
               return textoCombina && categoriaCombina;
           });
 
@@ -262,13 +241,11 @@
          }
          
          lista.forEach((u) => {
-             // Precisamos encontrar o índice real dele na lista principal para poder editar corretamente
              const indexOriginal = dadosUsuarios.findIndex(orig => orig.id === u.id);
-
              const user = u.usuario; 
              const nome = u.nome; 
              const cat = u.categoria;
-             const email = u.email || '';
+             const email = u.email || 'E-mail não cadastrado';
              const telefone = u.telefone || 'Sem telefone';
              
              div.innerHTML += `
@@ -306,15 +283,15 @@
 
       function novoUsuario() {
          document.getElementById('formUsuario').reset();
-         document.getElementById('usuarioOriginal').value = ""; // Limpa o ID
+         document.getElementById('usuarioOriginal').value = "";
          document.getElementById('tituloFormUsuario').innerText = "Novo Usuário";
-         document.getElementById('cadUsuario').readOnly = false; // Permite digitar o login
+         document.getElementById('cadUsuario').readOnly = false;
          mudarSecao('form-usuario');
       }
 
       function editarUsuario(index) {
          const u = dadosUsuarios[index];
-         document.getElementById('usuarioOriginal').value = u.id; // Guarda o ID do Supabase
+         document.getElementById('usuarioOriginal').value = u.id;
          document.getElementById('cadUsuario').value = u.usuario;
          document.getElementById('cadNome').value = u.nome;
          document.getElementById('cadTelefone').value = u.telefone || '';
@@ -339,36 +316,29 @@
          };
 
          try {
-             // =======================================================
-             // VALIDAÇÃO: CHECAR SE O NOME DE USUÁRIO JÁ EXISTE
-             // =======================================================
-             const { data: usuarioExistente } = await supabaseClient
-                 .from('usuarios')
-                 .select('id')
-                 .eq('usuario', d.usuario);
-
-             if (usuarioExistente && usuarioExistente.length > 0) {
-                 if (!idUsuario) {
+             // Verificar se o login já existe (apenas para novos cadastros ou se mudou o login)
+             if (!idUsuario || this.usuario.value.trim().toLowerCase() !== dadosUsuarios.find(u => u.id == idUsuario)?.usuario) {
+                 const { data: usuarioExistente } = await supabaseClient
+                     .from('usuarios')
+                     .select('id')
+                     .eq('usuario', d.usuario);
+                 
+                 if (usuarioExistente && usuarioExistente.length > 0) {
                      alert("⚠️ Esse Login de Acesso já existe. Por favor, escolha outro.");
                      btn.disabled = false; btn.innerText = "Salvar Usuário";
-                     return; 
-                 } 
-                 else if (usuarioExistente[0].id != idUsuario) {
-                     alert("⚠️ Esse Login de Acesso já pertence a outro usuário. Escolha outro.");
-                     btn.disabled = false; btn.innerText = "Salvar Usuário";
-                     return; 
+                     return;
                  }
              }
-             // =======================================================
 
+             let resultado;
              if (idUsuario) {
-                 // Atualizar usuário existente
-                 await supabaseClient.from('usuarios').update(d).eq('id', idUsuario);
+                 resultado = await supabaseClient.from('usuarios').update(d).eq('id', idUsuario);
+                 if (resultado.error) throw resultado.error;
                  registrarLogAcao(`Editou o acesso do usuário: ${d.usuario}`);
                  alert("Usuário atualizado com sucesso!");
              } else {
-                 // Criar novo usuário
-                 await supabaseClient.from('usuarios').insert([d]);
+                 resultado = await supabaseClient.from('usuarios').insert([d]);
+                 if (resultado.error) throw resultado.error;
                  registrarLogAcao(`Criou um novo usuário: ${d.usuario}`);
                  alert("Usuário criado com sucesso!");
              }
@@ -377,56 +347,63 @@
              carregarTudo();
          } catch(error) {
              console.error("Erro ao salvar:", error);
-             alert("Erro de conexão ao salvar. Tente novamente.");
+             alert("Erro de conexão ao salvar. Detalhes: " + error.message);
          } finally {
-             btn.disabled = false; btn.innerText = "Salvar Usuário";
+             btn.disabled = false; 
+             btn.innerText = "Salvar Usuário";
          }
       };
 
       async function excluirUsuario(id, usuario) {
-         if(usuario === "admin" || usuario === "administrador") { alert("Não é possível excluir o Administrador principal."); return; }
+         // Proteção extra: não excluir o administrador principal baseado no login 'admin'
+         if(usuario === "admin") { 
+             alert("Não é possível excluir o Administrador principal."); 
+             return; 
+         }
          
-         if(confirm(`Tem certeza que deseja EXCLUIR o acesso de '${usuario}'?`)) {
-             try {
-                 await supabaseClient.from('usuarios').delete().eq('id', id);
-                 registrarLogAcao(`Excluiu o usuário: ${usuario}`);
-                 alert("Usuário excluído com sucesso!");
-                 carregarTudo();
-             } catch(e) {
-                 alert("Erro ao excluir usuário.");
-             }
+         if(!confirm(`Tem certeza que deseja EXCLUIR o acesso de '${usuario}'?`)) return;
+         
+         try {
+             const { error } = await supabaseClient.from('usuarios').delete().eq('id', id);
+             if (error) throw error;
+             
+             registrarLogAcao(`Excluiu o usuário: ${usuario}`);
+             alert("Usuário excluído com sucesso!");
+             carregarTudo();
+         } catch(e) {
+             console.error("Erro ao excluir:", e);
+             alert("Erro ao excluir usuário. Verifique as permissões. Detalhes: " + e.message);
          }
       }
 
       async function limparLogs() {
-         if(confirm("ATENÇÃO: Deseja apagar todo o histórico de logs do sistema? Esta ação não pode ser desfeita.")) {
-             try {
-                 await supabaseClient.from('log').delete().not('datahora', 'is', null);
-                 registrarLogAcao("Limpou o histórico de logs do sistema.");
-                 alert("Logs apagados com sucesso!");
-                 carregarTudo();
-             } catch(e) {
-                 alert("Erro ao limpar os logs.");
-             }
+         if(!confirm("ATENÇÃO: Deseja apagar todo o histórico de logs do sistema? Esta ação não pode ser desfeita.")) return;
+         
+         try {
+             const { error } = await supabaseClient.from('log').delete().not('datahora', 'is', null);
+             if (error) throw error;
+             
+             registrarLogAcao("Limpou o histórico de logs do sistema.");
+             alert("Logs apagados com sucesso!");
+             carregarTudo();
+         } catch(e) {
+             console.error("Erro ao limpar logs:", e);
+             alert("Erro ao limpar os logs. Detalhes: " + e.message);
          }
       }
 
-      // NOVA FUNÇÃO: REDEFINIR SENHA
       async function redefinirSenha(email) {
-          if (!email) {
-              alert("Este usuário não possui e-mail cadastrado.");
+          if (!email || email === 'E-mail não cadastrado') {
+              alert("Este usuário não possui e-mail cadastrado. Impossível redefinir senha.");
               return;
           }
           
-          if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) {
-              return;
-          }
+          if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return;
           
           try {
               const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                   redirectTo: window.location.origin + '/nova-senha.html'
               });
-              
               if (error) throw error;
               
               registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
@@ -437,7 +414,6 @@
           }
       }
 
-      // FUNÇÃO PARA REGISTRAR AS AÇÕES DO ADMIN NO LOG
       async function registrarLogAcao(acaoRealizada) {
           const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
           const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
@@ -457,11 +433,10 @@
       
       function fazerLogout() {
           if (confirm("Tem certeza que deseja sair do sistema?")) {
-              sessionStorage.clear(); // Limpa todos os dados de login
-              window.location.href = "index.html"; // Redireciona para a tela de login
+              sessionStorage.clear();
+              window.location.href = "index.html";
           }
       }
-      
     </script>
   </body>
 </html>
