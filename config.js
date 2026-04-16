@@ -8,5 +8,6 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnystn3UqAKn
 
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
+const supabseUrl = SUPABASE_URL;
 const SB_KEY = SUPABASE_ANON_KEY;
 const urlBackend = GOOGLE_SCRIPT_URL;
