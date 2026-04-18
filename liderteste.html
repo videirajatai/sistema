@@ -598,12 +598,12 @@
 
         <!-- Botões flutuantes: Próximo em cima, Anterior embaixo -->
         <div class="biblia-floating-nav">
-            <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo">
-                <i class="fas fa-chevron-right"></i>
-            </button>
             <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior">
                 <i class="fas fa-chevron-left"></i>
             </button>
+            <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo">
+                <i class="fas fa-chevron-right"></i>
+            </button>            
         </div>
     </div>
 
@@ -904,8 +904,8 @@
 
       // ========== BÍBLIA (NOVO MÓDULO CORRIGIDO) ==========
       let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
-      const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
-      const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
+      const siglasVersoes = { msg:'MSGPT', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
+      const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução <br>na Linguagem de Hoje' };
 
       async function abrirBiblia() {
           document.getElementById('painel-biblia').classList.add('aberto');
