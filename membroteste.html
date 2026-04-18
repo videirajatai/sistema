@@ -256,19 +256,83 @@
         .versao-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .versao-item.selecionada { background: var(--primary); color: white; }
 
-        /* MODAL DE PALAVRAS (existente) */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: flex-end; backdrop-filter: blur(2px); }
+        /* MODAL DE PALAVRAS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            backdrop-filter: blur(2px);
+        }
         .modal-overlay.hidden { display: none; }
-        .modal-content { background: white; width: 100%; max-width: 800px; height: 85vh; border-radius: 20px 20px 0 0; padding: 25px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            height: 85vh;
+            border-radius: 20px 20px 0 0;
+            padding: 25px;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
-        .modal-close { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #64748b; cursor: pointer; font-size: 1.1rem; }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .modal-download, .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: 0.2s;
+        }
+        .modal-download { color: var(--primary); }
+        .modal-download:hover, .modal-close:hover { background: var(--primary); color: white; }
+
         .modal-title { font-size: 1.5rem; color: var(--primary); font-weight: 800; margin-bottom: 5px; margin-top: 10px; padding-right: 30px;}
         .modal-date { color: var(--text-light); font-size: 0.9rem; margin-bottom: 20px; }
         .modal-body { color: var(--text-main); font-size: 1.05rem; line-height: 1.7; text-align: justify; white-space: pre-wrap;}
         
         .btn-youtube { display: inline-flex; align-items: center; gap: 8px; background: #ff0000; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-bottom: 20px; margin-top: 15px;}
         .btn-youtube.hidden { display: none !important; }
+
+        /* ESTILOS PARA IMPRESSÃO/PDF */
+        @media print {
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                padding: 20px;
+                box-shadow: none;
+                border-radius: 0;
+            }
+            .modal-actions, .btn-youtube, .fa-youtube { display: none !important; }
+            .modal-title { font-size: 24pt; color: black; }
+            .modal-body { font-size: 14pt; color: black; }
+        }
 
         /* HEADER SAUDACAO */
         .saudacao-header { margin-bottom: 20px; text-align: center; }
@@ -340,7 +404,6 @@
         <!-- ABA BÍBLIA -->
         <div id="aba-biblia" class="tab-content active">
             <div class="biblia-controles">
-                <!-- Seletor de versão por sigla (abre modal) -->
                 <button class="versao-selector-btn" id="btnSeletorVersao" onclick="abrirModalVersao()">
                     <span id="versaoSiglaAtual">MSG</span>
                     <i class="fas fa-chevron-down"></i>
@@ -355,12 +418,12 @@
 
         <!-- Botões flutuantes de navegação de capítulo -->
         <div class="nav-capitulo-container" id="navCapituloContainer">
+            <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior">
+                <i class="fas fa-chevron-left"></i>
+            </button>
             <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo">
                 <i class="fas fa-chevron-right"></i>
             </button>
-            <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior">
-                <i class="fas fa-chevron-left"></i>
-            </button>           
         </div>
 
         <div id="aba-agenda" class="tab-content">
@@ -442,10 +505,17 @@
         </div>
     </div>
 
-    <!-- MODAL PALAVRAS -->
+    <!-- MODAL PALAVRAS COM BOTÃO PDF -->
     <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="fecharModal(null)"><i class="fas fa-times"></i></button>
+            <div class="modal-actions">
+                <button class="modal-download" onclick="baixarPalavraPDF()" title="Baixar PDF">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="modal-close" onclick="fecharModal(null)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <h2 id="modalTitulo" class="modal-title"></h2>
             <p id="modalData" class="modal-date"></p>
             
@@ -477,6 +547,7 @@
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
         const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
         let listaPalavras = [];
+        let palavraAtual = null;  // guarda a palavra aberta para o PDF
 
         // ================= MUDANÇA DE ABAS =================
         function mudarAba(idAba, elementoBtn) {
@@ -486,17 +557,12 @@
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             elementoBtn.classList.add('active');
 
-            // Esconde botões de navegação se não for a aba da Bíblia
             const navContainer = document.getElementById('navCapituloContainer');
-            if (idAba === 'aba-biblia') {
-                navContainer.style.display = 'flex';
-            } else {
-                navContainer.style.display = 'none';
-            }
+            navContainer.style.display = (idAba === 'aba-biblia') ? 'flex' : 'none';
         }
 
         // ================= COPIAR PIX =================
-        function copiarPix() { /* (inalterado) */
+        function copiarPix() {
             const input = document.getElementById('chavePix');
             input.select();
             input.setSelectionRange(0, 99999); 
@@ -546,10 +612,86 @@
             if(icon) icon.classList.remove('fa-spin');
         }
 
-        function renderizarPalavras(lista) { /* (inalterado) */ }
-        function renderizarAgenda(dados) { /* (inalterado) */ }
-        function abrirPalavra(index) { /* (inalterado) */ }
-        function fecharModal(e) { /* (inalterado) */ }
+        function renderizarPalavras(lista) {
+            const div = document.getElementById('listaPalavras');
+            div.innerHTML = '';
+            if(!lista || lista.length === 0) {
+                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma palavra cadastrada.</p>';
+                return;
+            }
+            lista.forEach((p, index) => {
+                let dF = p.data || '';
+                try { if(dF.includes('-')) { const dp = dF.split('-'); dF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+                const iconeYoutube = (p.link_youtube && p.link_youtube.trim() !== "") ? `<i class="fab fa-youtube" style="color: #ff0000; font-size: 1.2rem;"></i>` : "";
+                div.innerHTML += `
+                    <div class="word-list-item" onclick="abrirPalavra(${index})">
+                        <div>
+                            <div class="word-date"><i class="far fa-calendar-alt" style="color: var(--ouro-videira); margin-right: 5px;"></i> ${dF}</div>
+                            <div class="word-theme">${p.tema}</div>
+                        </div>
+                        <div>${iconeYoutube}<i class="fas fa-chevron-right" style="color: #cbd5e1; margin-left: 10px;"></i></div>
+                    </div>`;
+            });
+        }
+
+        function renderizarAgenda(dados) {
+            const div = document.getElementById('listaAgenda');
+            div.innerHTML = '';
+            if(!dados || dados.length === 0) {
+                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column: 1 / -1;">Nenhum evento futuro agendado.</p>';
+                return;
+            }
+            dados.forEach(a => {
+                const dataEv = a[0] || '';
+                const tituloEv = a[1] || 'Evento';
+                const descEv = a[2] || '';
+                const tipoEv = a[3] || 'Agenda';
+                let corTipo = "#3b82f6";
+                if(tituloEv.toLowerCase().includes('culto')) corTipo = "#600018";
+                if(tituloEv.toLowerCase().includes('célula')) corTipo = "#10b981";
+                div.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <strong style="font-size: 1.1rem; color: #1e293b;">${dataEv}</strong>
+                        <span style="background-color: ${corTipo}; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">${tipoEv}</span>
+                    </div>
+                    <div style="font-size: 1rem; color: #334155; margin-top: 8px; font-weight: 600;">
+                        <i class="far fa-calendar-check" style="color: ${corTipo}; margin-right: 5px;"></i> ${tituloEv}
+                    </div>
+                    ${descEv ? `<div style="margin-top: 10px; font-size: 0.85rem; color: #64748b; padding: 8px; background: #f8fafc; border-radius: 6px; border-left: 3px solid ${corTipo};">${descEv}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        function abrirPalavra(index) {
+            const p = listaPalavras[index];
+            palavraAtual = p;
+            document.getElementById('modalTitulo').innerText = p.tema || '';
+            let dataF = p.data || '';
+            try { if(dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+            document.getElementById('modalData').innerText = dataF;
+            document.getElementById('modalTexto').innerText = p.texto || '';
+            const btn = document.getElementById('btnLinkYoutube');
+            if (p.link_youtube && p.link_youtube.trim() !== "") {
+                btn.href = p.link_youtube;
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+                btn.href = "#";
+            }
+            document.getElementById('modalPalavra').classList.remove('hidden');
+        }
+
+        function fecharModal(e) {
+            if(e === null || e.target === document.getElementById('modalPalavra')) {
+                document.getElementById('modalPalavra').classList.add('hidden');
+            }
+        }
+
+        function baixarPalavraPDF() {
+            if (!palavraAtual) return;
+            window.print();
+        }
 
         // ================= SELEÇÃO DE VERSÃO (MODAL) =================
         let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
@@ -604,14 +746,12 @@
                 selectCapitulo.value = currentVal - 1;
                 if (typeof Biblia !== 'undefined') Biblia.onCapituloChange();
             } else {
-                // Tenta mudar para livro anterior, último capítulo
                 const selectLivro = document.getElementById('biblia-livro');
                 const currentLivroIndex = selectLivro.selectedIndex;
                 if (currentLivroIndex > 0) {
                     selectLivro.selectedIndex = currentLivroIndex - 1;
                     if (typeof Biblia !== 'undefined') {
                         Biblia.onLivroChange();
-                        // Aguarda o carregamento dos capítulos e seleciona o último
                         setTimeout(() => {
                             const selectCapitulo = document.getElementById('biblia-capitulo');
                             selectCapitulo.value = selectCapitulo.options.length;
@@ -630,7 +770,6 @@
                 selectCapitulo.value = currentVal + 1;
                 if (typeof Biblia !== 'undefined') Biblia.onCapituloChange();
             } else {
-                // Próximo livro, capítulo 1
                 const selectLivro = document.getElementById('biblia-livro');
                 if (selectLivro.selectedIndex < selectLivro.options.length - 1) {
                     selectLivro.selectedIndex = selectLivro.selectedIndex + 1;
@@ -647,10 +786,8 @@
 
         // ================= INICIALIZAÇÃO =================
         window.addEventListener('DOMContentLoaded', async () => {
-            // Inicializa a Bíblia
             if (typeof Biblia !== 'undefined') {
                 await Biblia.inicializar();
-                // Sincroniza a versão do localStorage com o módulo e botão
                 const saved = localStorage.getItem('biblia_versao');
                 if (saved && saved !== Biblia.getVersaoAtiva()) {
                     await Biblia.mudarVersao(saved);
@@ -660,89 +797,9 @@
             } else {
                 console.error("Módulo Biblia não encontrado.");
             }
-
-            // Carrega dados iniciais
             carregarDados(null);
-            
-            // Garante que os botões de navegação estejam visíveis apenas na aba Bíblia
             document.getElementById('navCapituloContainer').style.display = 'flex';
         });
-
-        // (As funções renderizarPalavras, renderizarAgenda, abrirPalavra, fecharModal estão mantidas como no original)
-        function renderizarPalavras(lista) {
-            const div = document.getElementById('listaPalavras');
-            div.innerHTML = '';
-            if(!lista || lista.length === 0) {
-                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma palavra cadastrada.</p>';
-                return;
-            }
-            lista.forEach((p, index) => {
-                let dF = p.data || '';
-                try { if(dF.includes('-')) { const dp = dF.split('-'); dF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
-                const iconeYoutube = (p.link_youtube && p.link_youtube.trim() !== "") ? `<i class="fab fa-youtube" style="color: #ff0000; font-size: 1.2rem;"></i>` : "";
-                div.innerHTML += `
-                    <div class="word-list-item" onclick="abrirPalavra(${index})">
-                        <div>
-                            <div class="word-date"><i class="far fa-calendar-alt" style="color: var(--ouro-videira); margin-right: 5px;"></i> ${dF}</div>
-                            <div class="word-theme">${p.tema}</div>
-                        </div>
-                        <div>${iconeYoutube}<i class="fas fa-chevron-right" style="color: #cbd5e1; margin-left: 10px;"></i></div>
-                    </div>`;
-            });
-        }
-
-        function renderizarAgenda(dados) {
-            const div = document.getElementById('listaAgenda');
-            div.innerHTML = '';
-            if(!dados || dados.length === 0) {
-                div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column: 1 / -1;">Nenhum evento futuro agendado.</p>';
-                return;
-            }
-            dados.forEach(a => {
-                const dataEv = a[0] || '';
-                const tituloEv = a[1] || 'Evento';
-                const descEv = a[2] || '';
-                const tipoEv = a[3] || 'Agenda';
-                let corTipo = "#3b82f6";
-                if(tituloEv.toLowerCase().includes('culto')) corTipo = "#600018";
-                if(tituloEv.toLowerCase().includes('célula')) corTipo = "#10b981";
-                div.innerHTML += `
-                <div class="member-card">
-                    <div class="card-header">
-                        <strong style="font-size: 1.1rem; color: #1e293b;">${dataEv}</strong>
-                        <span style="background-color: ${corTipo}; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">${tipoEv}</span>
-                    </div>
-                    <div style="font-size: 1rem; color: #334155; margin-top: 8px; font-weight: 600;">
-                        <i class="far fa-calendar-check" style="color: ${corTipo}; margin-right: 5px;"></i> ${tituloEv}
-                    </div>
-                    ${descEv ? `<div style="margin-top: 10px; font-size: 0.85rem; color: #64748b; padding: 8px; background: #f8fafc; border-radius: 6px; border-left: 3px solid ${corTipo};">${descEv}</div>` : ''}
-                </div>`;
-            });
-        }
-
-        function abrirPalavra(index) {
-            const p = listaPalavras[index];
-            document.getElementById('modalTitulo').innerText = p.tema || '';
-            let dataF = p.data || '';
-            try { if(dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
-            document.getElementById('modalData').innerText = dataF;
-            document.getElementById('modalTexto').innerText = p.texto || '';
-            const btn = document.getElementById('btnLinkYoutube');
-            if (p.link_youtube && p.link_youtube.trim() !== "") {
-                btn.href = p.link_youtube;
-                btn.classList.remove('hidden');
-            } else {
-                btn.classList.add('hidden');
-                btn.href = "#";
-            }
-            document.getElementById('modalPalavra').classList.remove('hidden');
-        }
-
-        function fecharModal(e) {
-            if(e === null || e.target === document.getElementById('modalPalavra')) {
-                document.getElementById('modalPalavra').classList.add('hidden');
-            }
-        }
     </script>
 </body>
 </html>
