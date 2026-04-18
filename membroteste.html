@@ -700,7 +700,10 @@
 
         // ================= FUNÇÃO DE DOWNLOAD DIRETO DE PDF =================
 async function baixarPalavraWord() {
-    if (!palavraAtual) return;
+    if (!palavraAtual) {
+        alert("Nenhuma palavra carregada.");
+        return;
+    }
 
     const btn = document.querySelector('.modal-download');
     const originalHTML = btn.innerHTML;
@@ -708,56 +711,75 @@ async function baixarPalavraWord() {
     btn.classList.add('loading');
 
     try {
-        // 1. Obter o HTML que você deseja converter.
-        //    Pode ser o conteúdo interno do modal ou uma string HTML formatada.
-        const titulo = document.getElementById('modalTitulo').innerText;
-        const data = document.getElementById('modalData').innerText;
-        const texto = document.getElementById('modalTexto').innerText; // ou .innerHTML
+        const titulo = palavraAtual.tema || 'Palavra';
+        const data = palavraAtual.data || '';
+        const texto = palavraAtual.texto || '';
 
-        // 2. Construir uma string HTML completa para o documento.
-        //    Isso garante uma formatação adequada.
-        const htmlContent = `
-            <!DOCTYPE html>
+        // Formata a data (se vier no formato ISO)
+        let dataFormatada = data;
+        if (data && data.includes('-')) {
+            const partes = data.split('-');
+            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
+        // Constrói o HTML com estilização básica
+        const htmlContent = `<!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
                 <title>${titulo}</title>
                 <style>
-                    body { font-family: 'Inter', sans-serif; padding: 2em; }
-                    h1 { color: #600018; }
-                    .data { color: #718096; margin-bottom: 2em; }
-                    .texto { line-height: 1.7; text-align: justify; }
+                    body {
+                        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+                        margin: 2.5cm 2cm;
+                        color: #333;
+                    }
+                    h1 {
+                        color: #600018;
+                        font-size: 28pt;
+                        margin-bottom: 10px;
+                    }
+                    .data {
+                        color: #718096;
+                        font-size: 12pt;
+                        margin-bottom: 30px;
+                        border-bottom: 1px solid #e2e8f0;
+                        padding-bottom: 10px;
+                    }
+                    .texto {
+                        font-size: 14pt;
+                        line-height: 1.8;
+                        text-align: justify;
+                        white-space: pre-wrap;
+                    }
                 </style>
             </head>
             <body>
                 <h1>${titulo}</h1>
-                <p class="data">${data}</p>
-                <div class="texto">${texto.replace(/\n/g, '<br>')}</div>
+                <div class="data">${dataFormatada}</div>
+                <div class="texto">${texto}</div>
             </body>
-            </html>
-        `;
-
-        // 3. Converter o HTML para um blob (arquivo) .docx
-        const blob = await htmlDocx.asBlob(htmlContent);
-
-        // 4. Fazer o download do arquivo
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${palavraAtual.tema || 'palavra'}_${palavraAtual.data || ''}.docx`.replace(/\s+/g, '_');
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-    } catch (error) {
-        console.error('Erro ao gerar arquivo Word:', error);
-        alert('Não foi possível gerar o arquivo Word. Tente novamente.');
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.classList.remove('loading');
-    }
-}
+            </html>`;
+            
+                    // Cria o Blob e faz o download
+                    const blob = new Blob([htmlContent], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${titulo.replace(/\s+/g, '_')}_${dataFormatada.replace(/\//g, '-')}.doc`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+            
+                } catch (error) {
+                    console.error('Erro ao gerar arquivo Word:', error);
+                    alert('Não foi possível gerar o arquivo Word.');
+                } finally {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('loading');
+                }
+            }
 
         // ================= SELEÇÃO DE VERSÃO (MODAL) =================
         let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
