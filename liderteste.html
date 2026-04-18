@@ -140,35 +140,53 @@
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap; /* Impede quebra de linha */
 }
+
 .versao-selector-btn {
     background: white;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 10px 15px;
+    padding: 10px 12px;
     font-family: 'Inter', sans-serif;
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--primary);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
-    min-width: 80px;
+    width: 85px;          /* Largura fixa para o seletor de versão */
     justify-content: center;
+    white-space: nowrap;
 }
+
 .biblia-controles select {
     flex: 1;
-    min-width: 100px;
-    padding: 10px;
+    min-width: 0;           /* Permite encolher */
+    padding: 10px 8px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     outline: none;
     font-family: 'Inter', sans-serif;
     background: white;
     cursor: pointer;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+      /* Ajuste extra para telas muito pequenas (ex: iPhone SE) */
+@media (max-width: 380px) {
+    .versao-selector-btn {
+        width: 75px;
+        padding: 10px 8px;
+        font-size: 0.8rem;
+    }
+    .biblia-controles select {
+        padding: 10px 5px;
+        font-size: 0.85rem;
+    }
 }
 
 /* Botões flutuantes de navegação (capítulo) */
