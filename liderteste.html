@@ -525,9 +525,30 @@
     let listaAgenda = [];
     let palavraAtual = null;
 
-    window.onload = async function() {
+    // Autenticação e inicialização
+    (async () => {
+        const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
+        const { data: { user } } = await supabaseTemp.auth.getUser();
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+        const { data: usuario } = await supabaseTemp
+            .from('usuarios')
+            .select('categoria')
+            .eq('email', user.email)
+            .single();
+        const cat = usuario?.categoria || "membro";
+        if (cat.toLowerCase() === "membro") {
+            alert("Acesso negado. Redirecionando para sua área.");
+            window.location.href = "membro.html";
+            return;
+        }
+        sessionStorage.setItem('liderEmail', user.email);
+        
+        // Agora carrega tudo
         await carregarTudo();
-    };
+    })();
 
     async function carregarTudo() {
         const icon = document.getElementById('iconRefresh');
@@ -588,6 +609,7 @@
         if (icon) icon.classList.remove('fa-spin');
     }
 
+    // ========== RENDERIZAÇÃO DAS CÉLULAS DO LÍDER ==========
     function renderizarSelectorCelulas(celulas) {
         const container = document.getElementById('listaCelulasLider');
         container.innerHTML = '';
@@ -612,14 +634,14 @@
         celulaAtiva = cel;
         document.getElementById('modalCelulaTitulo').innerText = cel.nome;
         document.getElementById('modalCelula').classList.remove('hidden');
-        document.getElementById('cadastroModalCelulaHidden').value = cel.nome; // para o modal de cadastro
+        document.getElementById('cadastroModalCelulaHidden').value = cel.nome;
         
         await carregarMembrosDaCelula(cel.nome);
         renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
         
         document.getElementById('relCelulaNome').innerText = cel.nome;
         document.getElementById('relCelulaHidden').value = cel.nome;
-        document.getElementById('cadastroCelulaHidden').value = cel.nome; // legado
+        document.getElementById('cadastroCelulaHidden').value = cel.nome;
     }
 
     function fecharModalCelula() {
@@ -687,7 +709,6 @@
         }
     }
 
-    // Submit do formulário do modal de cadastro
     document.getElementById('formMembroModal').onsubmit = async function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSalvarModal');
@@ -713,7 +734,6 @@
             alert("Membro cadastrado com sucesso!");
             this.reset();
             fecharModalCadastro();
-            // Recarregar membros e atualizar grid
             if (celulaAtiva) {
                 await carregarMembrosDaCelula(celulaAtiva.nome);
                 renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
@@ -725,11 +745,6 @@
         }
     };
 
-    // As demais funções (apascentar, relatório, etc.) permanecem exatamente como estavam.
-    // ...
-    // (Incluí-las-ei completas abaixo para garantir que nada foi omitido)
-
-    // ========== APASCENTAR ==========
     async function abrirApascentar() {
         if (!celulaAtiva) return;
         const faltosos = await calcularFaltosos();
@@ -775,7 +790,6 @@
             .map(m => ({ ...m, faltas: faltasPorMembro[m.id] }));
     }
 
-    // ========== DEMAIS FUNÇÕES MANTIDAS (mudarSecao, renderizarCelulas, etc.) ==========
     function mudarSecao(s) {
         ['minha-celula','celulas','cadastro','relatorio','sugestao','palavras','agenda','cadastro-agenda'].forEach(id => {
             document.getElementById('secao-'+id)?.classList.add('hidden');
