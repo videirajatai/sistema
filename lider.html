@@ -148,7 +148,9 @@
     background: white;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 10px 12px;
+    height: 42px; /* Altura fixa ao invés de padding vertical */
+    padding: 0 12px;
+    box-sizing: border-box; /* Garante que todos tenham a mesma caixa */
     font-family: 'Inter', sans-serif;
     font-size: 0.9rem;
     font-weight: 600;
@@ -160,12 +162,16 @@
     width: 80px;
     justify-content: center;
     white-space: nowrap;
+    margin: 0; /* Prevenção contra estilos padrão do navegador */
 }
 
-  .biblia-controles select {
+.biblia-controles select {
     flex: 1;
     min-width: 0;
-    padding: 10px 8px;
+    height: 42px; /* Mesma altura do botão */
+    padding: 0 8px;
+    margin: 0; /* ISSO MATA O MARGIN-BOTTOM GLOBAL E ALINHA TUDO! */
+    box-sizing: border-box; /* Garante que todos tenham a mesma caixa */
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     outline: none;
@@ -175,9 +181,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
       
-/* Ajuste para telas pequenas 
+/* Ajuste para telas pequenas */
 @media (max-width: 380px) {
     .versao-selector-btn {
         width: 70px;
@@ -188,8 +193,7 @@
         padding: 10px 5px;
         font-size: 0.85rem;
     }
-}*/
-
+}
       
 /* Botões flutuantes - ordem corrigida (Próximo em cima, Anterior embaixo) */
 .biblia-floating-nav {
@@ -640,8 +644,8 @@
             <p class="biblia-placeholder">Selecione o livro e o capítulo para começar a leitura.</p>
         </div>
         <div class="biblia-floating-nav">
-            <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo"><i class="fas fa-chevron-right"></i></button>
             <button class="nav-capitulo-btn" onclick="capituloAnterior()" title="Capítulo anterior"><i class="fas fa-chevron-left"></i></button>
+            <button class="nav-capitulo-btn" onclick="capituloProximo()" title="Próximo capítulo"><i class="fas fa-chevron-right"></i></button>            
         </div>
       </div>
 
@@ -943,7 +947,7 @@
 
       // ========== BÍBLIA (NOVO MÓDULO CORRIGIDO) ==========
       let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
-      const siglasVersoes = { msg:'MSGPT', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
+      const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
       const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução <br>na Linguagem de Hoje' };
 
       async function abrirBiblia() {
