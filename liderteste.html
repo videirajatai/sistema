@@ -247,18 +247,23 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     // ========== FUNÇÃO GLOBAL mudarSecao (disponível desde o início) ==========
-    window.mudarSecao = function(s) {
-        const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao'];
-        secoes.forEach(id => {
-            const el = document.getElementById('secao-'+id);
-            if (el) el.classList.add('hidden');
-        });
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        const secaoAtiva = document.getElementById('secao-'+s);
-        if (secaoAtiva) secaoAtiva.classList.remove('hidden');
-        const btnAtivo = document.getElementById('btn-'+s);
-        if (btnAtivo) btnAtivo.classList.add('active');
-    };
+   window.mudarSecao = function(s) {
+    const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao'];
+    secoes.forEach(id => {
+        const el = document.getElementById('secao-'+id);
+        if (el) el.classList.add('hidden');
+    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const secaoAtiva = document.getElementById('secao-'+s);
+    if (secaoAtiva) secaoAtiva.classList.remove('hidden');
+    const btnAtivo = document.getElementById('btn-'+s);
+    if (btnAtivo) btnAtivo.classList.add('active');
+
+    // Se a aba clicada for "Bíblia", abre o offcanvas automaticamente
+    if (s === 'biblia') {
+        abrirBiblia();
+    }
+};
 
     // ========== VERIFICAÇÃO DE AUTENTICAÇÃO (não bloqueia a definição da função) ==========
     (async () => {
@@ -324,15 +329,10 @@
         </div>
     </div>
 
-    <!-- ================== SEÇÃO BÍBLIA ================== -->
-    <div id="secao-biblia" class="hidden">
-        <div style="text-align: center; margin-top: 30px;">
-            <button onclick="abrirBiblia()" class="btn-biblia-destaque" style="width: auto; padding: 16px 32px;">
-                <i class="fas fa-bible"></i> Abrir Bíblia
-            </button>
-            <p class="subtitulo" style="margin-top: 15px; color: var(--text-light);">Clique para ler e estudar a Palavra</p>
-        </div>
-    </div>
+   <!-- ================== SEÇÃO BÍBLIA ================== -->
+<div id="secao-biblia" class="hidden">
+    <!-- Conteúdo removido – a Bíblia abre automaticamente ao clicar na aba -->
+</div>
 
     <!-- ================== SEÇÃO AGENDA ================== -->
     <div id="secao-agenda" class="hidden">
