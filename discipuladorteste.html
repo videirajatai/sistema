@@ -764,72 +764,121 @@
     // ========== RELATÓRIOS DA CÉLULA (CORRIGIDO) ==========
     async function abrirListaRelatoriosCelula() {
         if (!celulaAtiva) return;
-        document.getElementById('relatorioCelulaNome').innerText = celulaAtiva.nome;
-        const listaDiv = document.getElementById('listaRelatoriosCelula');
-        listaDiv.innerHTML = '<p>Carregando...</p>';
-        document.getElementById('modalListaRelatorios').classList.remove('hidden');
-        try {
-            const { data: relatorios, error } = await supabaseClient
-                .from('relatorios')
-                .select('*')
-                .eq('celula', celulaAtiva.nome)
-                .order('data', { ascending: false });
-            if (error) throw error;
-            if (!relatorios.length) {
-                listaDiv.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório encontrado.</p>';
-                return;
-            }
-            listaDiv.innerHTML = '';
-            for (const r of relatorios) {
-                let dataF = r.data || '';
-                try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
-                const div = document.createElement('div');
-                div.className = 'report-list-item';
-                div.innerHTML = `<div><strong>${dataF}</strong><br><span style="font-size:0.85rem;">${r.quebra_gelo ? 'Quebra-gelo: ' + r.quebra_gelo : ''}</span></div><i class="fas fa-chevron-right"></i>`;
-                div.onclick = () => abrirDetalheRelatorio(r.id);
-                listaDiv.appendChild(div);
-            }
-        } catch(e) {
-            listaDiv.innerHTML = '<p style="color:red;">Erro ao carregar relatórios.</p>';
-        }
-    }
+       document.getElementById('formRelatorioModal').onsubmit = async function(e) {
+    e.preventDefault();
+    if (!celulaAtiva) { alert("Selecione uma célula."); return; }
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
 
-    async function abrirDetalheRelatorio(id) {
-        const r = dadosRelatorios.find(x => String(x.id) === String(id));
-        if (!r) return;
-        // CORREÇÃO 4: Buscar presenças na tabela presencas
-        const { data: presencas, error } = await supabaseClient
+    const checkboxes = document.querySelectorAll('#checklistMembrosModal input[name="presentes"]:checked');
+    const presentesIds = Array.from(checkboxes).map(cb => cb.value);
+
+    const dadosRelatorio = {
+        data: this.data.value,
+        celula: celulaAtiva.nome,
+        quebra_gelo: this.quebraGelo.value,
+        palavra: this.palavra.value,
+        louvor: this.louvor.value,
+        lanche: this.lanche.value,
+        observacoes: this.observacoes.value
+    };
+
+    try {
+        // 1. Inserir o relatório
+        const { data: rel, error } = await supabaseClient
+            .from('relatorios')
+            .insert([dadosRelatorio])
+            .select();
+        if (error) throw error;
+        const relatorioId = rel[0].id;
+
+        // 2. Preparar e inserir as presenças
+        // Importante: usar os membros da célula (membrosDaCelulaAtiva) para criar os registros
+        const presencas = membrosDaCelulaAtiva.map(m => ({
+            relatorio_id: relatorioId,
+            membro_id: m.id,
+            presente: presentesIds.includes(String(m.id))  // boolean
+        }));
+        
+        const { error: errPres } = await supabaseClient
             .from('presencas')
-            .select('membro_id, presente')
-            .eq('relatorio_id', id);
-        if (error) {
-            console.error("Erro ao buscar presenças:", error);
-            alert("Erro ao carregar lista de presentes.");
-            return;
+            .insert(presencas);
+        if (errPres) throw errPres;
+
+        alert("Relatório enviado com sucesso!");
+        fecharModalRelatorio();
+        await carregarTudo();  // recarrega dados
+        if (celulaAtiva) {
+            await carregarMembrosDaCelula(celulaAtiva.nome);
+            renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
         }
-        // Obter nomes dos membros presentes
-        const membrosPresentes = [];
-        for (const p of presencas) {
-            if (p.presente) {
-                const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
-                if (membro) membrosPresentes.push(membro.nome);
-            }
-        }
-        const quantidade = membrosPresentes.length;
-        let dataF = r.data || '';
-        try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
-        document.getElementById('detalheRelCelula').innerText = r.celula || '-';
-        document.getElementById('detalheRelData').innerText = dataF;
-        document.getElementById('detalheRelTotal').innerText = quantidade;
-        document.getElementById('detalheRelPresentes').innerText = membrosPresentes.join(', ') || 'Nenhum presente registrado';
-        document.getElementById('detalheRelQuebra').innerText = r.quebra_gelo || '-';
-        document.getElementById('detalheRelPalavra').innerText = r.palavra || '-';
-        document.getElementById('detalheRelLouvor').innerText = r.louvor || '-';
-        document.getElementById('detalheRelLanche').innerText = r.lanche || '-';
-        document.getElementById('detalheRelObs').innerText = r.observacoes || 'Nenhuma observação.';
-        document.getElementById('modalRelatorio').classList.remove('hidden');
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao salvar relatório: " + err.message);
+    } finally {
+        btn.disabled = false;
+    }
+    };
+}
+
+   async function abrirDetalheRelatorio(id) {
+    // Busca o relatório diretamente do banco para garantir dados atualizados
+    const { data: relatorio, error: errRel } = await supabaseClient
+        .from('relatorios')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (errRel || !relatorio) {
+        console.error("Erro ao buscar relatório:", errRel);
+        alert("Relatório não encontrado.");
+        return;
     }
 
+    // Busca as presenças
+    const { data: presencas, error: errPres } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .eq('relatorio_id', id);
+    if (errPres) console.error("Erro ao buscar presenças:", errPres);
+
+    // Processa presentes/ausentes (opcional, mas mantém a funcionalidade)
+    const nomesPresentes = [];
+    const nomesAusentes = [];
+    if (presencas && presencas.length) {
+        for (const p of presencas) {
+            let isPresente = false;
+            if (typeof p.presente === 'boolean') isPresente = p.presente;
+            else if (typeof p.presente === 'string') isPresente = p.presente.toLowerCase() === 'sim';
+            const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
+            if (membro) {
+                if (isPresente) nomesPresentes.push(membro.nome);
+                else nomesAusentes.push(membro.nome);
+            }
+        }
+    }
+
+    // Exibe os dados do relatório (AGORA VINDO DO BANCO)
+    let dataF = relatorio.data || '';
+    try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+
+    document.getElementById('detalheRelCelula').innerText = relatorio.celula || '-';
+    document.getElementById('detalheRelData').innerText = dataF;
+    document.getElementById('detalheRelTotal').innerText = nomesPresentes.length;
+    document.getElementById('detalheRelPresentes').innerHTML = `
+        ${nomesPresentes.length ? `✅ Presentes: ${nomesPresentes.join(', ')}<br>` : ''}
+        ${nomesAusentes.length ? `❌ Ausentes: ${nomesAusentes.join(', ')}` : ''}
+        ${!nomesPresentes.length && !nomesAusentes.length ? 'Nenhum dado de presença.' : ''}
+    `;
+    // CAMPOS QUE ESTAVAM FALTANDO:
+    document.getElementById('detalheRelQuebra').innerText = relatorio.quebra_gelo || '-';
+    document.getElementById('detalheRelPalavra').innerText = relatorio.palavra || '-';
+    document.getElementById('detalheRelLouvor').innerText = relatorio.louvor || '-';
+    document.getElementById('detalheRelLanche').innerText = relatorio.lanche || '-';
+    document.getElementById('detalheRelObs').innerText = relatorio.observacoes || 'Nenhuma observação.';
+
+    document.getElementById('modalRelatorio').classList.remove('hidden');
+}
+    
     // ========== APASCENTAR (FALTOSOS) ==========
     async function abrirApascentar() {
         if (!celulaAtiva) return;
