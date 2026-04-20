@@ -268,6 +268,7 @@
             background: #dcfce7;
             color: #166534;
         }
+        /* CORREÇÃO 1: Aumentar z-index dos modais sobrepostos */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -275,7 +276,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            z-index: 3100;  /* antes 1000 */
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -533,6 +534,7 @@
             background: #e2e8f0;
             color: var(--primary);
         }
+        /* Modal da célula continua com z-index 3000, mas os outros modais agora são 3100 */
         .modal-celula-full {
             display: none;
             position: fixed;
@@ -586,6 +588,9 @@
             window.location.href = (cat === "membro") ? "membro.html" : "lider.html";
         }
         sessionStorage.setItem('discipuladorEmail', user.email);
+        // CORREÇÃO 2: Armazenar nome do usuário logado para logs
+        sessionStorage.setItem('usuarioLogado', usuario?.nome || user.email);
+        sessionStorage.setItem('loginDigitado', user.email);
         carregarTudo();
     })();
 
@@ -635,6 +640,7 @@
             dadosMembros = membros || [];
             const { data: celulas } = await supabaseClient.from('celulas').select('*');
             dadosCelulas = celulas || [];
+            // CORREÇÃO 3: Filtrar células onde supervisor_email é o discipulador
             celulasSupervisionadas = dadosCelulas.filter(c => c.supervisor_email === discipuladorEmail);
             renderizarCelulasRede(celulasSupervisionadas);
             renderizarTabelaCelulas(dadosCelulas);
@@ -659,10 +665,10 @@
         const filtroSelect = document.getElementById('filtroLiderRede');
         filtroSelect.innerHTML = '<option value="">Todos os Líderes</option>';
         if (!celulas.length) {
-            document.getElementById('nenhumaCelulaMsg').style.display = 'block';
+            document.getElementById('nenhumaCelulaMsg').classList.remove('hidden');
             return;
         }
-        document.getElementById('nenhumaCelulaMsg').style.display = 'none';
+        document.getElementById('nenhumaCelulaMsg').classList.add('hidden');
         const lideresUnicos = [...new Set(celulas.map(c => c.lider).filter(l => l))];
         lideresUnicos.forEach(l => filtroSelect.innerHTML += `<option value="${l}">${l}</option>`);
         window.celulasRedeCompleta = celulas;
@@ -754,7 +760,7 @@
         });
     }
 
-    // ========== RELATÓRIOS DA CÉLULA ==========
+    // ========== RELATÓRIOS DA CÉLULA (CORRIGIDO) ==========
     async function abrirListaRelatoriosCelula() {
         if (!celulaAtiva) return;
         document.getElementById('relatorioCelulaNome').innerText = celulaAtiva.nome;
@@ -773,7 +779,7 @@
                 return;
             }
             listaDiv.innerHTML = '';
-            relatorios.forEach(r => {
+            for (const r of relatorios) {
                 let dataF = r.data || '';
                 try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
                 const div = document.createElement('div');
@@ -781,7 +787,7 @@
                 div.innerHTML = `<div><strong>${dataF}</strong><br><span style="font-size:0.85rem;">${r.quebra_gelo ? 'Quebra-gelo: ' + r.quebra_gelo : ''}</span></div><i class="fas fa-chevron-right"></i>`;
                 div.onclick = () => abrirDetalheRelatorio(r.id);
                 listaDiv.appendChild(div);
-            });
+            }
         } catch(e) {
             listaDiv.innerHTML = '<p style="color:red;">Erro ao carregar relatórios.</p>';
         }
@@ -790,15 +796,31 @@
     async function abrirDetalheRelatorio(id) {
         const r = dadosRelatorios.find(x => String(x.id) === String(id));
         if (!r) return;
+        // CORREÇÃO 4: Buscar presenças na tabela presencas
+        const { data: presencas, error } = await supabaseClient
+            .from('presencas')
+            .select('membro_id, presente')
+            .eq('relatorio_id', id);
+        if (error) {
+            console.error("Erro ao buscar presenças:", error);
+            alert("Erro ao carregar lista de presentes.");
+            return;
+        }
+        // Obter nomes dos membros presentes
+        const membrosPresentes = [];
+        for (const p of presencas) {
+            if (p.presente) {
+                const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
+                if (membro) membrosPresentes.push(membro.nome);
+            }
+        }
+        const quantidade = membrosPresentes.length;
         let dataF = r.data || '';
         try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
         document.getElementById('detalheRelCelula').innerText = r.celula || '-';
         document.getElementById('detalheRelData').innerText = dataF;
-        let listaNomes = r.presentes || "";
-        let quantidade = listaNomes.split(',').filter(n => n.trim() !== '').length;
-        if (quantidade === 0 && listaNomes.trim().length > 0) quantidade = 1;
         document.getElementById('detalheRelTotal').innerText = quantidade;
-        document.getElementById('detalheRelPresentes').innerText = listaNomes || 'Nenhum listado';
+        document.getElementById('detalheRelPresentes').innerText = membrosPresentes.join(', ') || 'Nenhum presente registrado';
         document.getElementById('detalheRelQuebra').innerText = r.quebra_gelo || '-';
         document.getElementById('detalheRelPalavra').innerText = r.palavra || '-';
         document.getElementById('detalheRelLouvor').innerText = r.louvor || '-';
