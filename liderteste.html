@@ -112,7 +112,7 @@
         .checkmark { display: block; padding: 10px; text-align: center; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; color: #777; font-weight: 600; }
         .check-option input:checked ~ .checkmark { background: var(--success-bg); color: var(--success-text); border-color: #badbcc; }
 
-        /* ESTILOS DA BÍBLIA (mantidos) */
+        /* ESTILOS DA BÍBLIA */
         .biblia-offcanvas { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background-color: #ffffff; box-shadow: -5px 0 25px rgba(0,0,0,0.1); z-index: 2000; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
         .biblia-offcanvas.aberto { right: 0; }
         #biblia-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; display: none; opacity: 0; transition: opacity 0.3s ease; }
@@ -246,7 +246,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    // Verificação de autenticação e categoria (mantida)
+    // ========== FUNÇÃO GLOBAL mudarSecao (disponível desde o início) ==========
+    window.mudarSecao = function(s) {
+        const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao'];
+        secoes.forEach(id => {
+            const el = document.getElementById('secao-'+id);
+            if (el) el.classList.add('hidden');
+        });
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        const secaoAtiva = document.getElementById('secao-'+s);
+        if (secaoAtiva) secaoAtiva.classList.remove('hidden');
+        const btnAtivo = document.getElementById('btn-'+s);
+        if (btnAtivo) btnAtivo.classList.add('active');
+    };
+
+    // ========== VERIFICAÇÃO DE AUTENTICAÇÃO (não bloqueia a definição da função) ==========
     (async () => {
         const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
         const { data: { user } } = await supabaseTemp.auth.getUser();
@@ -263,8 +277,11 @@
         if (cat.toLowerCase() === "membro") {
             alert("Acesso negado. Redirecionando para sua área.");
             window.location.href = "membro.html";
+            return;
         }
         sessionStorage.setItem('liderEmail', user.email);
+        // Após autenticação, carrega os dados
+        await carregarTudo();
     })();
 </script>
 
@@ -307,7 +324,7 @@
         </div>
     </div>
 
-    <!-- ================== SEÇÃO BÍBLIA (NOVA ABA) ================== -->
+    <!-- ================== SEÇÃO BÍBLIA ================== -->
     <div id="secao-biblia" class="hidden">
         <div style="text-align: center; margin-top: 30px;">
             <button onclick="abrirBiblia()" class="btn-biblia-destaque" style="width: auto; padding: 16px 32px;">
@@ -491,6 +508,7 @@
 </div>
 
 <script>
+    // ========== CONFIGURAÇÕES GLOBAIS ==========
     const API_URL = sessionStorage.getItem('urlApi');
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
@@ -502,30 +520,7 @@
     let listaAgenda = [];
     let palavraAtual = null;
 
-    // Autenticação e inicialização
-    (async () => {
-        const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
-        const { data: { user } } = await supabaseTemp.auth.getUser();
-        if (!user) {
-            window.location.href = "index.html";
-            return;
-        }
-        const { data: usuario } = await supabaseTemp
-            .from('usuarios')
-            .select('categoria')
-            .eq('email', user.email)
-            .single();
-        const cat = usuario?.categoria || "membro";
-        if (cat.toLowerCase() === "membro") {
-            alert("Acesso negado. Redirecionando para sua área.");
-            window.location.href = "membro.html";
-            return;
-        }
-        sessionStorage.setItem('liderEmail', user.email);
-        
-        await carregarTudo();
-    })();
-
+    // ========== FUNÇÕES PRINCIPAIS (já declaradas globalmente) ==========
     async function carregarTudo() {
         const icon = document.getElementById('iconRefresh');
         if (icon) icon.classList.add('fa-spin');
@@ -583,7 +578,6 @@
         if (icon) icon.classList.remove('fa-spin');
     }
 
-    // ========== RENDERIZAÇÃO DAS CÉLULAS DO LÍDER (cards com fundo suave) ==========
     function renderizarSelectorCelulas(celulas) {
         const container = document.getElementById('listaCelulasLider');
         container.innerHTML = '';
@@ -763,7 +757,6 @@
             .map(m => ({ ...m, faltas: faltasPorMembro[m.id] }));
     }
 
-    // ========== MODAL DE RELATÓRIO ==========
     function abrirModalRelatorio() {
         if (!celulaAtiva) {
             alert("Selecione uma célula primeiro.");
@@ -844,22 +837,13 @@
         }
     };
 
-    function mudarSecao(s) {
-        ['minha-celula','celulas','biblia','agenda','palavras','sugestao'].forEach(id => {
-            document.getElementById('secao-'+id)?.classList.add('hidden');
-        });
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('secao-'+s)?.classList.remove('hidden');
-        if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
-    }
-
     function renderizarCelulas(lista) {
         const tb = document.getElementById('corpoCelulas');
         tb.innerHTML = '';
-        if(!lista || !lista.length) { tb.innerHTML='<tr><td colspan="3" style="text-align:center;">Nenhuma célula encontrada.</td></tr>'; return; }
+        if(!lista || !lista.length) { tb.innerHTML='<tr><td colspan="3" style="text-align:center;">Nenhuma célula encontrada.</td></td>'; return; }
         lista.forEach(c => {
             let enderecoHTML = c.endereco ? `<div style="font-size: 0.75rem; color: #888; margin-top: 3px;"><i class="fas fa-map-marker-alt"></i> ${c.endereco}</div>` : `<div style="font-size: 0.75rem; color: #ccc;">Sem endereço cadastrado</div>`;
-            tb.innerHTML += `<tr><td><div style="font-weight:700;">${c.nome||''}</div>${enderecoHTML}</td><td>${c.lider||''}</td><td>${c.dia_horario||''}</td>`);
+            tb.innerHTML += `<tr><td><div style="font-weight:700;">${c.nome||''}</div>${enderecoHTML}</td><td>${c.lider||''}</td><td>${c.dia_horario||''}</td>`;
         });
     }
 
@@ -892,17 +876,12 @@
         try { alert(await salvarSupabase('sugestoes', { mensagem: this.mensagem.value })); this.reset(); mudarSecao('minha-celula'); } catch(err) { alert(err.message); } finally { btn.disabled = false; }
     };
 
-    document.getElementById('formAgenda').onsubmit = async function(e) {
-        e.preventDefault(); const btn = document.getElementById('btnSalvarAgenda'); btn.disabled = true;
-        try { alert(await fetchGoogle('salvarAgenda', { dataEvento: this.dataEvento.value, descricao: this.descricao.value, observacao: this.observacao.value, tipo: this.tipo.value, categoria: this.categoria.value })); this.reset(); mudarSecao('agenda'); carregarTudo(); } catch(err) { alert(err.message); } finally { btn.disabled = false; }
-    };
-
     function fazerLogout() { if(confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
 
     // ========== BÍBLIA ==========
     let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
     const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
-    const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução <br>na Linguagem de Hoje' };
+    const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
 
     async function abrirBiblia() {
         document.getElementById('painel-biblia').classList.add('aberto');
@@ -989,7 +968,7 @@
         }
     }
 
-    // ========== FUNÇÕES AUXILIARES COMPLETAS ==========
+    // ========== FUNÇÕES AUXILIARES ==========
     async function registrarLogAcao(acaoRealizada) {
         const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
         const user = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
