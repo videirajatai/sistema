@@ -821,7 +821,7 @@
             const presencas = membrosDaCelulaAtiva.map(m => ({
                 relatorio_id: relatorioId,
                 membro_id: m.id,
-                presente: presentesIds.includes(m.id)
+                presente: presentesIds.includes(String(m.id))  // converte m.id para string
             }));
             const { error: errPres } = await supabaseClient
                 .from('presencas')
