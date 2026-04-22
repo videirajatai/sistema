@@ -499,105 +499,115 @@
         }
     }
 
-    async function abrirDetalheRelatorio(id) {
-        const { data: relatorio, error: errRel } = await supabaseClient
-            .from('relatorios')
-            .select('*')
-            .eq('id', id)
-            .single();
-        if (errRel || !relatorio) {
-            console.error("Erro ao buscar relatório:", errRel);
-            alert("Relatório não encontrado.");
-            return;
-        }
+    // ========== RELATÓRIOS (CORRIGIDO) ==========
+async function abrirDetalheRelatorio(id) {
+    // Busca o relatório diretamente do banco
+    const { data: relatorio, error: errRel } = await supabaseClient
+        .from('relatorios')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (errRel || !relatorio) {
+        console.error("Erro ao buscar relatório:", errRel);
+        alert("Relatório não encontrado.");
+        return;
+    }
 
-        const { data: presencas, error: errPres } = await supabaseClient
-            .from('presencas')
-            .select('membro_id, presente')
-            .eq('relatorio_id', id);
-        if (errPres) console.error("Erro ao buscar presenças:", errPres);
+    // Busca as presenças
+    const { data: presencas, error: errPres } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .eq('relatorio_id', id);
+    if (errPres) console.error("Erro ao buscar presenças:", errPres);
 
-        const nomesPresentes = [];
-        const nomesAusentes = [];
-        if (presencas && presencas.length) {
-            for (const p of presencas) {
-                let isPresente = false;
-                if (typeof p.presente === 'boolean') isPresente = p.presente;
-                else if (typeof p.presente === 'string') isPresente = p.presente.toLowerCase() === 'sim';
-                const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
-                if (membro) {
-                    if (isPresente) nomesPresentes.push(membro.nome);
-                    else nomesAusentes.push(membro.nome);
-                }
+    const nomesPresentes = [];
+    const nomesAusentes = [];
+    if (presencas && presencas.length) {
+        for (const p of presencas) {
+            let isPresente = false;
+            if (typeof p.presente === 'boolean') isPresente = p.presente;
+            else if (typeof p.presente === 'string') isPresente = p.presente.toLowerCase() === 'sim';
+            // Converte ambos os IDs para string para comparação segura
+            const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
+            if (membro) {
+                if (isPresente) nomesPresentes.push(membro.nome);
+                else nomesAusentes.push(membro.nome);
             }
         }
-
-        let dataF = relatorio.data || '';
-        try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
-
-        const celulaSpan = document.getElementById('detalheRelCelula');
-        if (celulaSpan) celulaSpan.innerText = relatorio.celula || '-';
-        const dataSpan = document.getElementById('detalheRelData');
-        if (dataSpan) dataSpan.innerText = dataF;
-        const totalSpan = document.getElementById('detalheRelTotal');
-        if (totalSpan) totalSpan.innerText = nomesPresentes.length;
-        const presentesDiv = document.getElementById('detalheRelPresentes');
-        if (presentesDiv) {
-            presentesDiv.innerHTML = `
-                ${nomesPresentes.length ? `✅ Presentes: ${nomesPresentes.join(', ')}<br>` : ''}
-                ${nomesAusentes.length ? `❌ Ausentes: ${nomesAusentes.join(', ')}` : ''}
-                ${!nomesPresentes.length && !nomesAusentes.length ? 'Nenhum dado de presença.' : ''}
-            `;
-        }
-        const quebraSpan = document.getElementById('detalheRelQuebra');
-        if (quebraSpan) quebraSpan.innerText = relatorio.quebra_gelo || '-';
-        const palavraSpan = document.getElementById('detalheRelPalavra');
-        if (palavraSpan) palavraSpan.innerText = relatorio.palavra || '-';
-        const louvorSpan = document.getElementById('detalheRelLouvor');
-        if (louvorSpan) louvorSpan.innerText = relatorio.louvor || '-';
-        const lancheSpan = document.getElementById('detalheRelLanche');
-        if (lancheSpan) lancheSpan.innerText = relatorio.lanche || '-';
-        const obsDiv = document.getElementById('detalheRelObs');
-        if (obsDiv) obsDiv.innerText = relatorio.observacoes || 'Nenhuma observação.';
-
-        const modal = document.getElementById('modalRelatorio');
-        if (modal) modal.classList.remove('hidden');
     }
 
-    // ========== APASCENTAR ==========
-    async function abrirApascentar() {
-        if (!celulaAtiva) return;
-        const trintaDiasAtras = new Date();
-        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-        const dataLimite = trintaDiasAtras.toISOString().split('T')[0];
-        const { data: relatorios, error } = await supabaseClient
-            .from('relatorios')
-            .select('id')
-            .eq('celula', celulaAtiva.nome)
-            .gte('data', dataLimite);
-        if (error || !relatorios.length) {
-            alert("Nenhum relatório nos últimos 30 dias.");
-            return;
-        }
-        const relIds = relatorios.map(r => r.id);
-        const { data: presencas } = await supabaseClient
-            .from('presencas')
-            .select('membro_id, presente')
-            .in('relatorio_id', relIds);
-        const faltasPorMembro = {};
-        presencas.forEach(p => {
-            if (!faltasPorMembro[p.membro_id]) faltasPorMembro[p.membro_id] = 0;
-            if (!p.presente) faltasPorMembro[p.membro_id]++;
-        });
-        const faltosos = membrosDaCelulaAtiva.filter(m => faltasPorMembro[m.id] > 0);
-        if (faltosos.length === 0) {
-            alert("Nenhum membro faltoso nos últimos 30 dias!");
-            return;
-        }
-        let msg = "Membros faltosos:\n\n";
-        faltosos.forEach(m => msg += `${m.nome} - ${faltasPorMembro[m.id]} falta(s)\n`);
-        alert(msg);
+    let dataF = relatorio.data || '';
+    try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+
+    const celulaSpan = document.getElementById('detalheRelCelula');
+    if (celulaSpan) celulaSpan.innerText = relatorio.celula || '-';
+    const dataSpan = document.getElementById('detalheRelData');
+    if (dataSpan) dataSpan.innerText = dataF;
+    const totalSpan = document.getElementById('detalheRelTotal');
+    if (totalSpan) totalSpan.innerText = nomesPresentes.length;
+    const presentesDiv = document.getElementById('detalheRelPresentes');
+    if (presentesDiv) {
+        presentesDiv.innerHTML = `
+            ${nomesPresentes.length ? `✅ Presentes: ${nomesPresentes.join(', ')}<br>` : ''}
+            ${nomesAusentes.length ? `❌ Ausentes: ${nomesAusentes.join(', ')}` : ''}
+            ${!nomesPresentes.length && !nomesAusentes.length ? 'Nenhum dado de presença.' : ''}
+        `;
     }
+    const quebraSpan = document.getElementById('detalheRelQuebra');
+    if (quebraSpan) quebraSpan.innerText = relatorio.quebra_gelo || '-';
+    const palavraSpan = document.getElementById('detalheRelPalavra');
+    if (palavraSpan) palavraSpan.innerText = relatorio.palavra || '-';
+    const louvorSpan = document.getElementById('detalheRelLouvor');
+    if (louvorSpan) louvorSpan.innerText = relatorio.louvor || '-';
+    const lancheSpan = document.getElementById('detalheRelLanche');
+    if (lancheSpan) lancheSpan.innerText = relatorio.lanche || '-';
+    const obsDiv = document.getElementById('detalheRelObs');
+    if (obsDiv) obsDiv.innerText = relatorio.observacoes || 'Nenhuma observação.';
+
+    const modal = document.getElementById('modalRelatorio');
+    if (modal) modal.classList.remove('hidden');
+}
+
+// ========== APASCENTAR (FALTOSOS) ==========
+async function abrirApascentar() {
+    if (!celulaAtiva) return;
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const dataLimite = trintaDiasAtras.toISOString().split('T')[0];
+    const { data: relatorios, error } = await supabaseClient
+        .from('relatorios')
+        .select('id')
+        .eq('celula', celulaAtiva.nome)
+        .gte('data', dataLimite);
+    if (error || !relatorios.length) {
+        alert("Nenhum relatório nos últimos 30 dias.");
+        return;
+    }
+    const relIds = relatorios.map(r => r.id);
+    const { data: presencas } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .in('relatorio_id', relIds);
+    
+    const faltasPorMembro = {};
+    presencas.forEach(p => {
+        const membroIdStr = String(p.membro_id);
+        if (!faltasPorMembro[membroIdStr]) faltasPorMembro[membroIdStr] = 0;
+        let isPresente = false;
+        if (typeof p.presente === 'boolean') isPresente = p.presente;
+        else if (typeof p.presente === 'string') isPresente = p.presente.toLowerCase() === 'sim';
+        if (!isPresente) faltasPorMembro[membroIdStr]++;
+    });
+    
+    const faltosos = membrosDaCelulaAtiva.filter(m => faltasPorMembro[String(m.id)] > 0);
+    if (faltosos.length === 0) {
+        alert("Nenhum membro faltoso nos últimos 30 dias!");
+        return;
+    }
+    let msg = "Membros faltosos:\n\n";
+    faltosos.forEach(m => msg += `${m.nome} - ${faltasPorMembro[String(m.id)]} falta(s)\n`);
+    alert(msg);
+}
 
     // ========== MEMBROS (ARQUIVADOS E EDIÇÃO) ==========
     function renderizarMembrosArquivados(lista) {
