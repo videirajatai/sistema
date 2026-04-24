@@ -1000,30 +1000,62 @@
 
 
     function renderizarAgenda(lista) {
-    const div = document.getElementById('listaAgenda'); div.innerHTML = '';
-    if(!lista || lista.length === 0) { 
-        div.innerHTML = '<p style="text-align:center;">Nenhum evento na agenda.</p>'; 
-        return; 
+    const div = document.getElementById('listaAgenda');
+    div.innerHTML = '';
+    if (!lista || lista.length === 0) {
+        div.innerHTML = '<p style="text-align:center;">Nenhum evento na agenda.</p>';
+        return;
     }
-    // Ordem decrescente: do mais recente para o mais antigo
-    lista.sort((a, b) => (new Date(b[0]) - new Date(a[0])));
+
+    // Função auxiliar para converter a string da data em timestamp (ms)
+    const parseDate = (str) => {
+        if (!str) return 0;
+        // Se tem hífen, assume ISO "yyyy-mm-dd"
+        if (str.includes('-')) {
+            const [y, m, d] = str.split('-').map(Number);
+            return new Date(y, m - 1, d).getTime();
+        }
+        // Se tem barra, assume "dd/mm/yyyy"
+        if (str.includes('/')) {
+            const [d, m, y] = str.split('/').map(Number);
+            return new Date(y, m - 1, d).getTime();
+        }
+        // Última tentativa
+        const t = Date.parse(str);
+        return isNaN(t) ? 0 : t;
+    };
+
+    // Ordena do MAIS ANTIGO para o MAIS RECENTE (ascendente)
+    lista.sort((a, b) => parseDate(a[0]) - parseDate(b[0]));
+
     lista.forEach(a => {
-        let dataF = a[0] || '';
-        try { if(a[0] && a[0].includes('-')) { const dp=a[0].split('-'); dataF=`${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e){}
+        let rawDate = a[0] || '';
+        let dataF = rawDate;
+        // Formata para dd/mm/yyyy se o formato original for ISO
+        try {
+            if (rawDate.includes('-')) {
+                const [y, m, d] = rawDate.split('-');
+                dataF = `${d}/${m}/${y}`;
+            }
+        } catch (e) {}
+
         let corCategoria = '#555';
-        if(a[4]==='RADICAIS LIVRES') corCategoria='#0056b3'; 
-        else if(a[4]==='GOOGLE AGENDA') corCategoria='var(--primary)'; 
-        else if(a[4]==='RADICAIS KIDS') corCategoria='#b58900';
-        let corTipo = (a[3]==='Pago')?'#dc3545':'var(--success-text)';
-        div.innerHTML += `<div class="member-card">
+        if (a[4] === 'RADICAIS LIVRES') corCategoria = '#0056b3';
+        else if (a[4] === 'GOOGLE AGENDA') corCategoria = 'var(--primary)';
+        else if (a[4] === 'RADICAIS KIDS') corCategoria = '#b58900';
+
+        let corTipo = (a[3] === 'Pago') ? '#dc3545' : 'var(--success-text)';
+
+        div.innerHTML += `
+        <div class="member-card">
             <div class="card-header">
                 <h4 class="card-name"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
-                <span class="cat-badge" style="background:${corCategoria};">${a[4]||''}</span>
+                <span class="cat-badge" style="background:${corCategoria};">${a[4] || ''}</span>
             </div>
-            <div style="font-weight:700;">${a[1]||''}</div>
-            <div style="color:#666;">${a[2]||''}</div>
+            <div style="font-weight:700;">${a[1] || ''}</div>
+            <div style="color:#666;">${a[2] || ''}</div>
             <div style="margin-top:10px;">
-                <span style="color:${corTipo};">${a[3]||''}</span>
+                <span style="color:${corTipo};">${a[3] || ''}</span>
             </div>
         </div>`;
     });
