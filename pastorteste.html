@@ -627,7 +627,8 @@
                 try { listaAgenda = await fetchGoogle('buscarAgenda') || [];
                     renderizarAgenda(listaAgenda); } catch (e) {}
                 await carregarPalavrasDados();
-                if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) {
+                // Se a seção minha-igreja estiver visível, recarrega as estatísticas
+                if (document.getElementById('secao-minha-igreja') && !document.getElementById('secao-minha-igreja').classList.contains('hidden')) {
                     carregarEstatisticas();
                 }
                 // Atualiza estatísticas se a seção estiver visível
@@ -1067,18 +1068,17 @@
         // ========== MINHA IGREJA ==========
         function carregarEstatisticas() {
             const ativos = obterAtivos();
-            document.getElementById('statTotalMembros').innerText = ativos.length;
-            document.getElementById('statBatizados').innerText = ativos.filter(m => m[6] === 'Sim').length;
-            document.getElementById('statCursao').innerText = ativos.filter(m => m[7] === 'Sim').length;
-            document.getElementById('statCtl').innerText = ativos.filter(m => m[8] === 'Sim').length;
-            document.getElementById('statSeminario').innerText = ativos.filter(m => m[11] === 'Sim').length;
-            document.getElementById('statDizimistas').innerText = ativos.filter(m => m[12] === 'Sim').length;
-            document.getElementById('statLideres').innerText = ativos.filter(m => m[2] === 'Líder').length;
-            document.getElementById('statDiscipuladores').innerText = ativos.filter(m => m[2] === 'Discipulador').length;
-            document.getElementById('statFrequentadores').innerText = ativos.filter(m => m[2] === 'Frequentador').length;
-            document.getElementById('statMembros').innerText = ativos.filter(m => m[2] === 'Membro').length;
-            document.getElementById('statCelulas').innerText = dadosCelulas.length;
-
+            setTextSafe('statTotalMembros', ativos.length);
+            setTextSafe('statBatizados', ativos.filter(m => m[6] === 'Sim').length);
+            setTextSafe('statCursao', ativos.filter(m => m[7] === 'Sim').length);
+            setTextSafe('statCtl', ativos.filter(m => m[8] === 'Sim').length);
+            setTextSafe('statSeminario', ativos.filter(m => m[11] === 'Sim').length);
+            setTextSafe('statDizimistas', ativos.filter(m => m[12] === 'Sim').length);
+            setTextSafe('statLideres', ativos.filter(m => m[2] === 'Líder').length);
+            setTextSafe('statDiscipuladores', ativos.filter(m => m[2] === 'Discipulador').length);
+            setTextSafe('statFrequentadores', ativos.filter(m => m[2] === 'Frequentador').length);
+            setTextSafe('statCelulas', dadosCelulas.length);
+        
             const agora = new Date();
             const inicioSemana = new Date(agora);
             inicioSemana.setDate(agora.getDate() - ((agora.getDay() + 6) % 7));
@@ -1086,17 +1086,26 @@
             const fimSemana = new Date(inicioSemana);
             fimSemana.setDate(inicioSemana.getDate() + 6);
             fimSemana.setHours(23, 59, 59, 999);
+        
             const relSemana = dadosRelatorios.filter(r => {
                 const d = new Date(r.data + 'T00:00:00');
                 return d >= inicioSemana && d <= fimSemana;
             });
-            document.getElementById('statRelatoriosSemana').innerText = relSemana.length;
+            setTextSafe('statRelatoriosSemana', relSemana.length);
+        
             const celulasComRelatorio = new Set(relSemana.map(r => r.celula));
             const semRelatorio = dadosCelulas.filter(c => !celulasComRelatorio.has(c[1])).map(c => c[1]);
-            document.getElementById('statCelulasSemRelatorio').innerHTML = semRelatorio.length ? semRelatorio.join(', ') :
-                'Todas enviaram';
+            const elSemRel = document.getElementById('statCelulasSemRelatorio');
+            if (elSemRel) {
+                elSemRel.innerHTML = semRelatorio.length ? semRelatorio.join(', ') : 'Todas enviaram';
+            }
         }
-
+        
+        // Função auxiliar para evitar erro em elemento nulo
+        function setTextSafe(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = value;
+        }
         // ========== EDIÇÃO DE MEMBRO ==========
         function novoCadastro() {
             document.getElementById('formMembro').reset();
