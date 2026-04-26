@@ -1010,7 +1010,7 @@
     };
 
     // Ordenação decrescente (mais recente primeiro)
-    filtrada.sort((a, b) => parseDate(b[0]) - parseDate(a[0]));
+    filtrada.sort((a, b) => parseDate(a[0]) - parseDate(b[0]));
 
     // Renderização
     filtrada.forEach(a => {
