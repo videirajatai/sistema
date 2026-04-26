@@ -260,32 +260,33 @@
         });
     }
 
-    function aplicarFiltros() {
-        const status = document.getElementById('filtroStatusGeral').value;
-        let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
-        const busca = document.getElementById('inputBusca').value.toLowerCase();
-        const celulas = [...document.querySelectorAll('#multiCelula input:checked')].map(cb=>cb.value);
-        const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb=>cb.value.toLowerCase());
-        const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb=>cb.value);
-        base = base.filter(m => {
-            if (busca && !m[1].toLowerCase().includes(busca)) return false;
-            if (celulas.length && !celulas.includes(String(m[13]))) return false;
-            if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
-            if (tagsSel.length) {
-                const tags = [];
-                if(m[6]==='Sim') tags.push('batizado');
-                if(m[7]==='Sim') tags.push('cursão');
-                if(m[8]==='Sim') tags.push('ctl');
-                if(m[9]==='Sim') tags.push('encontro');
-                if(m[11]==='Sim') tags.push('seminário');
-                if(m[12]==='Sim') tags.push('dizimista');
-                if (!tagsSel.some(t=>tags.includes(t))) return false;
-            }
-            return true;
-        });
-        renderizarCards(base);
-        document.getElementById('totalMembros').innerText = base.length;
-    }
+   function aplicarFiltros() {
+    const status = document.getElementById('filtroStatusGeral').value;
+    let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
+    const busca = document.getElementById('inputBusca').value.toLowerCase();
+    const celulaFiltro = document.getElementById('filtroCelula').value;   // alterado
+    const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb=>cb.value.toLowerCase());
+    const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb=>cb.value);
+    
+    base = base.filter(m => {
+        if (busca && !m[1].toLowerCase().includes(busca)) return false;
+        if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;  // alterado
+        if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
+        if (tagsSel.length) {
+            const tags = [];
+            if(m[6]==='Sim') tags.push('batizado');
+            if(m[7]==='Sim') tags.push('cursão');
+            if(m[8]==='Sim') tags.push('ctl');
+            if(m[9]==='Sim') tags.push('encontro');
+            if(m[11]==='Sim') tags.push('seminário');
+            if(m[12]==='Sim') tags.push('dizimista');
+            if (!tagsSel.some(t=>tags.includes(t))) return false;
+        }
+        return true;
+    });
+    renderizarCards(base);
+    document.getElementById('totalMembros').innerText = base.length;
+}
 
     function setupMultiselects() {
         document.querySelectorAll('.multi-select .trigger').forEach(trg => {
@@ -295,18 +296,33 @@
             });
         });
         document.addEventListener('click', e => {
-            document.querySelectorAll('.multi-select.open').forEach(ms => { if (!ms.contains(e.target)) ms.classList.remove('open'); });
+            document.querySelectorAll('.multi-select.open').forEach(ms => {
+                if (!ms.contains(e.target)) ms.classList.remove('open');
+            });
         });
-        document.querySelectorAll('#multiCelula input, #multiCargo input, #multiStatus input').forEach(cb => cb.addEventListener('change', aplicarFiltros));
+        // Agora apenas os dois multiselects que realmente existem:
+        document.querySelectorAll('#multiCargo input, #multiStatus input').forEach(cb => {
+            cb.addEventListener('change', aplicarFiltros);
+        });
     }
 
-    function preencherSelects() {
-        const selCel = document.getElementById('selectCelulas');
-        if(selCel) { selCel.innerHTML = '<option value="">Selecione...</option>'; dadosCelulas.forEach(c => selCel.innerHTML += `<option value="${c[0]}">${c[1]}</option>`); }
-        const multiCel = document.getElementById('multiCelula');
-        if(multiCel) multiCel.innerHTML = dadosCelulas.map(c => `<label><input type="checkbox" value="${c[0]}"> ${c[1]}</label>`).join('');
+   function preencherSelects() {
+    // Select de células do cadastro (modal)
+    const selCel = document.getElementById('selectCelulas');
+    if (selCel) { 
+        selCel.innerHTML = '<option value="">Selecione uma célula</option>'; 
+        dadosCelulas.forEach(c => selCel.innerHTML += `<option value="${c[0]}">${c[1]}</option>`); 
     }
-
+    
+    // Select de filtro (tela de membros)
+    const filtroCelula = document.getElementById('filtroCelula');
+    if (filtroCelula) {
+        filtroCelula.innerHTML = '<option value="">Todas as Células</option>';
+        dadosCelulas.forEach(c => filtroCelula.innerHTML += `<option value="${c[0]}">${c[1]}</option>`);
+    }
+    
+    // A seção de multiselect de Células foi removida, portanto não precisa preencher #multiCelula
+}
     // ========== REDE DE CÉLULAS ==========
     function renderizarCelulasRede(celulas) {
         const container = document.getElementById('listaCelulasRede');
@@ -612,6 +628,7 @@ function editarMembro(id) {
     function inicializarEventos() {
         document.getElementById('filtroStatusGeral').addEventListener('change', aplicarFiltros);
         document.getElementById('inputBusca').addEventListener('keyup', aplicarFiltros);
+        document.getElementById('filtroCelula').addEventListener('change', aplicarFiltros);
         document.getElementById('formMembro').addEventListener('submit', async e => {
             e.preventDefault();
             const id = document.getElementById('idMembro').value;
@@ -747,10 +764,35 @@ function editarMembro(id) {
                 </div>
     
                 <!-- Multiselect Células -->
-                <div class="multi-select" id="multiCelula">
-                    <div class="trigger">Células <i class="fas fa-chevron-down"></i></div>
-                    <div class="dropdown"></div>
+               <div class="filtro-item" style="flex:1;">
+                    <select id="filtroCelula" style="height:38px;">
+                        <option value="">Todas as Células</option>
+                    </select>
                 </div>
+
+                <div class="filtros-container">
+                <div class="filtro-item" style="flex:2;">
+                    <input type="text" id="inputBusca" placeholder="🔍 Buscar..." style="height:38px;">
+                </div>
+            
+                <!-- Select normal de Células -->
+                <div class="filtro-item" style="flex:1;">
+                    <select id="filtroCelula" style="height:38px;">
+                        <option value="">Todas as Células</option>
+                    </select>
+                </div>
+            
+                <!-- Multiselect Cargos (mantido) -->
+                <div class="multi-select" id="multiCargo">...</div>
+            
+                <!-- Multiselect Status (mantido) -->
+                <div class="multi-select" id="multiStatus">...</div>
+            
+                <!-- Ativo/Inativo/Todos (mantido) -->
+                <div class="filtro-item" style="max-width:100px;">
+                    <select id="filtroStatusGeral" style="height:38px;">...</select>
+                </div>
+            </div>
     
                 <!-- Multiselect Cargos -->
                 <div class="multi-select" id="multiCargo">
