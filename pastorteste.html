@@ -341,21 +341,36 @@
     // ========== REDE DE CÉLULAS ==========
     function renderizarCelulasRede(celulas) {
         const container = document.getElementById('listaCelulasRede');
+        const filtroLider = document.getElementById('filtroLiderRede');
+        const filtroSupervisor = document.getElementById('filtroSupervisorRede');
         document.getElementById('contagemCelulasRede').innerText = celulas.length;
-        container.innerHTML = celulas.map(c => `
-            <div class="cell-card" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
-                <div class="cell-info"><div class="cell-nome">${c[1]}</div><div class="cell-lider">Líder: ${c[2]||'?'} • Supervisor: ${c[5]||'?'}</div></div>
-                <div class="badge-membros"><i class="fas fa-chevron-right"></i></div>
-            </div>`).join('');
+        if(filtroLider) {
+            const lideresUnicos = [...new Set(celulas.map(c => c[2]).filter(l => l))];
+            filtroLider.innerHTML = '<option value="">Todos os Líderes</option>';
+            lideresUnicos.forEach(l => filtroLider.innerHTML += `<option>${l}</option>`);
+        }
+        if(filtroSupervisor) {
+            const supervisoresUnicos = [...new Set(celulas.map(c => c[5]).filter(s => s))];
+            filtroSupervisor.innerHTML = '<option value="">Todos os Supervisores</option>';
+            supervisoresUnicos.forEach(s => filtroSupervisor.innerHTML += `<option>${s}</option>`);
+        }
+        window.celulasRedeCompleta = celulas;
+        filtrarCelulasRede(); // exibe todas inicialmente
     }
 
     function filtrarCelulasRede() {
         const lider = document.getElementById('filtroLiderRede')?.value || '';
         const supervisor = document.getElementById('filtroSupervisorRede')?.value || '';
-        let filtradas = window.celulasRedeCompleta || dadosCelulas;
+        const container = document.getElementById('listaCelulasRede');
+        let filtradas = window.celulasRedeCompleta || [];
         if(lider) filtradas = filtradas.filter(c => c[2] === lider);
         if(supervisor) filtradas = filtradas.filter(c => c[5] === supervisor);
-        renderizarCelulasRede(filtradas);
+        document.getElementById('contagemCelulasRede').innerText = filtradas.length;
+        container.innerHTML = filtradas.map(c => `
+            <div class="cell-card" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
+                <div class="cell-info"><div class="cell-nome">${c[1]}</div><div class="cell-lider">Líder: ${c[2]||'?'} • Supervisor: ${c[5]||'?'}</div></div>
+                <div class="badge-membros"><i class="fas fa-chevron-right"></i></div>
+            </div>`).join('');
     }
 
     function exportarListaCelulasPDF() {
@@ -639,7 +654,12 @@
 
     function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
     function fecharModalClique(e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden'); }
-    function novaCelula() { document.getElementById('formCelula').reset(); document.getElementById('editCelulaId').value=''; document.getElementById('modalEditarCelula').classList.remove('hidden'); }
+    function novaCelula() {
+        document.getElementById('formCelula').reset();
+        document.getElementById('editCelulaId').value='';
+        preencherSelectLideres();
+        document.getElementById('modalEditarCelula').classList.remove('hidden');
+    }
     function novaPalavra() { document.getElementById('formPalavra').reset(); document.getElementById('palavraId').value=''; document.getElementById('modalEditarPalavra').classList.remove('hidden'); }
 
     // ========== EVENTOS ==========
@@ -648,6 +668,8 @@
         document.getElementById('inputBusca').addEventListener('keyup', aplicarFiltros);
         document.getElementById('filtroCelula').addEventListener('change', aplicarFiltros);
         document.getElementById('filtroMesAgenda').addEventListener('change', () => renderizarAgenda(listaAgenda));
+        document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
+        document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('formMembro').addEventListener('submit', async e => {
             e.preventDefault();
             const id = document.getElementById('idMembro').value;
@@ -829,8 +851,8 @@
             </div>
         </div>
         <div class="filtro-lider" style="display:flex; gap:8px; background:white; padding:8px; border-radius:12px; margin-bottom:15px;">
-            <select id="filtroLiderRede" onchange="filtrarCelulasRede()"><option value="">Todos os Líderes</option></select>
-            <select id="filtroSupervisorRede" onchange="filtrarCelulasRede()"><option value="">Todos os Supervisores</option></select>
+            <select id="filtroLiderRede"><option value="">Todos os Líderes</option></select>
+            <select id="filtroSupervisorRede"><option value="">Todos os Supervisores</option></select>
         </div>
         <div id="listaCelulasRede"></div>
     </div>
@@ -872,7 +894,7 @@
     <div id="secao-palavras" class="hidden">
         <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
             <h4>Palavras</h4>
-            <button onclick="novaPalavra()" class="btn-card" style="background:var(--success-text); color:white; padding:6px 12px; font-size:0.7rem;"><i class="fas fa-plus"></i> Nova</button>
+            <button onclick="novaPalavra()" class="btn-card" style="background:var(--success-text); color:white; padding:5px 10px; font-size:0.65rem;"><i class="fas fa-plus"></i> Nova</button>
         </div>
         <div id="listaPalavras"></div>
     </div>
@@ -926,15 +948,34 @@
 </div>
 
 <div id="modalEditarPalavra" class="modal-overlay hidden">
-    <div class="modal-content" style="height:100vh; max-height:100vh; border-radius:0;">
-        <button class="btn-close-modal" onclick="fecharModal('modalEditarPalavra')" style="position:absolute; top:15px; right:15px; z-index:10;">&times;</button>
-        <h3 style="margin-top:0; margin-bottom:15px;">Palavra</h3>
-        <form id="formPalavra"><input type="hidden" id="palavraId">
-            <div class="form-group"><label>Data</label><input type="date" id="palavraData" required></div>
-            <div class="form-group"><label>Tema</label><input type="text" id="palavraTema" placeholder="Tema" required></div>
-            <div class="form-group"><label>Link YouTube (opcional)</label><input type="text" id="palavraLink" placeholder="Link YouTube (opcional)"></div>
-            <div class="form-group"><label>Texto / Esboço</label><textarea id="palavraTexto" rows="12" required style="min-height: 50vh;"></textarea></div>
-            <button type="submit" class="btn-card" style="background:var(--primary); color:white; width:100%; padding:12px; font-size:0.9rem;">Salvar</button>
+    <div class="modal-content" style="height:100vh; max-height:100vh; border-radius:0; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0; font-weight:700;">Palavra</h2>
+            <button class="btn-close-modal" onclick="fecharModal('modalEditarPalavra')" style="position:static;">&times;</button>
+        </div>
+        <form id="formPalavra" style="flex:1; display:flex; flex-direction:column;">
+            <input type="hidden" id="palavraId">
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Data</label>
+                    <input type="date" id="palavraData" required style="height:38px;">
+                </div>
+                <div class="form-group" style="flex:3;">
+                    <label>Tema</label>
+                    <input type="text" id="palavraTema" placeholder="Tema da palavra" required style="height:38px;">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>Link YouTube (opcional)</label>
+                <input type="text" id="palavraLink" placeholder="https://youtube.com/..." style="height:38px;">
+            </div>
+            <div class="form-group" style="flex:1; display:flex; flex-direction:column;">
+                <label>Texto / Esboço</label>
+                <textarea id="palavraTexto" required style="flex:1; min-height:40vh; border-radius:12px; border:1px solid var(--border-color); padding:12px; font-size:0.9rem; line-height:1.6; resize:vertical;"></textarea>
+            </div>
+            <div style="margin-top:20px;">
+                <button type="submit" class="btn-card" style="background:var(--primary); color:white; width:100%; padding:12px; font-size:0.9rem; font-weight:700; border-radius:12px;">Salvar</button>
+            </div>
         </form>
     </div>
 </div>
@@ -942,15 +983,15 @@
 <div id="modalEditarCelula" class="modal-overlay hidden">
     <div class="modal-content">
         <button class="btn-close-modal" onclick="fecharModal('modalEditarCelula')">&times;</button>
-        <h3>Célula</h3>
+        <h3 style="margin-top:0; margin-bottom:20px;">Célula</h3>
         <form id="formCelula"><input type="hidden" id="editCelulaId">
-            <div class="form-group"><label>Nome</label><input type="text" id="editCelulaNome" required></div>
-            <div class="form-group"><label>Líder</label><select id="editCelulaLider" required></select></div>
+            <div class="form-group"><label>Nome da Célula</label><input type="text" id="editCelulaNome" required style="height:38px;"></div>
+            <div class="form-group"><label>Líder</label><select id="editCelulaLider" required style="height:38px;"></select></div>
             <div class="form-group"><label>Dia/Horário</label>
-                <select id="editCelulaDia"><option value="">Selecione</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option></select>
+                <select id="editCelulaDia" style="height:38px;"><option value="">Selecione</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option></select>
             </div>
-            <div class="form-group"><label>Endereço</label><input type="text" id="editCelulaEnd"></div>
-            <button type="submit" class="btn-card" style="background:var(--primary); color:white; width:100%;">Salvar</button>
+            <div class="form-group"><label>Endereço</label><input type="text" id="editCelulaEnd" style="height:38px;"></div>
+            <button type="submit" class="btn-card" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; margin-top:10px;">Salvar</button>
         </form>
     </div>
 </div>
@@ -973,17 +1014,17 @@
 <div id="secao-cadastro" class="modal-overlay hidden" onclick="fecharModalClique(event)">
     <div class="modal-content" style="max-width:600px; max-height:90vh;" onclick="event.stopPropagation()">
         <button class="btn-close-modal" onclick="fecharModal('secao-cadastro')">&times;</button>
-        <h3 id="tituloFormMembro">Cadastro de Membro</h3>
+        <h3 id="tituloFormMembro" style="margin-top:0; margin-bottom:20px;">Cadastro de Membro</h3>
         <form id="formMembro">
             <input type="hidden" id="idMembro">
-            <div class="form-group"><label>Nome Completo</label><input type="text" id="campoNome" required></div>
+            <div class="form-group"><label>Nome Completo</label><input type="text" id="campoNome" required style="height:38px;"></div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="campoNasc"></div>
-                <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="campoTel" placeholder="(00) 00000-0000"></div>
+                <div class="form-group" style="flex:1;"><label>Nascimento</label><input type="date" id="campoNasc" style="height:38px;"></div>
+                <div class="form-group" style="flex:1;"><label>WhatsApp</label><input type="tel" id="campoTel" placeholder="(00) 00000-0000" style="height:38px;"></div>
             </div>
-            <div class="form-group"><label>Célula</label><select id="selectCelulas"><option value="">Selecione uma célula</option></select></div>
-            <div class="form-group"><label>Categoria</label><select id="campoCategoria"><option>Membro</option><option>Frequentador</option><option>Líder</option><option>Discipulador</option><option>Pastor</option></select></div>
-            <h4 style="margin-top:15px;">Passos de Fé</h4>
+            <div class="form-group"><label>Célula</label><select id="selectCelulas" style="height:38px;"><option value="">Selecione uma célula</option></select></div>
+            <div class="form-group"><label>Categoria</label><select id="campoCategoria" style="height:38px;"><option>Membro</option><option>Frequentador</option><option>Líder</option><option>Discipulador</option><option>Pastor</option></select></div>
+            <h4 style="margin-top:15px; margin-bottom:10px;">Passos de Fé</h4>
             <div class="switch-container"><span>Batismo</span><label class="switch"><input type="checkbox" id="checkBat"><span class="slider"></span></label></div>
             <div class="switch-container"><span>Cursão</span><label class="switch"><input type="checkbox" id="checkCur"><span class="slider"></span></label></div>
             <div class="switch-container"><span>CTL</span><label class="switch"><input type="checkbox" id="checkCtl"><span class="slider"></span></label></div>
@@ -991,8 +1032,8 @@
             <div class="switch-container"><span>Seminário</span><label class="switch"><input type="checkbox" id="checkSem"><span class="slider"></span></label></div>
             <div class="switch-container"><span>Dizimista</span><label class="switch"><input type="checkbox" id="checkDizi"><span class="slider"></span></label></div>
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="button" onclick="fecharModal('secao-cadastro')" class="btn-card" style="flex:1;">Cancelar</button>
-                <button type="submit" class="btn-card" style="flex:2; background:var(--primary); color:white;">Salvar</button>
+                <button type="button" onclick="fecharModal('secao-cadastro')" class="btn-card" style="flex:1; padding:10px;">Cancelar</button>
+                <button type="submit" class="btn-card" style="flex:2; background:var(--primary); color:white; padding:10px;">Salvar</button>
             </div>
         </form>
     </div>
