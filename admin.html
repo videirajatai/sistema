@@ -399,7 +399,7 @@
                  document.getElementById('formUsuario').style.display = 'none';
                  document.getElementById('tituloFormUsuario').innerText = 'Usuário criado!';
                  const pessoa = resultado.data[0];
-                 const link = `${window.location.origin}/completar-cadastro.html?token=${pessoa.token_convite}`;
+                 const link = `${window.location.origin}./completar-cadastro.html?token=${pessoa.token_convite}`;
                  document.getElementById('linkConvite').value = link;
                  document.getElementById('conviteLinkBox').classList.remove('hidden');
              }
