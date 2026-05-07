@@ -935,6 +935,173 @@ if (formEdit) {
             };
         }
     }
+
+    // ========== MULTIPLICAÇÃO DE CÉLULAS ==========
+let listaOriginalMembros = []; // membros da célula original
+let membrosQueFicam = [];       // IDs que permanecem na célula original
+let membrosQueVao = [];         // IDs que serão transferidos
+
+function abrirModalMultiplicar() {
+    // Limpar estado anterior
+    listaOriginalMembros = [];
+    membrosQueFicam = [];
+    membrosQueVao = [];
+    document.getElementById('multCelulaOrigem').value = '';
+    document.getElementById('colunaOriginais').innerHTML = '';
+    document.getElementById('colunaNova').innerHTML = '';
+    document.getElementById('multNomeNovaCelula').value = '';
+    document.getElementById('multContainer').classList.add('hidden');
+    document.getElementById('multNomeContainer').classList.add('hidden');
+    document.getElementById('btnConcluirMultiplicacao').classList.add('hidden');
+
+    // Preencher dropdown com as células do líder
+    const select = document.getElementById('multCelulaOrigem');
+    select.innerHTML = '<option value="">-- Escolha --</option>';
+    dadosCelulas.forEach(c => {
+        select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+    });
+
+    document.getElementById('modalMultiplicar').classList.remove('hidden');
+}
+
+function fecharModalMultiplicar() {
+    document.getElementById('modalMultiplicar').classList.add('hidden');
+}
+
+async function carregarMembrosMultiplicacao() {
+    const celulaId = document.getElementById('multCelulaOrigem').value;
+    if (!celulaId) return;
+
+    // Buscar membros da célula (excluindo líder se estiver nela)
+    const { data, error } = await supabaseClient
+        .from('pessoas')
+        .select('*')
+        .eq('celula_id', celulaId)
+        .eq('arquivado', false)
+        .order('nome');
+
+    if (error) { alert("Erro ao carregar membros."); return; }
+
+    const meuId = sessionStorage.getItem('liderId');
+    listaOriginalMembros = (data || []).filter(p => p.id !== meuId);
+    
+    // Inicialmente todos ficam na célula original
+    membrosQueFicam = listaOriginalMembros.map(p => p.id);
+    membrosQueVao = [];
+
+    renderizarColunasMultiplicacao();
+
+    document.getElementById('multContainer').classList.remove('hidden');
+    document.getElementById('multNomeContainer').classList.remove('hidden');
+    document.getElementById('btnConcluirMultiplicacao').classList.remove('hidden');
+
+    // Nome sugestivo para nova célula
+    const celulaOrigem = dadosCelulas.find(c => c.id === celulaId);
+    if (celulaOrigem) {
+        document.getElementById('multNomeNovaCelula').value = (celulaOrigem.nome || 'Célula') + ' - Multiplicação';
+    }
+}
+
+function renderizarColunasMultiplicacao() {
+    const colOrig = document.getElementById('colunaOriginais');
+    const colNova = document.getElementById('colunaNova');
+
+    colOrig.innerHTML = '';
+    colNova.innerHTML = '';
+
+    // Membros que ficam (IDs em membrosQueFicam)
+    listaOriginalMembros.forEach(m => {
+        if (membrosQueFicam.includes(m.id)) {
+            colOrig.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:8px 12px; border-radius:8px; border:1px solid #eee;">
+                    <span>${m.nome}</span>
+                    <button onclick="moverParaNova('${m.id}')" class="btn-action" style="background:#e0f2fe; color:#0284c7;">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>`;
+        }
+    });
+
+    // Membros que vão (IDs em membrosQueVao)
+    listaOriginalMembros.forEach(m => {
+        if (membrosQueVao.includes(m.id)) {
+            colNova.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:8px 12px; border-radius:8px; border:1px solid #faeace;">
+                    <span>${m.nome}</span>
+                    <button onclick="moverParaOriginal('${m.id}')" class="btn-action" style="background:#fef3c7; color:#92400e;">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>`;
+        }
+    });
+
+    // Se a coluna nova ficar vazia, mostra um placeholder
+    if (colNova.innerHTML === '') {
+        colNova.innerHTML = '<p style="color: #999; text-align: center;">Arraste membros para cá</p>';
+    }
+}
+
+function moverParaNova(membroId) {
+    membrosQueFicam = membrosQueFicam.filter(id => id !== membroId);
+    membrosQueVao.push(membroId);
+    renderizarColunasMultiplicacao();
+}
+
+function moverParaOriginal(membroId) {
+    membrosQueVao = membrosQueVao.filter(id => id !== membroId);
+    membrosQueFicam.push(membroId);
+    renderizarColunasMultiplicacao();
+}
+
+async function concluirMultiplicacao() {
+    const celulaOrigemId = document.getElementById('multCelulaOrigem').value;
+    const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
+
+    if (!novoNome) {
+        alert("Dê um nome para a nova célula.");
+        return;
+    }
+
+    if (membrosQueVao.length === 0) {
+        alert("Escolha pelo menos um membro para a nova célula.");
+        return;
+    }
+
+    try {
+        // 1. Pegar dados da célula original para replicar
+        const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
+        if (!celulaOriginal) throw new Error("Célula original não encontrada.");
+
+        // 2. Criar a nova célula (copiando dia_horario, endereco, lider_user_id, supervisor_user_id)
+        const { data: novaCelula, error: insertError } = await supabaseClient
+            .from('celulas')
+            .insert([{
+                nome: novoNome,
+                dia_horario: celulaOriginal.dia_horario,
+                endereco: celulaOriginal.endereco,
+                lider_user_id: celulaOriginal.lider_user_id,
+                supervisor_user_id: celulaOriginal.supervisor_user_id
+            }])
+            .select();
+
+        if (insertError) throw insertError;
+        const novaCelulaId = novaCelula[0].id;
+
+        // 3. Atualizar os membros que vão para a nova célula
+        const { error: updateError } = await supabaseClient
+            .from('pessoas')
+            .update({ celula_id: novaCelulaId })
+            .in('id', membrosQueVao);
+
+        if (updateError) throw updateError;
+
+        alert("Multiplicação realizada com sucesso!");
+        fecharModalMultiplicar();
+        carregarTudo();  // recarrega lista de células e membros
+    } catch (err) {
+        alert("Erro na multiplicação: " + err.message);
+    }
+}
 </script>
 
 <!-- HTML COMPLETO COM MODAIS -->
@@ -964,6 +1131,7 @@ if (formEdit) {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h4 style="margin:0; color: var(--primary);"><i class="fas fa-church"></i> Suas Células</h4>
             <button onclick="abrirNovaCelula()" class="btn-action" style="background:var(--success-text); color:white;"><i class="fas fa-plus"></i> Nova Célula</button>
+            <button onclick="abrirModalMultiplicar()" class="btn-action" style="background:#0056b3; color:white; margin-left: 8px;"><i class="fas fa-code-branch"></i> Multiplicação</button>
         </div>
         <div id="listaCelulasLider"></div>
         <p id="nenhumaCelulaMsg" style="color:#999; text-align:center; display:none;">Você não lidera nenhuma célula.</p>
@@ -1204,6 +1372,47 @@ if (formEdit) {
         <small id="modalDataPalavra" style="color:#777; display:block; margin-bottom:15px;"></small>
         <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden" style="display:inline-flex; align-items:center; gap:8px; background:#ff0000; color:white; text-decoration:none; padding:10px 20px; border-radius:8px; font-weight:bold; margin-bottom:20px; margin-top:15px;"><i class="fab fa-youtube"></i> Assistir Palavra Completa</a>
         <div id="modalTexto" style="white-space:pre-wrap; line-height:1.6;"></div>
+    </div>
+</div>
+
+    <!-- Multiplicação de Célula -->
+<div id="modalMultiplicar" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 700px; max-height: 90vh;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalMultiplicar()">&times;</button>
+        <h3 style="margin-top:0; color:var(--primary);">Multiplicar Célula</h3>
+
+        <!-- Escolha da célula -->
+        <div class="form-group">
+            <label>Selecione a célula que será dividida:</label>
+            <select id="multCelulaOrigem" onchange="carregarMembrosMultiplicacao()">
+                <option value="">-- Escolha --</option>
+            </select>
+        </div>
+
+        <!-- Container das duas colunas -->
+        <div id="multContainer" style="display:flex; gap:20px; margin-top:20px; min-height: 200px;" class="hidden">
+            <!-- Coluna Originais -->
+            <div style="flex:1; background: #f9fafb; border-radius:12px; padding:15px;">
+                <h4 style="margin:0 0 10px 0; color:var(--primary);">Membros Originais</h4>
+                <div id="colunaOriginais" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- Coluna Nova Célula -->
+            <div style="flex:1; background: #fef9e8; border-radius:12px; padding:15px;">
+                <h4 style="margin:0 0 10px 0; color:var(--accent);">Membros para Nova Célula</h4>
+                <div id="colunaNova" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+        </div>
+
+        <!-- Nome da nova célula -->
+        <div id="multNomeContainer" class="form-group hidden" style="margin-top:20px;">
+            <label>Nome da nova célula:</label>
+            <input type="text" id="multNomeNovaCelula" placeholder="Ex: Célula Centro - Filial">
+        </div>
+
+        <button id="btnConcluirMultiplicacao" class="btn-save hidden" onclick="concluirMultiplicacao()">
+            <i class="fas fa-check-circle"></i> Concluir Multiplicação
+        </button>
     </div>
 </div>
 
