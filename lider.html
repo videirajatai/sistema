@@ -206,6 +206,7 @@
     let listaAgenda = [];
     let palavraAtual = null;
     let dadosTodasCelulas = []; // para a aba "Células"
+    let mapaNomes = {};
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
     (async () => {
@@ -280,6 +281,17 @@
             renderizarSelectorCelulas(celulasDoLider);
             document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
 
+            // Dentro de carregarTudo, após carregar as células:
+            const { data: todosUsuarios, error: errUsuarios } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .eq('is_user', true);
+            
+            if (!errUsuarios) {
+                window.mapaNomes = {};
+                todosUsuarios.forEach(p => { window.mapaNomes[p.id] = p.nome; });
+            }
+
             // Agenda
             try {
                 const agendaRes = await fetchGoogle('buscarAgenda');
@@ -331,11 +343,11 @@
             return;
         }
         lista.forEach(c => {
+            const nomeLider = window.mapaNomes?.[c.lider_user_id] || 'Não definido';
             let enderecoHTML = c.endereco ? `<div style="font-size: 0.75rem; color: #888;"><i class="fas fa-map-marker-alt"></i> ${c.endereco}</div>` : '';
-            // Sem botão de editar na aba geral
             tbody.innerHTML += `<tr>
                 <td><div style="font-weight:700;">${c.nome||''}</div>${enderecoHTML}</td>
-                <td>${c.lider||''}</td>
+                <td>${nomeLider}</td>
                 <td>${c.dia_horario||''}</td>
             </tr>`;
         });
@@ -360,7 +372,8 @@
                 .from('pessoas')
                 .select('*')
                 .eq('celula_id', celulaId)
-                .eq('arquivado', false);
+                .eq('arquivado', false)
+                .order('nome', { ascending: true });   // 🔹 ordenação alfabética
             if (error) throw error;
             membrosDaCelulaAtiva = data ? data.filter(p => p.id !== meuId) : [];
         } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
@@ -487,12 +500,14 @@
     }
 
     function prepararChecklistRelatorio() {
+        
         const container = document.getElementById('checklistMembrosModal');
         container.innerHTML = '';
         if (!membrosDaCelulaAtiva.length) {
             container.innerHTML = '<p style="color:#999;">Nenhum membro cadastrado.</p>';
             return;
         }
+      //  membrosDaCelulaAtiva.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
         membrosDaCelulaAtiva.forEach(p => {
             const div = document.createElement('div');
             div.style.marginBottom = '8px';
