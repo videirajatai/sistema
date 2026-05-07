@@ -207,15 +207,17 @@
 
     <script>
       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      function normalizarCategoria(cat) {
+          return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      }
       
       let dadosUsuarios = []; 
       let dadosCelulas = [];
 
       window.onload = carregarTudo;
 
-      function normalizarCategoria(cat) {
-          return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      }
+      
       
 
       function mudarSecao(s) {
@@ -347,7 +349,7 @@
         });
     }
 
-      function novoUsuario() {
+     async function novoUsuario() {
           document.getElementById('formUsuario').reset();
           document.getElementById('usuarioOriginal').value = "";
           document.getElementById('tituloFormUsuario').innerText = "Novo Usuário";
