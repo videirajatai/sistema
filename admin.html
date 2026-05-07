@@ -310,22 +310,42 @@
          });
       }
 
-      async function preencherSelects() {
-          const selSuperior = document.getElementById('cadSuperior');
-          selSuperior.innerHTML = '<option value="">Nenhum (Topo)</option>';
-          const superiores = dadosUsuarios.filter(u => 
-              ['administrador','pastor de governo','pastor de rede','discipulador'].includes(u.categoria.toLowerCase())
-          );
-          superiores.forEach(u => {
-              selSuperior.innerHTML += `<option value="${u.id}">${u.nome || u.usuario} (${u.categoria})</option>`;
-          });
-
-          const selCelula = document.getElementById('cadCelula');
-          selCelula.innerHTML = '<option value="">Nenhuma</option>';
-          dadosCelulas.forEach(c => {
-              selCelula.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
-          });
-      }
+     async function preencherSelects(idSuperiorAtual = null) {
+        const selSuperior = document.getElementById('cadSuperior');
+        selSuperior.innerHTML = '<option value="">Nenhum (Topo)</option>';
+    
+        // Filtra possíveis superiores pelas categorias permitidas
+        let superiores = dadosUsuarios.filter(u =>
+            ['administrador', 'pastor de governo', 'pastor de rede', 'discipulador']
+            .includes(normalizarCategoria(u.categoria))
+        );
+    
+        // Se estamos editando alguém que já tem superior, garante que ele apareça
+        if (idSuperiorAtual) {
+            const jaExiste = superiores.some(u => u.id === idSuperiorAtual);
+            if (!jaExiste) {
+                const { data: sup } = await supabaseClient
+                    .from('pessoas')
+                    .select('id, nome, categoria')
+                    .eq('id', idSuperiorAtual)
+                    .maybeSingle();
+                if (sup) superiores.push(sup);
+            }
+        }
+    
+        superiores.forEach(u => {
+            const nomeExibido = u.nome || u.usuario || 'Sem nome';
+            const selectedAttr = (idSuperiorAtual && u.id === idSuperiorAtual) ? ' selected' : '';
+            selSuperior.innerHTML += `<option value="${u.id}"${selectedAttr}>${nomeExibido} (${u.categoria})</option>`;
+        });
+    
+        // Células
+        const selCelula = document.getElementById('cadCelula');
+        selCelula.innerHTML = '<option value="">Nenhuma</option>';
+        dadosCelulas.forEach(c => {
+            selCelula.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+    }
 
       function novoUsuario() {
           document.getElementById('formUsuario').reset();
@@ -333,10 +353,10 @@
           document.getElementById('tituloFormUsuario').innerText = "Novo Usuário";
           document.getElementById('formUsuario').style.display = 'block';
           document.getElementById('conviteLinkBox').classList.add('hidden');
-          preencherSelects();
+          await preencherSelects();   // sem parâmetro
           mudarSecao('form-usuario');
       }
-
+      
       function voltarParaLista() {
           document.getElementById('formUsuario').style.display = 'block';
           document.getElementById('conviteLinkBox').classList.add('hidden');
@@ -351,7 +371,7 @@
           document.getElementById('cadTelefone').value = u.telefone || '';
           document.getElementById('cadCategoria').value = u.categoria || 'Membro';
           document.getElementById('cadIsUser').checked = u.is_user === true;
-          await preencherSelects();
+           await preencherSelects(u.superior_id);
           document.getElementById('cadSuperior').value = u.superior_id || '';
           document.getElementById('cadCelula').value = u.celula_id || '';
           document.getElementById('tituloFormUsuario').innerText = "Editar Usuário";
@@ -361,58 +381,69 @@
       }
 
       document.getElementById('formUsuario').onsubmit = async function(e) {
-         e.preventDefault();
-         const btn = document.getElementById('btnSalvarUsuario'); 
-         btn.disabled = true; 
-         btn.innerText = "Salvando...";
-         
-         const idUsuario = this.usuarioOriginal.value;
-         const d = {
-            usuario: this.usuario.value.trim().toLowerCase(),
-            nome: this.usuario.value.trim().toLowerCase(),  // placeholder temporário
-            telefone: this.telefone.value,
-            categoria: this.categoria.value,
-            superior_id: this.superior_id.value || null,
-            celula_id: this.celula_id.value || null,
-            is_user: this.is_user.checked
-         };
-
-         try {
-             let resultado;
-             if (idUsuario) {
-                 // Edição: não sobrescrever nome se já foi preenchido pelo usuário
-                 const pessoaAtual = dadosUsuarios.find(x => x.id === idUsuario);
-                 if (pessoaAtual && pessoaAtual.nome && pessoaAtual.nome !== pessoaAtual.usuario) {
-                     d.nome = pessoaAtual.nome; // mantém o nome real
-                 }
-                 resultado = await supabaseClient.from('pessoas').update(d).eq('id', idUsuario);
-                 if (resultado.error) throw resultado.error;
-                 registrarLogAcao(`Editou o usuário: ${d.usuario}`);
-                 alert("Usuário atualizado com sucesso!");
-                 mudarSecao('usuarios');
-             } else {
-                 d.token_convite = crypto.randomUUID();
-                 resultado = await supabaseClient.from('pessoas').insert([d]).select();
-                 if (resultado.error) throw resultado.error;
-                 registrarLogAcao(`Criou novo usuário: ${d.usuario}`);
-                 
-                 document.getElementById('formUsuario').style.display = 'none';
-                 document.getElementById('tituloFormUsuario').innerText = 'Usuário criado!';
-                 const pessoa = resultado.data[0];
-                 const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+          e.preventDefault();
+          const btn = document.getElementById('btnSalvarUsuario'); 
+          btn.disabled = true; 
+          btn.innerText = "Salvando...";
+          
+          const idUsuario = document.getElementById('usuarioOriginal').value;
+          
+          // Leitura explícita (garante que o valor não se perca)
+          const superiorId = document.getElementById('cadSuperior').value;
+          const celulaId = document.getElementById('cadCelula').value;
+          const usuario = document.getElementById('cadUsuario').value.trim().toLowerCase();
+          const telefone = document.getElementById('cadTelefone').value;
+          const categoria = document.getElementById('cadCategoria').value;
+          const isUser = document.getElementById('cadIsUser').checked;
+          
+          const d = {
+              usuario: usuario,
+              nome: usuario,   // placeholder temporário
+              telefone: telefone,
+              categoria: categoria,
+              superior_id: superiorId || null,
+              celula_id: celulaId || null,
+              is_user: isUser
+          };
+      
+          // Log para depuração (pode apagar depois que funcionar)
+          console.log('Enviando superior_id:', d.superior_id);
+          
+          try {
+              let resultado;
+              if (idUsuario) {
+                  // Edição: mantém o nome real se já tiver sido preenchido
+                  const pessoaAtual = dadosUsuarios.find(x => x.id === idUsuario);
+                  if (pessoaAtual && pessoaAtual.nome && pessoaAtual.nome !== pessoaAtual.usuario) {
+                      d.nome = pessoaAtual.nome;
+                  }
+                  resultado = await supabaseClient.from('pessoas').update(d).eq('id', idUsuario);
+                  if (resultado.error) throw resultado.error;
+                  registrarLogAcao(`Editou o usuário: ${d.usuario}`);
+                  alert("Usuário atualizado com sucesso!");
+                  mudarSecao('usuarios');
+              } else {
+                  d.token_convite = crypto.randomUUID();
+                  resultado = await supabaseClient.from('pessoas').insert([d]).select();
+                  if (resultado.error) throw resultado.error;
+                  registrarLogAcao(`Criou novo usuário: ${d.usuario}`);
+                  
+                  document.getElementById('formUsuario').style.display = 'none';
+                  document.getElementById('tituloFormUsuario').innerText = 'Usuário criado!';
+                  const pessoa = resultado.data[0];
+                  const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
                   const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
-                 document.getElementById('linkConvite').value = link;
-                 document.getElementById('conviteLinkBox').classList.remove('hidden');
-             }
-             
-             carregarTudo();
-         } catch(error) {
-             console.error("Erro ao salvar:", error);
-             alert("Erro de conexão ao salvar. Detalhes: " + error.message);
-         } finally {
-             btn.disabled = false; 
-             btn.innerText = "Salvar Usuário";
-         }
+                  document.getElementById('linkConvite').value = link;
+                  document.getElementById('conviteLinkBox').classList.remove('hidden');
+              }
+              carregarTudo();
+          } catch(error) {
+              console.error("Erro ao salvar:", error);
+              alert("Erro de conexão ao salvar. Detalhes: " + error.message);
+          } finally {
+              btn.disabled = false; 
+              btn.innerText = "Salvar Usuário";
+          }
       };
 
       async function excluirUsuario(id, nome) {
