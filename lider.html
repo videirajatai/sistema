@@ -139,7 +139,11 @@
         .check-option input:checked ~ .checkmark { background: var(--success-bg); color: var(--success-text); border-color: #badbcc; }
 
         /* MODAL */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3100; display: flex; justify-content: center; align-items: flex-end; backdrop-filter: blur(2px); }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 3100; display: flex;
+            justify-content: center; align-items: flex-end;
+        }
         .modal-content { background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .btn-close-modal { position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #555; display: flex; align-items: center; justify-content: center; }
@@ -155,7 +159,7 @@
         /* BÍBLIA */
         .biblia-offcanvas { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background-color: #ffffff; box-shadow: -5px 0 25px rgba(0,0,0,0.1); z-index: 2000; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
         .biblia-offcanvas.aberto { right: 0; }
-        #biblia-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; display: none; opacity: 0; transition: opacity 0.3s ease; }
+        #biblia-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1999; display: none; opacity: 0; transition: opacity 0.3s ease; }
         .biblia-header { background-color: var(--ouro-videira); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .biblia-titulo-area { display: flex; align-items: center; gap: 10px; }
         .biblia-header h2 { color: white; margin: 0; font-size: 1.2rem; font-weight: 700; }
@@ -170,7 +174,7 @@
         .biblia-placeholder { text-align: center; color: #94a3b8; font-style: italic; margin-top: 50px; }
 
         /* Modal de seleção de versão */
-        .modal-versao-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; display: flex; justify-content: center; align-items: flex-end; backdrop-filter: blur(2px); }
+        .modal-versao-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2100; display: flex; justify-content: center; align-items: flex-end; }
         .modal-versao-overlay.hidden { display: none; }
         .modal-versao-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease-out; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .modal-versao-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -190,6 +194,10 @@
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
     const API_URL = sessionStorage.getItem('urlApi');
 
+    function normalizarCategoria(cat) {
+        return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
     let dadosCelulas = [];
     let celulasDoLider = [];
     let celulaAtiva = null;
@@ -197,34 +205,29 @@
     let listaPalavras = [];
     let listaAgenda = [];
     let palavraAtual = null;
+    let dadosTodasCelulas = []; // para a aba "Células"
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
-   (async () => {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) { window.location.href = "index.html"; return; }
-    const { data: pessoa } = await supabaseClient
-        .from('pessoas')
-        .select('id, nome, categoria, superior_id')
-        .eq('email', user.email)
-        .single();
-    if (!pessoa) { window.location.href = "index.html"; return; }
-    const cat = normalizarCategoria(pessoa.categoria);
-    if (cat !== 'líder' && cat !== 'lider') {
-        alert("Acesso restrito a líderes.");
-        window.location.href = "index.html";
-        return;
-    }
-    sessionStorage.setItem('liderId', pessoa.id);
-    sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
-    sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
-    sessionStorage.setItem('loginDigitado', user.email);
-    await carregarTudo();
-    inicializarEventos();
-})();
-    
-    function normalizarCategoria(cat) {
-        return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    }
+    (async () => {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) { window.location.href = "index.html"; return; }
+        const { data: pessoa } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome, categoria, superior_id')
+            .eq('email', user.email)
+            .single();
+        if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
+            alert("Acesso restrito a líderes.");
+            window.location.href = "index.html";
+            return;
+        }
+        sessionStorage.setItem('liderId', pessoa.id);
+        sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
+        sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
+        sessionStorage.setItem('loginDigitado', user.email);
+        await carregarTudo();
+        inicializarEventos();
+    })();
 
     async function registrarLogAcao(acao) {
         try {
@@ -255,7 +258,7 @@
         if (icon) icon.classList.add('fa-spin');
         const meuId = sessionStorage.getItem('liderId');
         try {
-            // Células do líder
+            // Células do líder (apenas as que lidera)
             const { data: celData, error: celError } = await supabaseClient
                 .from('celulas')
                 .select('*')
@@ -266,7 +269,14 @@
             window.celulaMap = {};
             dadosCelulas.forEach(c => window.celulaMap[c.id] = c.nome);
 
-            renderizarCelulas(dadosCelulas);
+            // Todas as células (para a aba Células)
+            const { data: todasCelulas, error: todasError } = await supabaseClient
+                .from('celulas')
+                .select('*')
+                .order('nome');
+            if (!todasError) dadosTodasCelulas = todasCelulas || [];
+
+            renderizarCelulas(dadosTodasCelulas);
             renderizarSelectorCelulas(celulasDoLider);
             document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
 
@@ -317,16 +327,16 @@
         const tbody = document.getElementById('corpoCelulas');
         tbody.innerHTML = '';
         if(!lista || lista.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhuma célula encontrada.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhuma célula encontrada.</td></tr>';
             return;
         }
         lista.forEach(c => {
             let enderecoHTML = c.endereco ? `<div style="font-size: 0.75rem; color: #888;"><i class="fas fa-map-marker-alt"></i> ${c.endereco}</div>` : '';
+            // Sem botão de editar na aba geral
             tbody.innerHTML += `<tr>
                 <td><div style="font-weight:700;">${c.nome||''}</div>${enderecoHTML}</td>
                 <td>${c.lider||''}</td>
                 <td>${c.dia_horario||''}</td>
-                <td><button onclick="abrirEditarCelula('${c.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i></button></td>
             </tr>`;
         });
     }
@@ -352,7 +362,6 @@
                 .eq('celula_id', celulaId)
                 .eq('arquivado', false);
             if (error) throw error;
-            // Excluir o próprio líder da lista de membros
             membrosDaCelulaAtiva = data ? data.filter(p => p.id !== meuId) : [];
         } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
     }
@@ -485,8 +494,11 @@
             observacoes: document.getElementById('relObservacoes').value
         };
         try {
-            const { data: rel } = await supabaseClient.from('relatorios').insert([dados]).select();
-            const relatorioId = rel[0].id;
+            const { data: rel, error: insertError } = await supabaseClient.from('relatorios').insert([dados]).select();
+            if (insertError) throw insertError;
+            const relatorioId = rel?.[0]?.id;
+            if (!relatorioId) throw new Error("Falha ao obter ID do relatório inserido.");
+            
             const checkboxes = document.querySelectorAll('#checklistMembrosModal input[name="presentes"]:checked');
             const presentesIds = Array.from(checkboxes).map(cb => cb.value);
             const presencas = membrosDaCelulaAtiva.map(p => ({
@@ -528,20 +540,13 @@
         const id = document.getElementById('celulaId').value;
         const meuId = sessionStorage.getItem('liderId');
         const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
-        /*const dados = {
-            nome: document.getElementById('celulaNome').value,
-            dia_horario: document.getElementById('celulaDia').value,
-            endereco: document.getElementById('celulaEndereco').value,
-            lider_user_id: meuId,
-            supervisor_user_id: meuSuperiorId  // obtido automaticamente
-        };*/
         const dados = {
             nome: document.getElementById('celulaNome').value,
             dia_horario: document.getElementById('celulaDia').value,
             endereco: document.getElementById('celulaEndereco').value,
-            lider_user_id: meuId
+            lider_user_id: meuId,
+            supervisor_user_id: meuSuperiorId || null
         };
-            if (meuSuperiorId) dados.supervisor_user_id = meuSuperiorId;
         try {
             if (id) {
                 await supabaseClient.from('celulas').update(dados).eq('id', id);
@@ -777,66 +782,103 @@
     // ========== INICIALIZAR EVENTOS ==========
     function inicializarEventos() {
         // Cadastro de membro
-        document.getElementById('formAdicionarMembro').onsubmit = async function(e) {
-            e.preventDefault();
-            const btn = this.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            const dados = {
-                nome: this.nome.value,
-                nascimento: this.nascimento.value || null,
-                telefone: this.telefone.value,
-                celula_id: celulaAtiva.id,
-                categoria: this.categoria.value,
-                batizado: this.batizado.checked ? 'Sim' : 'Não',
-                cursao: this.cursao.checked ? 'Sim' : 'Não',
-                ctl: this.ctl.checked ? 'Sim' : 'Não',
-                encontro: this.encontro.checked ? 'Sim' : 'Não',
-                seminario: this.seminario.checked ? 'Sim' : 'Não',
-                dizimista: this.dizimista.checked ? 'Sim' : 'Não',
-                arquivado: false
+        const formAdd = document.getElementById('formAdicionarMembro');
+        if (formAdd) {
+            formAdd.onsubmit = async function(e) {
+                e.preventDefault();
+                const btn = this.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                const dados = {
+                    nome: this.nome.value,
+                    nascimento: this.nascimento.value || null,
+                    telefone: this.telefone.value,
+                    celula_id: celulaAtiva.id,
+                    categoria: this.categoria.value,
+                    batizado: this.batizado.checked ? 'Sim' : 'Não',
+                    cursao: this.cursao.checked ? 'Sim' : 'Não',
+                    ctl: this.ctl.checked ? 'Sim' : 'Não',
+                    encontro: this.encontro.checked ? 'Sim' : 'Não',
+                    seminario: this.seminario.checked ? 'Sim' : 'Não',
+                    dizimista: this.dizimista.checked ? 'Sim' : 'Não',
+                    arquivado: false
+                };
+                try {
+                    const { error } = await supabaseClient.from('pessoas').insert([dados]);
+                    if (error) throw error;
+                    alert("Membro cadastrado!");
+                    this.reset();
+                    fecharModalCadastroMembro();
+                    // Recarregar e renderizar automaticamente
+                    await carregarMembrosDaCelula(celulaAtiva.id);
+                    renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+                } catch(err) { alert("Erro: " + err.message); }
+                finally { btn.disabled = false; }
             };
-            try {
-                await supabaseClient.from('pessoas').insert([dados]);
-                alert("Membro cadastrado!");
-                this.reset();
-                fecharModalCadastroMembro();
-                carregarMembrosDaCelula(celulaAtiva.id);
-                renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
-            } catch(err) { alert("Erro: " + err.message); }
-            finally { btn.disabled = false; }
-        };
+        }
 
         // Edição de membro
-        document.getElementById('formEditarMembro').onsubmit = async function(e) {
-            e.preventDefault();
-            const id = document.getElementById('editMembroId').value;
-            const dados = {
-                nome: document.getElementById('editMembroNome').value,
-                nascimento: document.getElementById('editMembroNasc').value,
-                telefone: document.getElementById('editMembroTel').value,
-                celula_id: document.getElementById('editMembroCelula').value,
-                categoria: document.getElementById('editMembroCat').value,
-                batizado: document.getElementById('editMembroBatizado').checked ? 'Sim' : 'Não',
-                cursao: document.getElementById('editMembroCursao').checked ? 'Sim' : 'Não',
-                ctl: document.getElementById('editMembroCtl').checked ? 'Sim' : 'Não',
-                encontro: document.getElementById('editMembroEncontro').checked ? 'Sim' : 'Não',
-                seminario: document.getElementById('editMembroSeminario').checked ? 'Sim' : 'Não',
-                dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
+        const formEdit = document.getElementById('formEditarMembro');
+        if (formEdit) {
+            formEdit.onsubmit = async function(e) {
+                e.preventDefault();
+                const id = document.getElementById('editMembroId').value;
+                const dados = {
+                    nome: document.getElementById('editMembroNome').value,
+                    nascimento: document.getElementById('editMembroNasc').value,
+                    telefone: document.getElementById('editMembroTel').value,
+                    celula_id: document.getElementById('editMembroCelula').value,
+                    categoria: document.getElementById('editMembroCat').value,
+                    batizado: document.getElementById('editMembroBatizado').checked ? 'Sim' : 'Não',
+                    cursao: document.getElementById('editMembroCursao').checked ? 'Sim' : 'Não',
+                    ctl: document.getElementById('editMembroCtl').checked ? 'Sim' : 'Não',
+                    encontro: document.getElementById('editMembroEncontro').checked ? 'Sim' : 'Não',
+                    seminario: document.getElementById('editMembroSeminario').checked ? 'Sim' : 'Não',
+                    dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
+                };
+                try {
+                    const { error } = await supabaseClient.from('pessoas').update(dados).eq('id', id);
+                    if (error) throw error;
+                    alert("Membro atualizado!");
+                    document.getElementById('modalEditarMembro').classList.add('hidden');
+                    // Recarregar automaticamente
+                    await carregarMembrosDaCelula(celulaAtiva.id);
+                    renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+                } catch(err) { alert("Erro: " + err.message); }
             };
-            try {
-                await supabaseClient.from('pessoas').update(dados).eq('id', id);
-                alert("Membro atualizado!");
-                document.getElementById('modalEditarMembro').classList.add('hidden');
-                carregarMembrosDaCelula(celulaAtiva.id);
-                renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
-            } catch(err) { alert("Erro: " + err.message); }
-        };
+        }
 
         // Relatório
-        document.getElementById('formRelatorioModal').onsubmit = salvarRelatorio;
+        const formRel = document.getElementById('formRelatorioModal');
+        if (formRel) formRel.onsubmit = salvarRelatorio;
 
         // Célula
-        document.getElementById('formCelula').onsubmit = salvarCelula;
+        const formCel = document.getElementById('formCelula');
+        if (formCel) formCel.onsubmit = salvarCelula;
+
+        // Sugestão / pedido de oração
+        const formSug = document.getElementById('formSugestao');
+        if (formSug) {
+            formSug.onsubmit = async function(e) {
+                e.preventDefault();
+                const btn = document.getElementById('btnSugestao');
+                btn.disabled = true;
+                btn.innerText = "Enviando...";
+                try {
+                    const { error } = await supabaseClient.from('sugestoes').insert([{
+                        mensagem: this.mensagem.value,
+                        data: new Date().toISOString().slice(0,10)
+                    }]);
+                    if (error) throw error;
+                    alert("Pedido enviado com sucesso! Obrigado.");
+                    this.reset();
+                } catch(err) {
+                    alert("Erro ao enviar: " + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "Enviar Mensagem";
+                }
+            };
+        }
     }
 </script>
 
@@ -877,7 +919,7 @@
         <h4 style="color: var(--primary); margin-top:0; margin-bottom: 15px;">Quadro de Células</h4>
         <div style="overflow-x:auto;">
             <table class="table-clean" id="tabelaCelulas">
-                <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th><th></th></tr></thead>
+                <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th></tr></thead>
                 <tbody id="corpoCelulas"></tbody>
             </table>
         </div>
@@ -945,15 +987,15 @@
             </div>
             <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
             <div class="pix-copy-box">
-                <input type="text" id="chavePix" value="00.000.000/0000-00" readonly>
+                <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
                 <button onclick="copiarPix()" id="btnCopiarPix"><i class="far fa-copy"></i> Copiar</button>
             </div>
         </div>
-        <!--<div class="member-card" style="text-align: center; margin-bottom: 25px; border-top: 4px solid #009ee3; opacity: 0.8;">
+        <div class="member-card" style="text-align: center; margin-bottom: 25px; border-top: 4px solid #009ee3; opacity: 0.8;">
             <h3 style="margin-top:0; color:#009ee3;"><i class="fas fa-credit-card"></i> Cartão / Mercado Pago</h3>
             <p style="font-size: 0.9rem; color:var(--text-light);">Em breve você poderá ofertar usando seu cartão de crédito de forma segura.</p>
             <button disabled style="background:#cbd5e1; color:#64748b; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; cursor:not-allowed; margin-top:10px; width: 100%;"><i class="fas fa-lock"></i> Disponível em Breve</button>
-        </div>-->
+        </div>
         <div class="form-box">
             <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos e Sugestões</h3>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Envie seu pedido de oração, sugestão ou feedback.</p>
