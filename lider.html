@@ -184,6 +184,62 @@
         .versao-item { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; transition: all 0.2s; }
         .versao-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .versao-item.selecionada { background: var(--primary); color: white; }
+
+
+        /* ========== ESTILOS DA LISTA DE PALAVRAS (original) ========== */
+            .word-list-item {
+              background: white;
+              border-radius: var(--radius);
+              padding: 15px;
+              margin-bottom: 10px;
+              box-shadow: var(--shadow);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              cursor: pointer;
+              border-left: 4px solid var(--accent);
+              transition: 0.2s;
+            }
+            .word-list-item:active {
+              transform: scale(0.98);
+            }
+            .word-date {
+              font-weight: 800;
+              color: var(--text-main);
+              font-size: 1rem;
+            }
+            .word-theme {
+              font-size: 0.85rem;
+              color: var(--text-light);
+              margin-top: 2px;
+            }
+            
+            /* ========== ESTILOS DO MODAL DE PALAVRAS (original) ========== */
+            .modal-actions {
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+              margin-bottom: 10px;
+            }
+            .modal-download,
+            .modal-close {
+              background: #f1f5f9;
+              border: none;
+              width: 35px;
+              height: 35px;
+              border-radius: 50%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              color: #64748b;
+              cursor: pointer;
+              font-size: 1.1rem;
+              transition: 0.2s;
+            }
+            .modal-download { color: var(--primary); }
+            .modal-download:hover,
+            .modal-close:hover { background: var(--primary); color: white; }
+        
     </style>
 </head>
 <body>
