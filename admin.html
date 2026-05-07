@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Painel Administrador - Videira Jataí</title>
     
-    <!-- CONFIGURAÇÃO CENTRALIZADA -->
     <script src="config.js"></script>
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- Supabase (biblioteca) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link rel="icon" type="image/png" href="logo.png">
@@ -27,7 +25,6 @@
     <link rel="manifest" href="manifest.json">
   
     <style>
-      /* ESTILOS MANTIDOS EXATAMENTE COMO ANTES */
       .container { max-width: 800px; margin: 0 auto; padding: 15px; }
       .header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border-left: 5px solid #000; }
       .header h3 { margin: 0; color: #000; font-weight: 800; text-transform: uppercase; font-size: 1.1rem; }
@@ -73,33 +70,22 @@
     </style>
   </head>
   <body>
-    <!-- ========================================== -->
-    <!-- VERIFICAÇÃO DE ACESSO (SOMENTE ADMINISTRADOR) -->
-    <!-- ========================================== -->
     <script>
       (async () => {
           const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           const { data: { user } } = await supabaseTemp.auth.getUser();
-
-          if (!user) {
-              window.location.href = "index.html";
-              return;
-          }
-
+          if (!user) { window.location.href = "index.html"; return; }
           const { data: usuario } = await supabaseTemp
               .from('pessoas')
               .select('categoria')
               .eq('email', user.email)
               .single();
-
           const cat = (usuario?.categoria || "membro").toLowerCase();
-
           if (cat !== "administrador") {
               alert("Acesso restrito. Apenas administradores podem acessar este painel.");
               window.location.href = "index.html";
               return;
           }
-
           sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
           sessionStorage.setItem('loginDigitado', user.email);
       })();
@@ -130,7 +116,7 @@
         </div>
 
         <div class="filter-bar">
-            <input type="text" id="filtroNome" placeholder="Buscar por nome ou e-mail..." onkeyup="filtrarUsuarios()" style="flex: 2;">
+            <input type="text" id="filtroNome" placeholder="Buscar por nome, usuário ou e-mail..." onkeyup="filtrarUsuarios()" style="flex: 2;">
             <select id="filtroCategoria" onchange="filtrarUsuarios()" style="flex: 1;">
                 <option value="">Todos</option>
                 <option value="Administrador">Administrador</option>
@@ -152,8 +138,8 @@
         <form id="formUsuario">
           <input type="hidden" name="usuarioOriginal" id="usuarioOriginal">
           
-          <label>Nome do Responsável</label>
-          <input type="text" name="nome" id="cadNome" required placeholder="Ex: Thiago Silva">
+          <label>Usuário (login) *</label>
+          <input type="text" name="usuario" id="cadUsuario" required placeholder="Ex: pastor.joao" style="text-transform: lowercase;">
           
           <label>Telefone (WhatsApp)</label>
           <input type="tel" name="telefone" id="cadTelefone" placeholder="(64) 99999-9999">
@@ -255,13 +241,12 @@
           const termoDigitado = document.getElementById('filtroNome').value.toLowerCase();
           const categoriaSelecionada = document.getElementById('filtroCategoria').value.toLowerCase();
 
-          // Mostrar apenas usuários do sistema (is_user = true) ou todos se filtro "Membro"
           const dadosExibidos = dadosUsuarios.filter(u => {
-              const textoCombina = u.nome.toLowerCase().includes(termoDigitado) || (u.email && u.email.toLowerCase().includes(termoDigitado));
+              const textoCombina = (u.nome && u.nome.toLowerCase().includes(termoDigitado)) || 
+                                   (u.usuario && u.usuario.toLowerCase().includes(termoDigitado)) ||
+                                   (u.email && u.email.toLowerCase().includes(termoDigitado));
               const categoriaCombina = (categoriaSelecionada === "") || (u.categoria && u.categoria.toLowerCase() === categoriaSelecionada);
-              // Para o admin, listamos todos os que são usuários do sistema, ou também membros se o filtro for "Membro"
-              const isUserFilter = (categoriaSelecionada === 'membro') ? true : (u.is_user === true);
-              return textoCombina && categoriaCombina && isUserFilter;
+              return textoCombina && categoriaCombina && u.is_user === true;
           });
 
           renderizarUsuarios(dadosExibidos);
@@ -275,7 +260,8 @@
          }
          
          lista.forEach((u) => {
-             const nome = u.nome; 
+             const nome = u.nome || u.usuario || 'Sem nome';
+             const usuario = u.usuario || '-';
              const email = u.email || 'E-mail não cadastrado';
              const cat = u.categoria;
              const telefone = u.telefone || 'Sem telefone';
@@ -284,6 +270,7 @@
              <div class="user-card">
                 <div class="user-info">
                    <h4>${nome}</h4>
+                   <p><i class="fas fa-user-circle"></i> Login: <strong>${usuario}</strong></p>
                    <p><i class="fas fa-envelope"></i> ${email}</p>
                    <p><i class="fab fa-whatsapp"></i> ${telefone}</p>
                    <span class="badge-role ${cat.replace(/\s/g, '')}">${cat}</span>
@@ -313,17 +300,15 @@
       }
 
       async function preencherSelects() {
-          // Preencher superior_id com pessoas de categorias superiores
           const selSuperior = document.getElementById('cadSuperior');
           selSuperior.innerHTML = '<option value="">Nenhum (Topo)</option>';
           const superiores = dadosUsuarios.filter(u => 
               ['administrador','pastor de governo','pastor de rede','discipulador'].includes(u.categoria.toLowerCase())
           );
           superiores.forEach(u => {
-              selSuperior.innerHTML += `<option value="${u.id}">${u.nome} (${u.categoria})</option>`;
+              selSuperior.innerHTML += `<option value="${u.id}">${u.nome || u.usuario} (${u.categoria})</option>`;
           });
 
-          // Preencher células
           const selCelula = document.getElementById('cadCelula');
           selCelula.innerHTML = '<option value="">Nenhuma</option>';
           dadosCelulas.forEach(c => {
@@ -351,7 +336,7 @@
           const u = dadosUsuarios.find(x => x.id === id);
           if (!u) return;
           document.getElementById('usuarioOriginal').value = u.id;
-          document.getElementById('cadNome').value = u.nome || '';
+          document.getElementById('cadUsuario').value = u.usuario || '';
           document.getElementById('cadTelefone').value = u.telefone || '';
           document.getElementById('cadCategoria').value = u.categoria || 'Membro';
           document.getElementById('cadIsUser').checked = u.is_user === true;
@@ -372,7 +357,8 @@
          
          const idUsuario = this.usuarioOriginal.value;
          const d = {
-            nome: this.nome.value,
+            usuario: this.usuario.value.trim().toLowerCase(),
+            nome: this.usuario.value.trim().toLowerCase(),  // placeholder temporário
             telefone: this.telefone.value,
             categoria: this.categoria.value,
             superior_id: this.superior_id.value || null,
@@ -383,23 +369,26 @@
          try {
              let resultado;
              if (idUsuario) {
+                 // Edição: não sobrescrever nome se já foi preenchido pelo usuário
+                 const pessoaAtual = dadosUsuarios.find(x => x.id === idUsuario);
+                 if (pessoaAtual && pessoaAtual.nome && pessoaAtual.nome !== pessoaAtual.usuario) {
+                     d.nome = pessoaAtual.nome; // mantém o nome real
+                 }
                  resultado = await supabaseClient.from('pessoas').update(d).eq('id', idUsuario);
                  if (resultado.error) throw resultado.error;
-                 registrarLogAcao(`Editou o usuário: ${d.nome}`);
+                 registrarLogAcao(`Editou o usuário: ${d.usuario}`);
                  alert("Usuário atualizado com sucesso!");
                  mudarSecao('usuarios');
              } else {
-                 // Gerar token de convite
                  d.token_convite = crypto.randomUUID();
                  resultado = await supabaseClient.from('pessoas').insert([d]).select();
                  if (resultado.error) throw resultado.error;
-                 registrarLogAcao(`Criou novo usuário: ${d.nome}`);
+                 registrarLogAcao(`Criou novo usuário: ${d.usuario}`);
                  
-                 // Exibe o link e oculta o formulário
                  document.getElementById('formUsuario').style.display = 'none';
                  document.getElementById('tituloFormUsuario').innerText = 'Usuário criado!';
                  const pessoa = resultado.data[0];
-                 const link = `${window.location.origin}./completar-cadastro.html?token=${pessoa.token_convite}`;
+                 const link = `${window.location.origin}/completar-cadastro.html?token=${pessoa.token_convite}`;
                  document.getElementById('linkConvite').value = link;
                  document.getElementById('conviteLinkBox').classList.remove('hidden');
              }
@@ -416,11 +405,9 @@
 
       async function excluirUsuario(id, nome) {
          if(!confirm(`Tem certeza que deseja EXCLUIR o usuário '${nome}'?`)) return;
-         
          try {
              const { error } = await supabaseClient.from('pessoas').delete().eq('id', id);
              if (error) throw error;
-             
              registrarLogAcao(`Excluiu o usuário: ${nome}`);
              alert("Usuário excluído com sucesso!");
              carregarTudo();
@@ -432,11 +419,9 @@
 
       async function limparLogs() {
          if(!confirm("ATENÇÃO: Deseja apagar todo o histórico de logs? Esta ação não pode ser desfeita.")) return;
-         
          try {
              const { error } = await supabaseClient.from('logs').delete().not('datahora', 'is', null);
              if (error) throw error;
-             
              registrarLogAcao("Limpou o histórico de logs do sistema.");
              alert("Logs apagados com sucesso!");
              carregarTudo();
@@ -451,15 +436,12 @@
               alert("Este usuário não possui e-mail cadastrado. Impossível redefinir senha.");
               return;
           }
-          
           if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return;
-          
           try {
               const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                   redirectTo: window.location.origin + '/sistema/nova-senha.html'
               });
               if (error) throw error;
-              
               registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
               alert("Link de redefinição enviado com sucesso! O usuário receberá um e-mail.");
           } catch (e) {
@@ -479,7 +461,6 @@
           const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
           const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
           const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
-          
           try {
               await supabaseClient.from('logs').insert([{ 
                   datahora: dataHoraAtual, 
