@@ -642,13 +642,19 @@
         const id = document.getElementById('celulaId').value;
         const meuId = sessionStorage.getItem('liderId');
         const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
+    
         const dados = {
             nome: document.getElementById('celulaNome').value,
             dia_horario: document.getElementById('celulaDia').value,
             endereco: document.getElementById('celulaEndereco').value,
-            lider_user_id: meuId,
-            supervisor_user_id: meuSuperiorId || null
+            lider_user_id: meuId
         };
+    
+        // Só inclui supervisor_user_id se o líder tiver um superior válido
+        if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
+            dados.supervisor_user_id = meuSuperiorId;
+        }
+    
         try {
             if (id) {
                 await supabaseClient.from('celulas').update(dados).eq('id', id);
@@ -661,7 +667,6 @@
             alert("Erro ao salvar célula: " + err.message);
         }
     }
-
     // ========== APASCENTAR ==========
     async function abrirApascentar() {
         if (!celulaAtiva) return;
