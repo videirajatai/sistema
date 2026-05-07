@@ -426,18 +426,19 @@
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
 
     async function carregarMembrosDaCelula(celulaId) {
-        const meuId = sessionStorage.getItem('liderId');
-        try {
-            const { data, error } = await supabaseClient
-                .from('pessoas')
-                .select('*')
-                .eq('celula_id', celulaId)
-                .eq('arquivado', false)
-                .order('nome', { ascending: true });   // 🔹 ordenação alfabética
-            if (error) throw error;
-            membrosDaCelulaAtiva = data ? data.filter(p => p.id !== meuId) : [];
-        } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
-    }
+    const meuId = sessionStorage.getItem('liderId');
+    try {
+        const { data, error } = await supabaseClient
+            .from('pessoas')
+            .select('*')
+            .eq('celula_id', celulaId)
+            .eq('arquivado', false)
+            .order('nome', { ascending: true });
+        if (error) throw error;
+        // Não filtramos mais o líder, pois ele agora é membro da própria célula
+        membrosDaCelulaAtiva = data || [];
+    } catch (e) { console.error(e); membrosDaCelulaAtiva = []; }
+}
 
     function renderizarMembrosCelulaModal(lista) {
         const grid = document.getElementById('gridMembrosCelulaModal');
