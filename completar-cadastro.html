@@ -40,12 +40,16 @@
 
             <div id="area-form" style="display: none;">
                 <div class="input-group">
-                    <label>Nome (definido pelo administrador)</label>
-                    <input type="text" id="nome" readonly>
+                    <label>Usuário (definido pelo administrador)</label>
+                    <input type="text" id="usuario" readonly>
                 </div>
                 <div class="input-group">
                     <label>Categoria</label>
                     <input type="text" id="categoria" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Seu Nome Completo *</label>
+                    <input type="text" id="nomeCompleto" placeholder="Digite seu nome completo" required>
                 </div>
                 <div class="input-group">
                     <label>Seu E-mail (será usado para login) *</label>
@@ -73,7 +77,6 @@
     </div>
 
     <script>
-        // Usar apenas o cliente público (anon key)
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -90,7 +93,7 @@
 
             const { data: pessoa, error } = await supabaseClient
                 .from('pessoas')
-                .select('id, nome, categoria, superior_id')
+                .select('id, usuario, categoria, superior_id')
                 .eq('token_convite', token)
                 .maybeSingle();
 
@@ -102,7 +105,7 @@
             pessoaId = pessoa.id;
             categoriaPessoa = pessoa.categoria.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-            document.getElementById('nome').value = pessoa.nome;
+            document.getElementById('usuario').value = pessoa.usuario || 'Não definido';
             document.getElementById('categoria').value = pessoa.categoria;
             document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
             document.getElementById('area-form').style.display = 'block';
@@ -135,19 +138,20 @@
             select.innerHTML = '<option value="">Selecione...</option>';
             superiores.forEach(s => {
                 const selected = (s.id === superiorIdAtual) ? 'selected' : '';
-                select.innerHTML += `<option value="${s.id}" ${selected}>${s.nome} (${s.categoria})</option>`;
+                select.innerHTML += `<option value="${s.id}" ${selected}>${s.nome || s.usuario} (${s.categoria})</option>`;
             });
         }
 
         async function finalizarCadastro() {
+            const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
             const email = document.getElementById('email').value.trim();
             const senha = document.getElementById('senha').value.trim();
             const superiorId = document.getElementById('superior_id').value || null;
             const erro = document.getElementById('mensagem-erro');
             const btn = document.getElementById('btn-salvar');
 
-            if (!email || !senha) {
-                erro.innerText = 'E-mail e senha são obrigatórios.';
+            if (!nomeCompleto || !email || !senha) {
+                erro.innerText = 'Todos os campos com * são obrigatórios.';
                 erro.style.display = 'block';
                 return;
             }
@@ -162,7 +166,6 @@
             erro.style.display = 'none';
 
             try {
-                // 1. Criar usuário no Auth usando a API pública signUp
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: email,
                     password: senha
@@ -171,19 +174,18 @@
                 if (authError) throw new Error(authError.message || 'Erro ao criar usuário no Auth');
                 if (!authData.user) throw new Error('Falha ao criar usuário.');
 
-                // 2. Atualizar a tabela pessoas com o e-mail, superior e limpar token
                 const { error: updateError } = await supabaseClient
                     .from('pessoas')
                     .update({
+                        nome: nomeCompleto,
                         email: email,
                         superior_id: superiorId,
-                        token_convite: null  // invalida o token
+                        token_convite: null
                     })
                     .eq('id', pessoaId);
 
                 if (updateError) throw updateError;
 
-                // 3. Redirecionar para o login
                 document.getElementById('area-form').style.display = 'none';
                 document.getElementById('div-sucesso').style.display = 'block';
                 setTimeout(() => {
