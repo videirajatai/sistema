@@ -206,7 +206,7 @@
     let listaAgenda = [];
     let palavraAtual = null;
     let dadosTodasCelulas = []; // para a aba "Células"
-    let mapaNomes = [];
+    let mapaNomes = {};
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
     (async () => {
@@ -281,15 +281,17 @@
             renderizarSelectorCelulas(celulasDoLider);
             document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
 
-            // Dentro de carregarTudo, após carregar as células:
-            const { data: todosUsuarios, error: errUsuarios } = await supabaseClient
-                .from('pessoas')
-                .select('id, nome')
-                .eq('is_user', true);
-            
-            if (!errUsuarios) {
-                window.mapaNomes = {};
-                todosUsuarios.forEach(p => { window.mapaNomes[p.id] = p.nome; });
+            // ---> Substituir a busca antiga por esta (após carregar dadosTodasCelulas) <---
+            const todosLiderIds = [...new Set(dadosTodasCelulas.map(c => c.lider_user_id).filter(id => id))];
+            if (todosLiderIds.length > 0) {
+                const { data: lideres, error: errLideres } = await supabaseClient
+                    .from('pessoas')
+                    .select('id, nome')
+                    .in('id', todosLiderIds);
+                if (!errLideres) {
+                    mapaNomes = {};  // reseta o objeto
+                    lideres.forEach(p => { mapaNomes[p.id] = p.nome; });
+                }
             }
 
             // Agenda
@@ -343,7 +345,7 @@
             return;
         }
         lista.forEach(c => {
-            const nomeLider = window.mapaNomes?.[c.lider_user_id] || 'Não definido';
+            const nomeLider = mapaNomes[c.lider_user_id] || 'Não definido';
             let enderecoHTML = c.endereco ? `<div style="font-size: 0.75rem; color: #888;"><i class="fas fa-map-marker-alt"></i> ${c.endereco}</div>` : '';
             tbody.innerHTML += `<tr>
                 <td><div style="font-weight:700;">${c.nome||''}</div>${enderecoHTML}</td>
