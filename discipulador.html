@@ -268,6 +268,10 @@
     const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
     const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
 
+
+    function normalizarCategoria(cat) {
+        return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
     // ========== FUNÇÕES AUXILIARES ==========
     async function registrarLogAcao(acao) {
         try {
@@ -294,27 +298,29 @@
     }
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
-    (async () => {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) { window.location.href = "index.html"; return; }
-        const { data: pessoa } = await supabaseClient
-            .from('pessoas')
-            .select('id, nome, categoria, superior_id')
-            .eq('email', user.email)
-            .single();
-        const cat = (pessoa?.categoria || "membro").toLowerCase();
-        const permitidos = ["discipulador", "pastor de rede", "pastor de governo", "pastor", "administrador"];
-        if (!permitidos.includes(cat)) {
-            alert("Acesso restrito.");
-            window.location.href = (cat === "membro") ? "membro.html" : "lider.html";
-        }
-        sessionStorage.setItem('discipuladorId', pessoa.id);
-        sessionStorage.setItem('discipuladorSuperiorId', pessoa.superior_id);
-        sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
-        sessionStorage.setItem('loginDigitado', user.email);
-        await carregarTudo();
-        inicializarEventos();
-    })();
+   (async () => {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "index.html"; return; }
+    const { data: pessoa } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, categoria, superior_id')
+        .eq('email', user.email)
+        .single();
+    if (!pessoa) { window.location.href = "index.html"; return; }
+    const cat = normalizarCategoria(pessoa.categoria);
+    const permitidos = ["discipulador", "pastor de rede", "pastor de governo", "pastor", "administrador"];
+    if (!permitidos.includes(cat)) {
+        alert("Acesso restrito.");
+        window.location.href = "index.html";
+        return;
+    }
+    sessionStorage.setItem('discipuladorId', pessoa.id);
+    sessionStorage.setItem('discipuladorSuperiorId', pessoa.superior_id);
+    sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
+    sessionStorage.setItem('loginDigitado', user.email);
+    await carregarTudo();
+    inicializarEventos();
+})();
 
     // ========== CARREGAR DADOS ==========
     async function carregarTudo() {
