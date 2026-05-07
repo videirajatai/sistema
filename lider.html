@@ -522,13 +522,20 @@
         const id = document.getElementById('celulaId').value;
         const meuId = sessionStorage.getItem('liderId');
         const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
-        const dados = {
+        /*const dados = {
             nome: document.getElementById('celulaNome').value,
             dia_horario: document.getElementById('celulaDia').value,
             endereco: document.getElementById('celulaEndereco').value,
             lider_user_id: meuId,
             supervisor_user_id: meuSuperiorId  // obtido automaticamente
+        };*/
+        const dados = {
+            nome: document.getElementById('celulaNome').value,
+            dia_horario: document.getElementById('celulaDia').value,
+            endereco: document.getElementById('celulaEndereco').value,
+            lider_user_id: meuId
         };
+            if (meuSuperiorId) dados.supervisor_user_id = meuSuperiorId;
         try {
             if (id) {
                 await supabaseClient.from('celulas').update(dados).eq('id', id);
