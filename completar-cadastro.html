@@ -78,41 +78,48 @@
 
     <script>
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
 
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
 
         let pessoaId = null;
         let categoriaPessoa = '';
+        let superiorOriginalId = null;
 
-        async function carregarDados() {
-            if (!token) {
-                document.getElementById('subtitulo-cadastro').innerText = 'Token inválido ou link expirado.';
-                return;
-            }
+       async function carregarDados() {
+    if (!token) {
+        document.getElementById('subtitulo-cadastro').innerText = 'Token inválido ou link expirado.';
+        return;
+    }
 
-            const { data: pessoa, error } = await supabaseClient
-                .from('pessoas')
-                .select('id, usuario, categoria, superior_id')
-                .eq('token_convite', token)
-                .maybeSingle();
+    const { data: pessoa, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, usuario, categoria, superior_id')
+        .eq('token_convite', token)
+        .maybeSingle();
 
-            if (error || !pessoa) {
-                document.getElementById('subtitulo-cadastro').innerText = 'Link inválido ou já utilizado.';
-                return;
-            }
+    if (error || !pessoa) {
+        document.getElementById('subtitulo-cadastro').innerText = 'Link inválido ou já utilizado.';
+        return;
+    }
 
-            pessoaId = pessoa.id;
-            categoriaPessoa = pessoa.categoria.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Guarda o ID da pessoa e o superior original definido pelo admin
+    pessoaId = pessoa.id;
+    superiorOriginalId = pessoa.superior_id;   // ← preserva o superior do admin
 
-            document.getElementById('usuario').value = pessoa.usuario || 'Não definido';
-            document.getElementById('categoria').value = pessoa.categoria;
-            document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
-            document.getElementById('area-form').style.display = 'block';
+    // Normaliza a categoria para uso interno
+    categoriaPessoa = (pessoa.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-            await carregarSuperiores(pessoa.categoria, pessoa.superior_id);
-        }
+    // Preenche os campos visuais
+    document.getElementById('usuario').value = pessoa.usuario || 'Não definido';
+    document.getElementById('categoria').value = pessoa.categoria;
+    document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
+    document.getElementById('area-form').style.display = 'block';
 
+    // Carrega o select de superiores baseado na categoria da pessoa
+    await carregarSuperiores(pessoa.categoria, pessoa.superior_id);
+}
         async function carregarSuperiores(categoria, superiorIdAtual) {
             const select = document.getElementById('superior_id');
             const grupo = document.getElementById('grupo-superior');
@@ -143,62 +150,74 @@
         }
 
         async function finalizarCadastro() {
-            const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const senha = document.getElementById('senha').value.trim();
-            const superiorId = document.getElementById('superior_id').value || null;
-            const erro = document.getElementById('mensagem-erro');
-            const btn = document.getElementById('btn-salvar');
+    const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value.trim();
+    const erro = document.getElementById('mensagem-erro');
+    const btn = document.getElementById('btn-salvar');
+    const grupoSuperior = document.getElementById('grupo-superior');
+    const selectSuperior = document.getElementById('superior_id');
 
-            if (!nomeCompleto || !email || !senha) {
-                erro.innerText = 'Todos os campos com * são obrigatórios.';
-                erro.style.display = 'block';
-                return;
-            }
-            if (senha.length < 6 || !/^\d+$/.test(senha)) {
-                erro.innerText = 'A senha deve ter 6 dígitos numéricos.';
-                erro.style.display = 'block';
-                return;
-            }
+    let superiorId = (selectSuperior && !grupoSuperior.classList.contains('hidden')) 
+                        ? (selectSuperior.value || null) 
+                        : null;
+    // Se o superior não foi selecionado, preserva o original do admin
+    if (!superiorId) {
+        superiorId = superiorOriginalId;
+    }
 
-            btn.disabled = true;
-            btn.innerText = 'Salvando...';
-            erro.style.display = 'none';
+    if (!nomeCompleto || !email || !senha) {
+        erro.innerText = 'Todos os campos com * são obrigatórios.';
+        erro.style.display = 'block';
+        return;
+    }
+    if (senha.length < 6 || !/^\d+$/.test(senha)) {
+        erro.innerText = 'A senha deve ter 6 dígitos numéricos.';
+        erro.style.display = 'block';
+        return;
+    }
 
-            try {
-                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: senha
-                });
+    btn.disabled = true;
+    btn.innerText = 'Salvando...';
+    erro.style.display = 'none';
 
-                if (authError) throw new Error(authError.message || 'Erro ao criar usuário no Auth');
-                if (!authData.user) throw new Error('Falha ao criar usuário.');
+    try {
+        // 1. Criar usuário no Supabase Auth
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: senha
+        });
+        if (authError) throw new Error(authError.message);
+        if (!authData.user) throw new Error('Falha ao criar usuário.');
 
-                const { error: updateError } = await supabaseClient
-                    .from('pessoas')
-                    .update({
-                        nome: nomeCompleto,
-                        email: email,
-                        superior_id: superiorId,
-                        token_convite: null
-                    })
-                    .eq('id', pessoaId);
+        // 2. Atualizar a tabela pessoas com o e‑mail, superior (preservado) e limpar token
+        const { error: updateError } = await supabaseClient
+            .from('pessoas')
+            .update({
+                nome: nomeCompleto,
+                email: email,
+                superior_id: superiorId,
+                token_convite: null
+            })
+            .eq('id', pessoaId);
 
-                if (updateError) throw updateError;
+        if (updateError) throw updateError;
 
-                document.getElementById('area-form').style.display = 'none';
-                document.getElementById('div-sucesso').style.display = 'block';
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
-            } catch (e) {
-                erro.innerText = 'Erro: ' + e.message;
-                erro.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'Salvar e Acessar o Sistema';
-            }
-        }
+        // Sucesso
+        document.getElementById('area-form').style.display = 'none';
+        document.getElementById('div-sucesso').style.display = 'block';
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+
+    } catch (e) {
+        erro.innerText = 'Erro: ' + e.message;
+        erro.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Salvar e Acessar o Sistema';
+    }
+}
 
         carregarDados();
     </script>
