@@ -255,66 +255,68 @@
 
     // ========== CARREGAR TUDO ==========
     async function carregarTudo() {
-        const icon = document.getElementById('iconRefresh');
-        if (icon) icon.classList.add('fa-spin');
-        const meuId = sessionStorage.getItem('liderId');
-        try {
-            // Células do líder (apenas as que lidera)
-            const { data: celData, error: celError } = await supabaseClient
-                .from('celulas')
-                .select('*')
-                .eq('lider_user_id', meuId);
-            if (celError) throw celError;
-            dadosCelulas = celData || [];
-            celulasDoLider = dadosCelulas;
-            window.celulaMap = {};
-            dadosCelulas.forEach(c => window.celulaMap[c.id] = c.nome);
+    const icon = document.getElementById('iconRefresh');
+    if (icon) icon.classList.add('fa-spin');
+    const meuId = sessionStorage.getItem('liderId');
+    try {
+        // 1. Células do líder (apenas as que ele lidera)
+        const { data: celData, error: celError } = await supabaseClient
+            .from('celulas')
+            .select('*')
+            .eq('lider_user_id', meuId);
+        if (celError) throw celError;
+        dadosCelulas = celData || [];
+        celulasDoLider = dadosCelulas;
+        window.celulaMap = {};
+        dadosCelulas.forEach(c => window.celulaMap[c.id] = c.nome);
 
-            // Todas as células (para a aba Células)
-            const { data: todasCelulas, error: todasError } = await supabaseClient
-                .from('celulas')
-                .select('*')
-                .order('nome');
-            if (!todasError) dadosTodasCelulas = todasCelulas || [];
+        // 2. Todas as células (para a aba "Células")
+        const { data: todasCelulas, error: todasError } = await supabaseClient
+            .from('celulas')
+            .select('*')
+            .order('nome');
+        if (!todasError) dadosTodasCelulas = todasCelulas || [];
 
-            renderizarCelulas(dadosTodasCelulas);
-            renderizarSelectorCelulas(celulasDoLider);
-            document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
-
-               
-            // Coletar IDs de todos os líderes das células exibidas
-            const todosLiderIds = [...new Set(dadosTodasCelulas.map(c => c.lider_user_id).filter(id => id))];
-            if (todosLiderIds.length > 0) {
-                const { data: lideres, error: errLideres } = await supabaseClient
-                    .from('pessoas')
-                    .select('id, nome')
-                    .in('id', todosLiderIds);
-                if (!errLideres) {
-                    mapaNomes = {};
-                    lideres.forEach(p => { mapaNomes[p.id] = p.nome; });
-                }
+        // 3. ★ AGORA PREENCHEMOS O MAPA DE NOMES (ANTES DE RENDERIZAR) ★
+        const todosLiderIds = [...new Set(dadosTodasCelulas.map(c => c.lider_user_id).filter(id => id))];
+        if (todosLiderIds.length > 0) {
+            const { data: lideres, error: errLideres } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .in('id', todosLiderIds);
+            if (!errLideres) {
+                mapaNomes = {};
+                lideres.forEach(p => { mapaNomes[p.id] = p.nome; });
             }
-            // Agenda
-            try {
-                const agendaRes = await fetchGoogle('buscarAgenda');
-                listaAgenda = agendaRes || [];
-                renderizarAgenda(listaAgenda);
-            } catch(e) { renderizarAgenda([]); }
-
-            // Palavras
-            const { data: palavras, error: palError } = await supabaseClient
-                .from('palavras')
-                .select('*')
-                .order('id', { ascending: false });
-            if (palError) throw palError;
-            listaPalavras = palavras || [];
-            renderizarPalavras(listaPalavras);
-        } catch(e) {
-            console.error("Erro ao carregar dados:", e);
-        } finally {
-            if (icon) icon.classList.remove('fa-spin');
         }
+
+        // 4. Só agora renderizamos (o mapa já está pronto)
+        renderizarCelulas(dadosTodasCelulas);
+        renderizarSelectorCelulas(celulasDoLider);
+        document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
+
+        // 5. Agenda
+        try {
+            const agendaRes = await fetchGoogle('buscarAgenda');
+            listaAgenda = agendaRes || [];
+            renderizarAgenda(listaAgenda);
+        } catch(e) { renderizarAgenda([]); }
+
+        // 6. Palavras
+        const { data: palavras, error: palError } = await supabaseClient
+            .from('palavras')
+            .select('*')
+            .order('id', { ascending: false });
+        if (palError) throw palError;
+        listaPalavras = palavras || [];
+        renderizarPalavras(listaPalavras);
+
+    } catch(e) {
+        console.error("Erro ao carregar dados:", e);
+    } finally {
+        if (icon) icon.classList.remove('fa-spin');
     }
+}
 
     // ========== CÉLULAS (CARDS) ==========
     function renderizarSelectorCelulas(celulas) {
