@@ -419,23 +419,47 @@
         }
     }
 
-    async function abrirEditarMembro(id) {
-        const { data: p, error } = await supabaseClient.from('pessoas').select('*').eq('id', id).single();
-        if (error || !p) return alert('Membro não encontrado.');
-        document.getElementById('editMembroId').value = p.id;
-        document.getElementById('editMembroNome').value = p.nome || '';
-        document.getElementById('editMembroNasc').value = p.nascimento || '';
-        document.getElementById('editMembroTel').value = p.telefone || '';
-        document.getElementById('editMembroCelula').value = p.celula_id || '';
-        document.getElementById('editMembroCat').value = p.categoria || 'Membro';
-        document.getElementById('editMembroBatizado').checked = p.batizado === 'Sim';
-        document.getElementById('editMembroCursao').checked = p.cursao === 'Sim';
-        document.getElementById('editMembroCtl').checked = p.ctl === 'Sim';
-        document.getElementById('editMembroEncontro').checked = p.encontro === 'Sim';
-        document.getElementById('editMembroSeminario').checked = p.seminario === 'Sim';
-        document.getElementById('editMembroDizimista').checked = p.dizimista === 'Sim';
-        document.getElementById('modalEditarMembro').classList.remove('hidden');
+   async function abrirEditarMembro(id) {
+    if (!id) {
+        alert("ID do membro não informado.");
+        return;
     }
+    const { data: p, error } = await supabaseClient
+        .from('pessoas')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();          // não lança erro se não encontrar
+
+    if (error || !p) {
+        alert("Membro não encontrado.");
+        return;
+    }
+
+    // Preencher os campos
+    document.getElementById('editMembroId').value = p.id;
+    document.getElementById('editMembroNome').value = p.nome || '';
+    document.getElementById('editMembroNasc').value = p.nascimento || '';
+    document.getElementById('editMembroTel').value = p.telefone || '';
+
+    // Popular o select de células antes de definir o valor
+    const selectCelula = document.getElementById('editMembroCelula');
+    // Reutilizar células do líder (já carregadas em dadosCelulas)
+    selectCelula.innerHTML = '<option value="">Selecione uma célula</option>';
+    dadosCelulas.forEach(c => {
+        const selected = (c.id === p.celula_id) ? 'selected' : '';
+        selectCelula.innerHTML += `<option value="${c.id}" ${selected}>${c.nome}</option>`;
+    });
+
+    document.getElementById('editMembroCat').value = p.categoria || 'Membro';
+    document.getElementById('editMembroBatizado').checked = (p.batizado === 'Sim' || p.batizado === true);
+    document.getElementById('editMembroCursao').checked = (p.cursao === 'Sim' || p.cursao === true);
+    document.getElementById('editMembroCtl').checked = (p.ctl === 'Sim' || p.ctl === true);
+    document.getElementById('editMembroEncontro').checked = (p.encontro === 'Sim' || p.encontro === true);
+    document.getElementById('editMembroSeminario').checked = (p.seminario === 'Sim' || p.seminario === true);
+    document.getElementById('editMembroDizimista').checked = (p.dizimista === 'Sim' || p.dizimista === true);
+
+    document.getElementById('modalEditarMembro').classList.remove('hidden');
+}
 
     async function arquivarMembro(id) {
         if (!confirm("Arquivar este membro?")) return;
@@ -831,37 +855,52 @@
             };
         }
 
+      
         // Edição de membro
-        const formEdit = document.getElementById('formEditarMembro');
-        if (formEdit) {
-            formEdit.onsubmit = async function(e) {
-                e.preventDefault();
-                const id = document.getElementById('editMembroId').value;
-                const dados = {
-                    nome: document.getElementById('editMembroNome').value,
-                    nascimento: document.getElementById('editMembroNasc').value,
-                    telefone: document.getElementById('editMembroTel').value,
-                    celula_id: document.getElementById('editMembroCelula').value,
-                    categoria: document.getElementById('editMembroCat').value,
-                    batizado: document.getElementById('editMembroBatizado').checked ? 'Sim' : 'Não',
-                    cursao: document.getElementById('editMembroCursao').checked ? 'Sim' : 'Não',
-                    ctl: document.getElementById('editMembroCtl').checked ? 'Sim' : 'Não',
-                    encontro: document.getElementById('editMembroEncontro').checked ? 'Sim' : 'Não',
-                    seminario: document.getElementById('editMembroSeminario').checked ? 'Sim' : 'Não',
-                    dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
-                };
-                try {
-                    const { error } = await supabaseClient.from('pessoas').update(dados).eq('id', id);
-                    if (error) throw error;
-                    alert("Membro atualizado!");
-                    document.getElementById('modalEditarMembro').classList.add('hidden');
-                    // Recarregar automaticamente
-                    await carregarMembrosDaCelula(celulaAtiva.id);
-                    renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
-                } catch(err) { alert("Erro: " + err.message); }
-            };
+const formEdit = document.getElementById('formEditarMembro');
+if (formEdit) {
+    formEdit.onsubmit = async function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editMembroId').value;
+        if (!id) {
+            alert("Erro: ID do membro não encontrado.");
+            return;
         }
 
+        const dados = {
+            nome: document.getElementById('editMembroNome').value,
+            nascimento: document.getElementById('editMembroNasc').value || null,
+            telefone: document.getElementById('editMembroTel').value,
+            celula_id: document.getElementById('editMembroCelula').value || null,
+            categoria: document.getElementById('editMembroCat').value,
+            batizado: document.getElementById('editMembroBatizado').checked ? 'Sim' : 'Não',
+            cursao: document.getElementById('editMembroCursao').checked ? 'Sim' : 'Não',
+            ctl: document.getElementById('editMembroCtl').checked ? 'Sim' : 'Não',
+            encontro: document.getElementById('editMembroEncontro').checked ? 'Sim' : 'Não',
+            seminario: document.getElementById('editMembroSeminario').checked ? 'Sim' : 'Não',
+            dizimista: document.getElementById('editMembroDizimista').checked ? 'Sim' : 'Não',
+        };
+
+        try {
+            const { error } = await supabaseClient
+                .from('pessoas')
+                .update(dados)
+                .eq('id', id);
+            if (error) throw error;
+
+            alert("Membro atualizado!");
+            document.getElementById('modalEditarMembro').classList.add('hidden');
+
+            // Recarregar automaticamente a lista de membros da célula ativa
+            if (celulaAtiva) {
+                await carregarMembrosDaCelula(celulaAtiva.id);
+                renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+            }
+        } catch (err) {
+            alert("Erro ao atualizar: " + err.message);
+        }
+    };
+}
         // Relatório
         const formRel = document.getElementById('formRelatorioModal');
         if (formRel) formRel.onsubmit = salvarRelatorio;
