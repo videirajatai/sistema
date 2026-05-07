@@ -221,14 +221,7 @@
     await carregarTudo();
     inicializarEventos();
 })();
-        sessionStorage.setItem('liderId', pessoa.id);
-        sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
-        sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
-        sessionStorage.setItem('loginDigitado', user.email);
-        await carregarTudo();
-        inicializarEventos();
-    })();
-
+    
     function normalizarCategoria(cat) {
         return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
