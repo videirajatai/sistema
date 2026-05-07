@@ -192,10 +192,10 @@
         emailParaLogin = data.email;
     }
 
-    // Autenticação no Supabase Auth (senha sem modificação)
+    // Autenticação no Supabase Auth (senha sem sufixo)
     const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
         email: emailParaLogin,
-        password: senhaDigitada  // <-- sem sufixo
+        password: senhaDigitada
     });
 
     if (loginError) {
@@ -234,21 +234,37 @@
     sessionStorage.setItem('urlApi', urlBackend);
     sessionStorage.setItem('categoria', categoria);
 
-    // Redirecionamento conforme categoria (mesmo código anterior)
+    // REDIRECIONAMENTOS CONFORME CATEGORIA (MANTIDOS COMO NO ORIGINAL)
     let paginas = [];
     if (categoria === 'administrador') {
-        paginas = [{ nome: "Painel Admin", url: "admin" }];
-    } else if (categoria === 'pastor de governo' || categoria === 'pastor de rede' || categoria === 'discipulador') {
-        paginas = [{ nome: "Painel Supervisor", url: "pastor" }];
-    } else if (categoria === 'lider' || categoria === 'líder') {
-        paginas = [{ nome: "Painel do Líder", url: "lider" }];
-    } else if (categoria === 'tesoureiro') {
         paginas = [
-            { nome: "Financeiro PC", url: "financeiro" },
-            { nome: "Financeiro Mobile", url: "financeiromobile" }
+            { nome: "Painel Admin", url: "admin" },
+            { nome: "Painel do Pastor", url: "pastor" },
+            { nome: "Painel Discipulador", url: "discipulador" },
+            { nome: "Painel do Líder", url: "lider" },
+            { nome: "Financeiro Mobile", url: "financeiromobile" },
+            { nome: "Painel Financeiro", url: "financeiro" },
+            { nome: "Painel do Membro", url: "membro" }
+        ];
+    } else if (categoria === 'pastor de governo' || categoria === 'pastor de rede' || categoria === 'pastor') {
+        paginas = [ { nome: "Painel Pastoral", url: "pastor" } ];
+    } else if (categoria === 'discipulador') {
+        paginas = [ 
+            { nome: "Painel Discipulador", url: "discipulador" }, 
+            { nome: "Painel do Líder", url: "lider" } 
+        ];
+    } else if (categoria === 'lider' || categoria === 'líder') {
+        paginas = [ { nome: "Painel do Líder", url: "lider" } ];
+    } else if (categoria === 'tesoureiro') {
+        paginas = [ 
+            { nome: "Financeiro PC", url: "financeiro" }, 
+            { nome: "Financeiro Mobile", url: "financeiromobile" } 
         ];
     } else if (categoria === 'membro') {
-        paginas = [{ nome: "Área do Membro", url: "membro" }];
+        paginas = [ { nome: "Área do Membro", url: "membro" } ];
+    } else {
+        // Fallback para categorias não reconhecidas
+        paginas = [ { nome: "Painel do Líder", url: "lider" } ];
     }
 
     const urlsPermitidas = paginas.map(p => p.url);
@@ -272,6 +288,8 @@
         });
     }
 }
+
+        
         function entrarNoPainel(nome, urlDestino) {
             const telaLogin = document.getElementById('tela-login');
             const splashScreen = document.getElementById('splash-screen');
