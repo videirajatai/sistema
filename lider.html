@@ -481,40 +481,43 @@
     }
 
     async function salvarRelatorio(e) {
-        e.preventDefault();
-        const btn = document.getElementById('btnSalvarRelatorio');
-        btn.disabled = true;
-        const dados = {
-            data: document.getElementById('relModalData').value,
-            celula: celulaAtiva.nome,
-            quebra_gelo: document.getElementById('relQuebraGelo').value,
-            palavra: document.getElementById('relPalavra').value,
-            louvor: document.getElementById('relLouvor').value,
-            lanche: document.getElementById('relLanche').value,
-            observacoes: document.getElementById('relObservacoes').value
-        };
-        try {
-            const { data: rel, error: insertError } = await supabaseClient.from('relatorios').insert([dados]).select();
-            if (insertError) throw insertError;
-            const relatorioId = rel?.[0]?.id;
-            if (!relatorioId) throw new Error("Falha ao obter ID do relatório inserido.");
-            
-            const checkboxes = document.querySelectorAll('#checklistMembrosModal input[name="presentes"]:checked');
-            const presentesIds = Array.from(checkboxes).map(cb => cb.value);
-            const presencas = membrosDaCelulaAtiva.map(p => ({
-                relatorio_id: relatorioId,
-                membro_id: p.id,
-                presente: presentesIds.includes(p.id)
-            }));
-            await supabaseClient.from('presencas').insert(presencas);
-            alert("Relatório salvo com sucesso!");
-            fecharModalRelatorio();
-        } catch(err) {
-            alert("Erro ao salvar relatório: " + err.message);
-        } finally {
-            btn.disabled = false;
-        }
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarRelatorio');
+    btn.disabled = true;
+    const dados = {
+        data: document.getElementById('relModalData').value,
+        celula_id: celulaAtiva.id,  // <-- agora usa o UUID da célula
+        quebra_gelo: document.getElementById('relQuebraGelo').value,
+        palavra: document.getElementById('relPalavra').value,
+        louvor: document.getElementById('relLouvor').value,
+        lanche: document.getElementById('relLanche').value,
+        observacoes: document.getElementById('relObservacoes').value
+    };
+    try {
+        const { data: rel, error: insertError } = await supabaseClient
+            .from('relatorios')
+            .insert([dados])
+            .select();              // <-- garante que o registro inserido seja retornado
+        if (insertError) throw insertError;
+        const relatorioId = rel?.[0]?.id;
+        if (!relatorioId) throw new Error("Falha ao obter ID do relatório inserido.");
+        
+        const checkboxes = document.querySelectorAll('#checklistMembrosModal input[name="presentes"]:checked');
+        const presentesIds = Array.from(checkboxes).map(cb => cb.value);
+        const presencas = membrosDaCelulaAtiva.map(p => ({
+            relatorio_id: relatorioId,
+            membro_id: p.id,
+            presente: presentesIds.includes(p.id)
+        }));
+        await supabaseClient.from('presencas').insert(presencas);
+        alert("Relatório salvo com sucesso!");
+        fecharModalRelatorio();
+    } catch(err) {
+        alert("Erro ao salvar relatório: " + err.message);
+    } finally {
+        btn.disabled = false;
     }
+}
 
     // ========== GESTÃO DE CÉLULAS ==========
     function abrirNovaCelula() {
@@ -567,16 +570,28 @@
         alert(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.");
     }
 
-    async function calcularFaltosos() {
-        const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-        const { data: rels } = await supabaseClient.from('relatorios').select('id').eq('celula', celulaAtiva.nome).gte('data', trintaDiasAtras.toISOString().split('T')[0]);
-        if (!rels || !rels.length) return [];
-        const ids = rels.map(r => r.id);
-        const { data: presencas } = await supabaseClient.from('presencas').select('membro_id, presente').in('relatorio_id', ids);
-        const faltasMap = {};
-        presencas?.forEach(p => { if (!p.presente) faltasMap[p.membro_id] = (faltasMap[p.membro_id] || 0) + 1; });
-        return membrosDaCelulaAtiva.filter(p => faltasMap[p.id] > 0).map(p => ({ ...p, faltas: faltasMap[p.id] }));
-    }
+   async function calcularFaltosos() {
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const { data: rels } = await supabaseClient
+        .from('relatorios')
+        .select('id')
+        .eq('celula_id', celulaAtiva.id)          // <-- filtro correto por UUID
+        .gte('data', trintaDiasAtras.toISOString().split('T')[0]);
+    if (!rels || !rels.length) return [];
+    const ids = rels.map(r => r.id);
+    const { data: presencas } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .in('relatorio_id', ids);
+    const faltasMap = {};
+    presencas?.forEach(p => {
+        if (!p.presente) faltasMap[p.membro_id] = (faltasMap[p.membro_id] || 0) + 1;
+    });
+    return membrosDaCelulaAtiva
+        .filter(p => faltasMap[p.id] > 0)
+        .map(p => ({ ...p, faltas: faltasMap[p.id] }));
+}
 
     // ========== ABAS E NAVEGAÇÃO ==========
     function mudarSecao(s) {
@@ -865,6 +880,7 @@
                 btn.innerText = "Enviando...";
                 try {
                     const { error } = await supabaseClient.from('sugestoes').insert([{
+                        id: crypto.randomUUID(),   
                         mensagem: this.mensagem.value,
                         data: new Date().toISOString().slice(0,10)
                     }]);
