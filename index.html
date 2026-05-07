@@ -157,124 +157,121 @@
         }
 
         async function verificarLogin() {
-            const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
-            const passDigitado = document.getElementById('senha-input').value.trim();
-            const pass = passDigitado + "-videira";
+    const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
+    const senhaDigitada = document.getElementById('senha-input').value.trim();
 
-            const erro = document.getElementById('mensagem-erro');
-            const btn = document.getElementById('btn-entrar');
+    const erro = document.getElementById('mensagem-erro');
+    const btn = document.getElementById('btn-entrar');
 
-            if(!entrada || !passDigitado) { 
-                erro.innerText = "⚠️ Preencha usuário/e-mail e senha."; 
-                erro.style.display = 'block'; 
-                return; 
-            }
+    if(!entrada || !senhaDigitada) { 
+        erro.innerText = "⚠️ Preencha usuário/e-mail e senha."; 
+        erro.style.display = 'block'; 
+        return; 
+    }
 
-            btn.innerText = "Autenticando..."; 
-            btn.disabled = true; 
-            erro.style.display = 'none';
+    btn.innerText = "Autenticando..."; 
+    btn.disabled = true; 
+    erro.style.display = 'none';
 
-            let emailParaLogin = entrada;
+    let emailParaLogin = entrada;
 
-            // Se não for e-mail, busca o e-mail pelo campo 'usuario' na tabela pessoas
-            if (!entrada.includes('@')) {
-                const { data, error } = await supabaseClient
-                    .from('pessoas')
-                    .select('email')
-                    .eq('usuario', entrada)
-                    .maybeSingle();
-                if (error || !data) {
-                    erro.innerText = "⚠️ Usuário não encontrado.";
-                    erro.style.display = 'block';
-                    btn.innerText = "Entrar no Sistema"; 
-                    btn.disabled = false;
-                    return;
-                }
-                emailParaLogin = data.email;
-            }
-
-            // Autenticação no Supabase Auth
-            const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
-                email: emailParaLogin,
-                password: pass
-            });
-
-            if (loginError) {
-                erro.innerText = "⚠️ E-mail ou senha incorretos.";
-                erro.style.display = 'block';
-                document.getElementById('senha-input').value = "";
-                btn.innerText = "Entrar no Sistema"; 
-                btn.disabled = false;
-                return;
-            }
-
-            // Buscar categoria e nome na tabela pessoas
-            const { data: pessoa } = await supabaseClient
-                .from('pessoas')
-                .select('nome, categoria')
-                .eq('email', emailParaLogin)
-                .single();
-
-            if (!pessoa) {
-                erro.innerText = "⚠️ Registro não encontrado na base de dados.";
-                erro.style.display = 'block';
-                btn.innerText = "Entrar no Sistema"; 
-                btn.disabled = false;
-                return;
-            }
-
-            const nomeReal = pessoa.nome;
-            const usuarioReal = entrada;
-            const categoria = (pessoa.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-
-            // Registrar log
-            registrarLog(usuarioReal, nomeReal, "Fez login no sistema");
-
-            // Salvar informações na sessão
-            sessionStorage.setItem('usuarioLogado', nomeReal);
-            sessionStorage.setItem('loginDigitado', emailParaLogin);
-            sessionStorage.setItem('urlApi', urlBackend);
-            sessionStorage.setItem('categoria', categoria);
-
-            // Redirecionamento conforme categoria
-            let paginas = [];
-            if (categoria === 'administrador') {
-                paginas = [{ nome: "Painel Admin", url: "admin" }];
-            } else if (categoria === 'pastor de governo' || categoria === 'pastor de rede' || categoria === 'discipulador') {
-                paginas = [{ nome: "Painel Supervisor", url: "pastor" }]; // por enquanto pastor.html
-            } else if (categoria === 'lider' || categoria === 'líder') {
-                paginas = [{ nome: "Painel do Líder", url: "lider" }];
-            } else if (categoria === 'tesoureiro') {
-                paginas = [
-                    { nome: "Financeiro PC", url: "financeiro" },
-                    { nome: "Financeiro Mobile", url: "financeiromobile" }
-                ];
-            } else if (categoria === 'membro') {
-                paginas = [{ nome: "Área do Membro", url: "membro" }];
-            }
-
-            const urlsPermitidas = paginas.map(p => p.url);
-            sessionStorage.setItem('paginasPermitidas', JSON.stringify(urlsPermitidas));
-
-            if (paginas.length === 1) {
-                entrarNoPainel(nomeReal, paginas[0].url);
-            } else {
-                document.getElementById('area-form').style.display = 'none';
-                document.getElementById('area-escolha').style.display = 'block';
-                document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
-                document.getElementById('subtitulo-login').innerText = "Escolha o painel:";
-
-                const divBotoes = document.getElementById('botoes-painel');
-                divBotoes.innerHTML = '';
-                paginas.forEach(pag => {
-                    let b = document.createElement('button');
-                    b.innerText = pag.nome;
-                    b.onclick = () => entrarNoPainel(nomeReal, pag.url);
-                    divBotoes.appendChild(b);
-                });
-            }
+    // Se não for e-mail, busca o e-mail pelo campo 'usuario' na tabela pessoas
+    if (!entrada.includes('@')) {
+        const { data, error } = await supabaseClient
+            .from('pessoas')
+            .select('email')
+            .eq('usuario', entrada)
+            .maybeSingle();
+        if (error || !data) {
+            erro.innerText = "⚠️ Usuário não encontrado.";
+            erro.style.display = 'block';
+            btn.innerText = "Entrar no Sistema"; 
+            btn.disabled = false;
+            return;
         }
+        emailParaLogin = data.email;
+    }
 
+    // Autenticação no Supabase Auth (senha sem modificação)
+    const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
+        email: emailParaLogin,
+        password: senhaDigitada  // <-- sem sufixo
+    });
+
+    if (loginError) {
+        erro.innerText = "⚠️ E-mail ou senha incorretos.";
+        erro.style.display = 'block';
+        document.getElementById('senha-input').value = "";
+        btn.innerText = "Entrar no Sistema"; 
+        btn.disabled = false;
+        return;
+    }
+
+    // Buscar categoria e nome na tabela pessoas
+    const { data: pessoa } = await supabaseClient
+        .from('pessoas')
+        .select('nome, categoria')
+        .eq('email', emailParaLogin)
+        .single();
+
+    if (!pessoa) {
+        erro.innerText = "⚠️ Registro não encontrado na base de dados.";
+        erro.style.display = 'block';
+        btn.innerText = "Entrar no Sistema"; 
+        btn.disabled = false;
+        return;
+    }
+
+    const nomeReal = pessoa.nome;
+    const categoria = (pessoa.categoria || "").toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+
+    // Registrar log
+    registrarLog(entrada, nomeReal, "Fez login no sistema");
+
+    // Salvar informações na sessão
+    sessionStorage.setItem('usuarioLogado', nomeReal);
+    sessionStorage.setItem('loginDigitado', emailParaLogin);
+    sessionStorage.setItem('urlApi', urlBackend);
+    sessionStorage.setItem('categoria', categoria);
+
+    // Redirecionamento conforme categoria (mesmo código anterior)
+    let paginas = [];
+    if (categoria === 'administrador') {
+        paginas = [{ nome: "Painel Admin", url: "admin" }];
+    } else if (categoria === 'pastor de governo' || categoria === 'pastor de rede' || categoria === 'discipulador') {
+        paginas = [{ nome: "Painel Supervisor", url: "pastor" }];
+    } else if (categoria === 'lider' || categoria === 'líder') {
+        paginas = [{ nome: "Painel do Líder", url: "lider" }];
+    } else if (categoria === 'tesoureiro') {
+        paginas = [
+            { nome: "Financeiro PC", url: "financeiro" },
+            { nome: "Financeiro Mobile", url: "financeiromobile" }
+        ];
+    } else if (categoria === 'membro') {
+        paginas = [{ nome: "Área do Membro", url: "membro" }];
+    }
+
+    const urlsPermitidas = paginas.map(p => p.url);
+    sessionStorage.setItem('paginasPermitidas', JSON.stringify(urlsPermitidas));
+
+    if (paginas.length === 1) {
+        entrarNoPainel(nomeReal, paginas[0].url);
+    } else {
+        document.getElementById('area-form').style.display = 'none';
+        document.getElementById('area-escolha').style.display = 'block';
+        document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
+        document.getElementById('subtitulo-login').innerText = "Escolha o painel:";
+
+        const divBotoes = document.getElementById('botoes-painel');
+        divBotoes.innerHTML = '';
+        paginas.forEach(pag => {
+            let b = document.createElement('button');
+            b.innerText = pag.nome;
+            b.onclick = () => entrarNoPainel(nomeReal, pag.url);
+            divBotoes.appendChild(b);
+        });
+    }
+}
         function entrarNoPainel(nome, urlDestino) {
             const telaLogin = document.getElementById('tela-login');
             const splashScreen = document.getElementById('splash-screen');
