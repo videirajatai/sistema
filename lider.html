@@ -637,36 +637,60 @@
         document.getElementById('modalCelulaForm').classList.remove('hidden');
     }
 
-    async function salvarCelula(e) {
-        e.preventDefault();
-        const id = document.getElementById('celulaId').value;
-        const meuId = sessionStorage.getItem('liderId');
-        const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
-    
-        const dados = {
-            nome: document.getElementById('celulaNome').value,
-            dia_horario: document.getElementById('celulaDia').value,
-            endereco: document.getElementById('celulaEndereco').value,
-            lider_user_id: meuId
-        };
-    
-        // Só inclui supervisor_user_id se o líder tiver um superior válido
-        if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
-            dados.supervisor_user_id = meuSuperiorId;
-        }
-    
-        try {
-            if (id) {
-                await supabaseClient.from('celulas').update(dados).eq('id', id);
-            } else {
-                await supabaseClient.from('celulas').insert([dados]);
-            }
-            document.getElementById('modalCelulaForm').classList.add('hidden');
-            carregarTudo();
-        } catch(err) {
-            alert("Erro ao salvar célula: " + err.message);
-        }
+   async function salvarCelula(e) {
+    e.preventDefault();
+    const id = document.getElementById('celulaId').value;
+    const meuId = sessionStorage.getItem('liderId');
+    const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
+
+    const dados = {
+        nome: document.getElementById('celulaNome').value,
+        dia_horario: document.getElementById('celulaDia').value,
+        endereco: document.getElementById('celulaEndereco').value,
+        lider_user_id: meuId
+    };
+
+    // Só inclui supervisor_user_id se o líder tiver um superior válido
+    if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
+        dados.supervisor_user_id = meuSuperiorId;
     }
+
+    try {
+        if (id) {
+            // Edição de célula existente
+            await supabaseClient.from('celulas').update(dados).eq('id', id);
+        } else {
+            // Criação de nova célula
+            const { data: novaCelula, error: insertError } = await supabaseClient
+                .from('celulas')
+                .insert([dados])
+                .select();
+            if (insertError) throw insertError;
+
+            const novaCelulaId = novaCelula[0].id;
+
+            // Verifica se o líder já está vinculado a alguma célula
+            const { data: lider, error: liderError } = await supabaseClient
+                .from('pessoas')
+                .select('celula_id')
+                .eq('id', meuId)
+                .single();
+
+            if (!liderError && lider && !lider.celula_id) {
+                // Líder não está em nenhuma célula → associa à nova célula
+                await supabaseClient
+                    .from('pessoas')
+                    .update({ celula_id: novaCelulaId })
+                    .eq('id', meuId);
+            }
+        }
+
+        document.getElementById('modalCelulaForm').classList.add('hidden');
+        carregarTudo();
+    } catch(err) {
+        alert("Erro ao salvar célula: " + err.message);
+    }
+}
     // ========== APASCENTAR ==========
     async function abrirApascentar() {
         if (!celulaAtiva) return;
