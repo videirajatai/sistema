@@ -71,24 +71,28 @@
   </head>
   <body>
     <script>
-      (async () => {
-          const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          const { data: { user } } = await supabaseTemp.auth.getUser();
-          if (!user) { window.location.href = "index.html"; return; }
-          const { data: usuario } = await supabaseTemp
-              .from('pessoas')
-              .select('categoria')
-              .eq('email', user.email)
-              .single();
-          const cat = (usuario?.categoria || "membro").toLowerCase();
-          if (cat !== "administrador") {
-              alert("Acesso restrito. Apenas administradores podem acessar este painel.");
-              window.location.href = "index.html";
-              return;
-          }
-          sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
-          sessionStorage.setItem('loginDigitado', user.email);
-      })();
+     (async () => {
+    const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { user } } = await supabaseTemp.auth.getUser();
+    if (!user) { window.location.href = "index.html"; return; }
+
+    const { data: usuario } = await supabaseTemp
+        .from('pessoas')
+        .select('categoria')
+        .eq('email', user.email)
+        .single();
+
+    const cat = normalizarCategoria(usuario?.categoria);
+    if (cat !== 'administrador') {
+        alert("Acesso restrito. Apenas administradores podem acessar este painel.");
+        window.location.href = "index.html";
+        return;
+    }
+
+    sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
+    sessionStorage.setItem('loginDigitado', user.email);
+})();
+      
     </script>
 
     <div class="container">
@@ -209,6 +213,11 @@
 
       window.onload = carregarTudo;
 
+      function normalizarCategoria(cat) {
+          return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      }
+      
+
       function mudarSecao(s) {
          ['usuarios','form-usuario','logs'].forEach(id => document.getElementById('secao-'+id).classList.add('hidden'));
          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -236,6 +245,8 @@
              if(icon) icon.classList.remove('fa-spin');
          }
       }
+
+      
 
       function filtrarUsuarios() {
           const termoDigitado = document.getElementById('filtroNome').value.toLowerCase();
