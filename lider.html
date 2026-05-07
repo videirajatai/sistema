@@ -281,18 +281,7 @@
             renderizarSelectorCelulas(celulasDoLider);
             document.getElementById('nenhumaCelulaMsg').style.display = celulasDoLider.length ? 'none' : 'block';
 
-            // Dentro de carregarTudo, após carregar as células:
-            const { data: todosUsuarios, error: errUsuarios } = await supabaseClient
-                .from('pessoas')
-                .select('id, nome')
-                .eq('is_user', true);
-            
-            if (!errUsuarios) {
-                window.mapaNomes = {};
-                todosUsuarios.forEach(p => { window.mapaNomes[p.id] = p.nome; });
-            }
-
-            // ---> Substituir a busca antiga por esta (após carregar dadosTodasCelulas) <---
+               
             // Coletar IDs de todos os líderes das células exibidas
             const todosLiderIds = [...new Set(dadosTodasCelulas.map(c => c.lider_user_id).filter(id => id))];
             if (todosLiderIds.length > 0) {
