@@ -132,6 +132,7 @@
     let listaAgenda = [];
     let celulaAtiva = null;
     let membrosDaCelulaAtiva = [];
+    let mapaNomes = {}; // id -> nome
 
     // ========== AUTENTICAÇÃO ==========
     (async () => {
@@ -198,7 +199,7 @@
             const { data: celData } = await supabaseClient.from('celulas').select('*');
             dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '']) : [];
             window.celulaMap = {};
-            dadosCelulas.forEach(c => window.celulaMap[c[0]] = c[1]);
+            dadosCelulas.forEach(c => { window.celulaMap[c[0]] = c[1]; });
             dadosMembros.forEach(m => { if (m[13]) m[3] = window.celulaMap[m[13]] || 'Sem Célula'; });
 
             const ativos = obterAtivos();
@@ -284,6 +285,21 @@
     }
 
     function preencherSelects() {
+
+        // Montar mapa de nomes dos líderes e supervisores
+        const idsLideres = dadosCelulas.map(c => c[2]).filter(id => id);
+        const idsSupervisores = dadosCelulas.map(c => c[5]).filter(id => id);
+        const todosIds = [...new Set([...idsLideres, ...idsSupervisores])];
+        
+        if (todosIds.length > 0) {
+            const { data: pessoas, error } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .in('id', todosIds);
+            if (!error) {
+                pessoas.forEach(p => { mapaNomes[p.id] = p.nome; });
+            }
+        }
         const selCel = document.getElementById('selectCelulas');
         if (selCel) {
             selCel.innerHTML = '<option value="">Selecione uma célula</option>';
@@ -306,46 +322,60 @@
 
     // ========== REDE DE CÉLULAS ==========
     function renderizarCelulasRede(celulas) {
-        const container = document.getElementById('listaCelulasRede');
-        const filtroLider = document.getElementById('filtroLiderRede');
-        const filtroSupervisor = document.getElementById('filtroSupervisorRede');
-        document.getElementById('contagemCelulasRede').innerText = celulas.length;
-        if (filtroLider) {
-            const lideresUnicos = [...new Set(celulas.map(c => c[2]).filter(l => l))];
-            filtroLider.innerHTML = '<option value="">Todos os Líderes</option>';
-            lideresUnicos.forEach(l => filtroLider.innerHTML += `<option>${l}</option>`);
-        }
-        if (filtroSupervisor) {
-            const supervisoresUnicos = [...new Set(celulas.map(c => c[5]).filter(s => s))];
-            filtroSupervisor.innerHTML = '<option value="">Todos os Supervisores</option>';
-            supervisoresUnicos.forEach(s => filtroSupervisor.innerHTML += `<option>${s}</option>`);
-        }
-        window.celulasRedeCompleta = celulas;
-        filtrarCelulasRede();
-        if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
+    const container = document.getElementById('listaCelulasRede');
+    const filtroLider = document.getElementById('filtroLiderRede');
+    const filtroSupervisor = document.getElementById('filtroSupervisorRede');
+    document.getElementById('contagemCelulasRede').innerText = celulas.length;
+
+    // Preencher filtro de líderes com nomes
+    if (filtroLider) {
+        const lideresUnicos = [...new Set(celulas.map(c => c[2]).filter(id => id))];
+        filtroLider.innerHTML = '<option value="">Todos os Líderes</option>';
+        lideresUnicos.forEach(id => {
+            const nome = mapaNomes[id] || 'Não identificado';
+            filtroLider.innerHTML += `<option value="${id}">${nome}</option>`;
+        });
+    }
+    // Preencher filtro de supervisores com nomes
+    if (filtroSupervisor) {
+        const supervisoresUnicos = [...new Set(celulas.map(c => c[5]).filter(id => id))];
+        filtroSupervisor.innerHTML = '<option value="">Todos os Supervisores</option>';
+        supervisoresUnicos.forEach(id => {
+            const nome = mapaNomes[id] || 'Não identificado';
+            filtroSupervisor.innerHTML += `<option value="${id}">${nome}</option>`;
+        });
     }
 
+    window.celulasRedeCompleta = celulas;
+    filtrarCelulasRede();
+    if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
+}
+
     function filtrarCelulasRede() {
-        const lider = document.getElementById('filtroLiderRede')?.value || '';
-        const supervisor = document.getElementById('filtroSupervisorRede')?.value || '';
-        const container = document.getElementById('listaCelulasRede');
-        let filtradas = window.celulasRedeCompleta || [];
-        if (lider) filtradas = filtradas.filter(c => c[2] === lider);
-        if (supervisor) filtradas = filtradas.filter(c => c[5] === supervisor);
-        document.getElementById('contagemCelulasRede').innerText = filtradas.length;
-        container.innerHTML = filtradas.map(c => `
+    const liderId = document.getElementById('filtroLiderRede')?.value || '';
+    const supervisorId = document.getElementById('filtroSupervisorRede')?.value || '';
+    const container = document.getElementById('listaCelulasRede');
+    let filtradas = window.celulasRedeCompleta || [];
+    if (liderId) filtradas = filtradas.filter(c => c[2] === liderId);
+    if (supervisorId) filtradas = filtradas.filter(c => c[5] === supervisorId);
+
+    document.getElementById('contagemCelulasRede').innerText = filtradas.length;
+    container.innerHTML = filtradas.map(c => {
+        const nomeLider = mapaNomes[c[2]] || 'Não definido';
+        const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
+        return `
             <div class="cell-card">
                 <div class="cell-info" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
                     <div class="cell-nome">${c[1]}</div>
-                    <div class="cell-lider">Líder: ${c[2]||'?'} • Supervisor: ${c[5]||'?'}</div>
+                    <div class="cell-lider">Líder: ${nomeLider} • Supervisor: ${nomeSupervisor}</div>
                 </div>
                 <div class="cell-card-actions">
                     <button onclick="event.stopPropagation(); editarCelula(${c[0]})" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
                     <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
                 </div>
-            </div>`).join('');
-        document.getElementById('contagemCelulasRede').innerText = filtradas.length;
-    }
+            </div>`;
+    }).join('');
+}
 
     function editarCelula(id) {
         const cel = dadosCelulas.find(c => c[0] == id);
@@ -419,7 +449,7 @@
         const sel = document.getElementById('filtroRelCelula');
         if (sel) {
             sel.innerHTML = '<option value="">Todas as Células</option>';
-            dadosCelulas.forEach(c => sel.innerHTML += `<option value="${c[1]}">${c[1]}</option>`);
+            dadosCelulas.forEach(c => sel.innerHTML += `<option value="${c[0]}">${c[1]}</option>`);
         }
         const hoje = new Date();
         const primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -428,15 +458,18 @@
         filtrarRelatorios();
     }
 
-    function filtrarRelatorios() {
-        const celula = document.getElementById('filtroRelCelula').value;
+       function filtrarRelatorios() {
+        const celulaId = document.getElementById('filtroRelCelula').value;
         const inicio = document.getElementById('filtroRelDataInicio').value;
         const fim = document.getElementById('filtroRelDataFim').value;
         const div = document.getElementById('listaRelatorios');
         div.innerHTML = '';
-        const filtrados = dadosRelatorios.filter(r => (!celula || r.celula === celula) && (!inicio || r.data >= inicio) && (!fim || r.data <= fim));
+        const filtrados = dadosRelatorios.filter(r => (!celulaId || r.celula_id === celulaId) && (!inicio || r.data >= inicio) && (!fim || r.data <= fim));
         if (!filtrados.length) { div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório encontrado.</p>'; return; }
-        filtrados.forEach(r => div.innerHTML += `<div class="cell-card" onclick="abrirDetalheRelatorio('${r.id}')" style="justify-content:space-between;"><div><strong>${r.celula}</strong><br><small>${r.data?.split('-').reverse().join('/')}</small></div><i class="fas fa-chevron-right"></i></div>`);
+        filtrados.forEach(r => {
+            const nomeCelula = window.celulaMap[r.celula_id] || 'Célula não encontrada';
+            div.innerHTML += `<div class="cell-card" onclick="abrirDetalheRelatorio('${r.id}')" style="justify-content:space-between;"><div><strong>${nomeCelula}</strong><br><small>${r.data?.split('-').reverse().join('/')}</small></div><i class="fas fa-chevron-right"></i></div>`;
+        });
     }
 
     async function abrirDetalheRelatorio(id) {
@@ -449,7 +482,7 @@
             const nome = m ? m[1] : `ID ${p.membro_id}`;
             if (p.presente) presentes.push(nome); else ausentes.push(nome);
         });
-        document.getElementById('detalheRelCelula').innerText = rel.celula;
+        document.getElementById('detalheRelCelula').innerText = window.celulaMap[rel.celula_id] || 'Célula não encontrada';
         document.getElementById('detalheRelData').innerText = rel.data?.split('-').reverse().join('/');
         document.getElementById('detalheRelTotal').innerText = presentes.length;
         document.getElementById('detalheRelQuebra').innerText = rel.quebra_gelo || '-';
