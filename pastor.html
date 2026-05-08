@@ -134,6 +134,17 @@
     let membrosDaCelulaAtiva = [];
     let mapaNomes = {}; // id -> nome
 
+    // Função para escapar aspas simples e outros caracteres perigosos no HTML
+        function escaparHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/'/g, '&#39;')
+                .replace(/"/g, '&quot;');
+        }
+
     // ========== AUTENTICAÇÃO ==========
     (async () => {
         const { data: { user } } = await supabaseClient.auth.getUser();
@@ -363,20 +374,21 @@
     container.innerHTML = filtradas.map(c => {
         const nomeLider = mapaNomes[c[2]] || 'Não definido';
         const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
+        const nomeCelula = escaparHTML(c[1]);
         return `
             <div class="cell-card">
-                <div class="cell-info" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
-                    <div class="cell-nome">${c[1]}</div>
-                    <div class="cell-lider">Líder: ${nomeLider} • Supervisor: ${nomeSupervisor}</div>
+                <div class="cell-info" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
+                    <div class="cell-nome">${nomeCelula}</div>
+                    <div class="cell-lider">Líder: ${escaparHTML(nomeLider)} • Supervisor: ${escaparHTML(nomeSupervisor)}</div>
                 </div>
                 <div class="cell-card-actions">
-                    <button onclick="event.stopPropagation(); editarCelula(${c[0]})" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
-                    <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula([${c[0]},'${c[1]}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
+                    <button onclick="event.stopPropagation(); editarCelula('${c[0]}')" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
+                    <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
                 </div>
             </div>`;
     }).join('');
 }
-
+    
     function editarCelula(id) {
         const cel = dadosCelulas.find(c => c[0] == id);
         if (!cel) return;
