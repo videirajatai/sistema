@@ -749,11 +749,20 @@ async function abrirApascentar() {
         carregarTudo();
     }
 
-    function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
-        document.getElementById('addMembroCelula').value = celulaAtiva.id;
-        document.getElementById('modalAdicionarMembro').classList.remove('hidden');
-    }
+   function abrirModalCadastroMembro() {
+    if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+    
+    // Popula o select de células com as células supervisionadas
+    const selectCelula = document.getElementById('addMembroCelula');
+    selectCelula.innerHTML = '<option value="">Selecione uma célula</option>';
+    dadosCelulas.forEach(c => {
+        const selected = (c.id === celulaAtiva.id) ? 'selected' : '';
+        selectCelula.innerHTML += `<option value="${c.id}" ${selected}>${c.nome}</option>`;
+    });
+    
+    // Exibe o modal
+    document.getElementById('modalAdicionarMembro').classList.remove('hidden');
+}
 
     // ========== AGENDA ==========
     function renderizarAgenda(lista) {
