@@ -876,7 +876,12 @@ function abrirPalavra(index) {
 
     const btn = document.getElementById('btnLinkYoutube');
     if (p.link_youtube && p.link_youtube.trim()) {
-        btn.href = p.link_youtube;
+        let url = p.link_youtube.trim();
+        // Garante que o link tenha https://
+        if (!/^https?:\/\//i.test(url)) {
+            url = 'https://' + url;
+        }
+        btn.href = url;
         btn.classList.remove('hidden');
     } else {
         btn.classList.add('hidden');
