@@ -808,23 +808,104 @@ async function abrirApascentar() {
     function baixarPalavraTXT() { /* igual */ }
 
     // ========== BÍBLIA ==========
-    async function abrirBiblia() { /* ... */ }
-    function fecharBiblia() { /* ... */ }
-    function abrirModalVersao() { /* ... */ }
-    function fecharModalVersao(e) { /* ... */ }
-    async function selecionarVersao(id) { /* ... */ }
-    function capituloAnterior() { /* ... */ }
-    function capituloProximo() { /* ... */ }
+let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
+const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
+const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
+
+async function abrirBiblia() {
+    document.getElementById('painel-biblia').classList.add('aberto');
+    document.getElementById('biblia-overlay').style.display = 'block';
+    setTimeout(() => document.getElementById('biblia-overlay').style.opacity = '1', 10);
+    if (typeof Biblia !== 'undefined') {
+        if (!Biblia.bibliaCarregada) await Biblia.inicializar();
+        versaoSelecionada = Biblia.getVersaoAtiva();
+        document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[versaoSelecionada] || versaoSelecionada;
+    }
+}
+
+function fecharBiblia() {
+    document.getElementById('painel-biblia').classList.remove('aberto');
+    const ov = document.getElementById('biblia-overlay');
+    ov.style.opacity = '0';
+    setTimeout(() => ov.style.display = 'none', 300);
+}
+
+function abrirModalVersao() {
+    const modal = document.getElementById('modalVersao');
+    const listaDiv = document.getElementById('listaVersoes');
+    listaDiv.innerHTML = '';
+    Object.entries(nomesCompletos).forEach(([id, nome]) => {
+        const item = document.createElement('div');
+        item.className = 'versao-item' + (id === versaoSelecionada ? ' selecionada' : '');
+        item.innerHTML = `${nome} <span style="opacity:0.7; font-size:0.9rem;">${siglasVersoes[id]}</span>`;
+        item.onclick = () => selecionarVersao(id);
+        listaDiv.appendChild(item);
+    });
+    modal.classList.remove('hidden');
+}
+
+function fecharModalVersao(e) {
+    if (!e || e.target.classList.contains('modal-versao-overlay') || e.target.classList.contains('modal-versao-close')) {
+        document.getElementById('modalVersao').classList.add('hidden');
+    }
+}
+
+async function selecionarVersao(id) {
+    versaoSelecionada = id;
+    localStorage.setItem('biblia_versao', id);
+    document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[id];
+    fecharModalVersao();
+    if (typeof Biblia !== 'undefined') await Biblia.mudarVersao(id);
+}
+
+function capituloAnterior() {
+    const selCap = document.getElementById('biblia-capitulo');
+    let val = parseInt(selCap.value);
+    if (val > 1) { selCap.value = val - 1; if (typeof Biblia !== 'undefined') Biblia.onCapituloChange(); }
+    else {
+        const selLiv = document.getElementById('biblia-livro');
+        if (selLiv.selectedIndex > 0) {
+            selLiv.selectedIndex--;
+            if (typeof Biblia !== 'undefined') {
+                Biblia.onLivroChange();
+                setTimeout(() => {
+                    const selCap = document.getElementById('biblia-capitulo');
+                    selCap.value = selCap.options.length;
+                    Biblia.onCapituloChange();
+                }, 100);
+            }
+        }
+    }
+}
+
+function capituloProximo() {
+    const selCap = document.getElementById('biblia-capitulo');
+    let val = parseInt(selCap.value);
+    if (val < selCap.options.length) { selCap.value = val + 1; if (typeof Biblia !== 'undefined') Biblia.onCapituloChange(); }
+    else {
+        const selLiv = document.getElementById('biblia-livro');
+        if (selLiv.selectedIndex < selLiv.options.length - 1) {
+            selLiv.selectedIndex++;
+            if (typeof Biblia !== 'undefined') {
+                Biblia.onLivroChange();
+                setTimeout(() => {
+                    document.getElementById('biblia-capitulo').value = 1;
+                    Biblia.onCapituloChange();
+                }, 100);
+            }
+        }
+    }
+}
 
     // ========== MUDAR SEÇÃO ==========
     function mudarSecao(s) {
-        fecharBiblia();
-        ['minha-rede', 'celulas', 'biblia', 'arquivos', 'agenda', 'palavras'].forEach(id => document.getElementById(`secao-${id}`)?.classList.add('hidden'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`secao-${s}`)?.classList.remove('hidden');
-        document.getElementById(`btn-${s}`)?.classList.add('active');
-        if (s === 'biblia') abrirBiblia();
-    }
+    fecharBiblia();
+    ['minha-rede', 'celulas', 'biblia', 'arquivos', 'agenda', 'palavras'].forEach(id => document.getElementById(`secao-${id}`)?.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`secao-${s}`)?.classList.remove('hidden');
+    document.getElementById(`btn-${s}`)?.classList.add('active');
+    if (s === 'biblia') abrirBiblia();   // ← ADICIONE ESTA LINHA
+}
     function fecharModal(id) { document.getElementById(id)?.classList.add('hidden'); }
     function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
 
