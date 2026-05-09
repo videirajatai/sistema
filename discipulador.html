@@ -261,7 +261,7 @@
     let dadosRelatorios = [];
     let listaPalavras = [];
     let palavraAtual = null;
-    let listaAgenda = [];
+    let listaAgenda = [];    
     let mapaNomes = {};
 
     // Variáveis da Bíblia
@@ -808,9 +808,6 @@ async function abrirApascentar() {
     function baixarPalavraTXT() { /* igual */ }
 
     // ========== BÍBLIA ==========
-let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
-const siglasVersoes = { msg:'MSG', nvi:'NVI', aa:'ARA', acf:'ACF', ntlh:'NTLH' };
-const nomesCompletos = { msg:'A Mensagem', nvi:'Nova Versão Internacional', aa:'Almeida Revista e Atualizada', acf:'Almeida Corrigida Fiel', ntlh:'Nova Tradução na Linguagem de Hoje' };
 
 async function abrirBiblia() {
     document.getElementById('painel-biblia').classList.add('aberto');
@@ -900,12 +897,14 @@ function capituloProximo() {
     // ========== MUDAR SEÇÃO ==========
     function mudarSecao(s) {
     fecharBiblia();
-    ['minha-rede', 'celulas', 'biblia', 'arquivos', 'agenda', 'palavras'].forEach(id => document.getElementById(`secao-${id}`)?.classList.add('hidden'));
+    ['minha-rede', 'celulas', 'biblia', 'arquivos', 'agenda', 'palavras', 'relatorios'].forEach(id => document.getElementById(`secao-${id}`)?.classList.add('hidden'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`secao-${s}`)?.classList.remove('hidden');
     document.getElementById(`btn-${s}`)?.classList.add('active');
-    if (s === 'biblia') abrirBiblia();   // ← ADICIONE ESTA LINHA
+    if (s === 'biblia') abrirBiblia();
+    if (s === 'relatorios') carregarRelatorios();   // importante para carregar os dados
 }
+    
     function fecharModal(id) { document.getElementById(id)?.classList.add('hidden'); }
     function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
 
