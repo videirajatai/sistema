@@ -555,69 +555,133 @@ function filtrarCelulasRede() {
     }
 
     // ========== RELATÓRIOS ==========
-    async function abrirListaRelatoriosCelula() {
-        if (!celulaAtiva) return;
-        document.getElementById('relatorioCelulaNome').innerText = celulaAtiva.nome;
-        const container = document.getElementById('listaRelatoriosCelula');
-        if (!container) return;
-        container.innerHTML = '<p>Carregando...</p>';
-        document.getElementById('modalListaRelatorios').classList.remove('hidden');
-        try {
-            const { data: relatorios, error } = await supabaseClient
-                .from('relatorios')
-                .select('*')
-                .eq('celula', celulaAtiva.nome)
-                .order('data', { ascending: false });
-            if (error) throw error;
-            if (!relatorios.length) {
-                container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            for (const r of relatorios) {
-                let dataF = r.data || '';
-                try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
-                const div = document.createElement('div');
-                div.className = 'report-list-item';
-                div.innerHTML = `<div><strong>${dataF}</strong><br><span style="font-size:0.85rem;">${r.quebra_gelo ? 'Quebra-gelo: ' + r.quebra_gelo : ''}</span></div><i class="fas fa-chevron-right"></i>`;
-                div.onclick = () => abrirDetalheRelatorio(r.id);
-                container.appendChild(div);
-            }
-        } catch (err) { console.error(err); container.innerHTML = '<p style="color:red;">Erro ao carregar.</p>'; }
-    }
+   async function abrirListaRelatoriosCelula() {
+    if (!celulaAtiva) return;
+    document.getElementById('relatorioCelulaNome').innerText = celulaAtiva.nome;
+    const container = document.getElementById('listaRelatoriosCelula');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando...</p>';
+    document.getElementById('modalListaRelatorios').classList.remove('hidden');
+    try {
+        const { data: relatorios, error } = await supabaseClient
+            .from('relatorios')
+            .select('*')
+            .eq('celula_id', celulaAtiva.id)          // ← filtro correto por UUID
+            .order('data', { ascending: false });
+        if (error) throw error;
+        if (!relatorios.length) {
+            container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        for (const r of relatorios) {
+            let dataF = r.data || '';
+            try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+            const div = document.createElement('div');
+            div.className = 'report-list-item';
+            div.innerHTML = `<div><strong>${dataF}</strong><br><span style="font-size:0.85rem;">${r.quebra_gelo ? 'Quebra-gelo: ' + r.quebra_gelo : ''}</span></div><i class="fas fa-chevron-right"></i>`;
+            div.onclick = () => abrirDetalheRelatorio(r.id);
+            container.appendChild(div);
+        }
+    } catch (err) { console.error(err); container.innerHTML = '<p style="color:red;">Erro ao carregar.</p>'; }
+}
 
     async function abrirDetalheRelatorio(id) {
-        const { data: relatorio } = await supabaseClient.from('relatorios').select('*').eq('id', id).single();
-        if (!relatorio) return alert("Relatório não encontrado.");
-        const { data: presencas } = await supabaseClient.from('presencas').select('membro_id, presente').eq('relatorio_id', id);
-        const nomesPresentes = [];
-        const nomesAusentes = [];
-        presencas?.forEach(p => {
-            const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
-            if (membro) {
-                if (p.presente) nomesPresentes.push(membro.nome);
-                else nomesAusentes.push(membro.nome);
-            }
-        });
-        let dataF = relatorio.data || '';
-        try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
-        document.getElementById('detalheRelCelula').innerText = relatorio.celula || '-';
-        document.getElementById('detalheRelData').innerText = dataF;
-        document.getElementById('detalheRelTotal').innerText = nomesPresentes.length;
-        document.getElementById('detalheRelQuebra').innerText = relatorio.quebra_gelo || '-';
-        document.getElementById('detalheRelPalavra').innerText = relatorio.palavra || '-';
-        document.getElementById('detalheRelLouvor').innerText = relatorio.louvor || '-';
-        document.getElementById('detalheRelLanche').innerText = relatorio.lanche || '-';
-        document.getElementById('detalheRelObs').innerText = relatorio.observacoes || 'Nenhuma observação.';
-        document.getElementById('listaPresentes').innerHTML = nomesPresentes.length ? nomesPresentes.map(n => `<div>👤 ${n}</div>`).join('') : '<div style="color:#999;">Nenhum</div>';
-        document.getElementById('listaAusentes').innerHTML = nomesAusentes.length ? nomesAusentes.map(n => `<div>👤 ${n}</div>`).join('') : '<div style="color:#999;">Nenhum</div>';
-        document.getElementById('modalRelatorio').classList.remove('hidden');
+    const { data: relatorio } = await supabaseClient
+        .from('relatorios')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (!relatorio) return alert("Relatório não encontrado.");
+
+    const { data: presencas } = await supabaseClient
+        .from('presencas')
+        .select('membro_id, presente')
+        .eq('relatorio_id', id);
+
+    const nomesPresentes = [];
+    const nomesAusentes = [];
+    presencas?.forEach(p => {
+        const membro = dadosMembros.find(m => String(m.id) === String(p.membro_id));
+        if (membro) {
+            if (p.presente) nomesPresentes.push(membro.nome);
+            else nomesAusentes.push(membro.nome);
+        }
+    });
+
+    let dataF = relatorio.data || '';
+    try { if (dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+
+    // Usa o mapa de células para obter o nome
+    document.getElementById('detalheRelCelula').innerText = window.celulaMap[relatorio.celula_id] || '-';
+    document.getElementById('detalheRelData').innerText = dataF;
+    document.getElementById('detalheRelTotal').innerText = nomesPresentes.length;
+    document.getElementById('detalheRelQuebra').innerText = relatorio.quebra_gelo || '-';
+    document.getElementById('detalheRelPalavra').innerText = relatorio.palavra || '-';
+    document.getElementById('detalheRelLouvor').innerText = relatorio.louvor || '-';
+    document.getElementById('detalheRelLanche').innerText = relatorio.lanche || '-';
+    document.getElementById('detalheRelObs').innerText = relatorio.observacoes || 'Nenhuma observação.';
+
+    const containerPresentes = document.getElementById('listaPresentes');
+    const containerAusentes = document.getElementById('listaAusentes');
+    if (containerPresentes) {
+        containerPresentes.innerHTML = nomesPresentes.length
+            ? nomesPresentes.map(nome => `<div>👤 ${nome}</div>`).join('')
+            : '<div style="color:#999;">Nenhum presente registrado.</div>';
+    }
+    if (containerAusentes) {
+        containerAusentes.innerHTML = nomesAusentes.length
+            ? nomesAusentes.map(nome => `<div>👤 ${nome}</div>`).join('')
+            : '<div style="color:#999;">Nenhum ausente registrado.</div>';
     }
 
+    document.getElementById('modalRelatorio').classList.remove('hidden');
+}
     // ========== APASCENTAR ==========
-    async function abrirApascentar() {
-        if (!celulaAtiva) return;
-        alert("Funcionalidade de apascentar em breve.");
+   // ========== APASCENTAR ==========
+async function abrirApascentar() {
+    if (!celulaAtiva) return;
+    const faltosos = await calcularFaltosos();
+    alert(
+        faltosos.length
+            ? "Faltosos nos últimos 30 dias:\n" +
+              faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
+            : "Nenhum faltoso nos últimos 30 dias."
+    );
+}
+
+    async function calcularFaltosos() {
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    
+        // Busca os relatórios da célula ativa (celula_id) nos últimos 30 dias
+        const { data: rels } = await supabaseClient
+            .from('relatorios')
+            .select('id')
+            .eq('celula_id', celulaAtiva.id)          // ← usa o UUID da célula
+            .gte('data', trintaDiasAtras.toISOString().split('T')[0]);
+    
+        if (!rels || !rels.length) return [];
+    
+        const ids = rels.map(r => r.id);
+    
+        // Busca as presenças desses relatórios
+        const { data: presencas } = await supabaseClient
+            .from('presencas')
+            .select('membro_id, presente')
+            .in('relatorio_id', ids);
+    
+        const faltasMap = {};
+        presencas?.forEach(p => {
+            if (!p.presente) {
+                faltasMap[p.membro_id] = (faltasMap[p.membro_id] || 0) + 1;
+            }
+        });
+    
+        // Retorna os membros da célula ativa que tiveram faltas
+        return membrosDaCelulaAtiva
+            .filter(p => faltasMap[p.id] > 0)
+            .map(p => ({ ...p, faltas: faltasMap[p.id] }));
     }
 
     // ========== MEMBROS (ARQUIVADOS E EDIÇÃO) ==========
