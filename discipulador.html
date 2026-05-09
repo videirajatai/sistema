@@ -262,6 +262,7 @@
     let listaPalavras = [];
     let palavraAtual = null;
     let listaAgenda = [];
+    let mapaNomes = {};
 
     // Variáveis da Bíblia
     let versaoSelecionada = localStorage.getItem('biblia_versao') || 'msg';
@@ -341,6 +342,18 @@
             renderizarCelulasRede(celulasSupervisionadas);
             renderizarTabelaCelulas(dadosCelulas);
 
+            // Montar mapa de nomes dos líderes
+            const idsLideres = [...new Set(dadosCelulas.map(c => c.lider_user_id).filter(id => id))];
+            if (idsLideres.length > 0) {
+                const { data: pessoas, error } = await supabaseClient
+                    .from('pessoas')
+                    .select('id, nome')
+                    .in('id', idsLideres);
+                if (!error) {
+                    pessoas.forEach(p => { mapaNomes[p.id] = p.nome; });
+                }
+            }
+
             // Membros (todos para possível visualização, mas filtramos por célula quando necessário)
             const { data: membros, error: memError } = await supabaseClient.from('pessoas').select('*');
             if (memError) throw memError;
@@ -386,44 +399,50 @@
     }
 
     // ========== MINHA REDE (CÉLULAS SUPERVISIONADAS) ==========
-    function renderizarCelulasRede(celulas) {
-        const container = document.getElementById('listaCelulasRede');
-        if (!container) return;
-        container.innerHTML = '';
-        const filtroSelect = document.getElementById('filtroLiderRede');
-        if (filtroSelect) filtroSelect.innerHTML = '<option value="">Todos os Líderes</option>';
-        if (!celulas.length) {
-            document.getElementById('nenhumaCelulaMsg')?.classList.remove('hidden');
-            return;
-        }
-        document.getElementById('nenhumaCelulaMsg')?.classList.add('hidden');
-        const lideresUnicos = [...new Set(celulas.map(c => c.lider).filter(l => l))];
-        lideresUnicos.forEach(l => { if (filtroSelect) filtroSelect.innerHTML += `<option value="${l}">${l}</option>`; });
-        window.celulasRedeCompleta = celulas;
-        filtrarCelulasRede();
-    }
-
-    function filtrarCelulasRede() {
-        const filtro = document.getElementById('filtroLiderRede')?.value || '';
-        let celulasFiltradas = window.celulasRedeCompleta || [];
-        if (filtro) celulasFiltradas = celulasFiltradas.filter(c => c.lider === filtro);
-        const container = document.getElementById('listaCelulasRede');
-        if (!container) return;
-        container.innerHTML = '';
-        celulasFiltradas.forEach(cel => {
-            const card = document.createElement('div');
-            card.className = 'cell-card';
-            card.innerHTML = `
-                <div class="cell-info">
-                    <div class="cell-nome">${cel.nome}</div>
-                    <div class="cell-lider"><i class="fas fa-user"></i> Líder: ${cel.lider || 'Não definido'}</div>
-                </div>
-                <div class="badge-membros" onclick="event.stopPropagation(); editarCelula('${cel.id}')" title="Editar"><i class="fas fa-edit"></i></div>
-            `;
-            card.onclick = () => abrirModalCelula(cel);
-            container.appendChild(card);
+   function renderizarCelulasRede(celulas) {
+    const container = document.getElementById('listaCelulasRede');
+    if (!container) return;
+    container.innerHTML = '';
+    const filtroSelect = document.getElementById('filtroLiderRede');
+    if (filtroSelect) {
+        filtroSelect.innerHTML = '<option value="">Todos os Líderes</option>';
+        const lideresUnicos = [...new Set(celulas.map(c => c.lider_user_id).filter(id => id))];
+        lideresUnicos.forEach(id => {
+            const nome = mapaNomes[id] || 'Não identificado';
+            filtroSelect.innerHTML += `<option value="${id}">${nome}</option>`;
         });
     }
+    if (!celulas.length) {
+        document.getElementById('nenhumaCelulaMsg')?.classList.remove('hidden');
+        return;
+    }
+    document.getElementById('nenhumaCelulaMsg')?.classList.add('hidden');
+    window.celulasRedeCompleta = celulas;
+    filtrarCelulasRede();
+}
+
+function filtrarCelulasRede() {
+    const liderId = document.getElementById('filtroLiderRede')?.value || '';
+    let celulasFiltradas = window.celulasRedeCompleta || [];
+    if (liderId) celulasFiltradas = celulasFiltradas.filter(c => c.lider_user_id === liderId);
+    const container = document.getElementById('listaCelulasRede');
+    if (!container) return;
+    container.innerHTML = '';
+    celulasFiltradas.forEach(cel => {
+        const nomeLider = mapaNomes[cel.lider_user_id] || 'Não definido';
+        const card = document.createElement('div');
+        card.className = 'cell-card';
+        card.innerHTML = `
+            <div class="cell-info">
+                <div class="cell-nome">${cel.nome}</div>
+                <div class="cell-lider"><i class="fas fa-user"></i> Líder: ${nomeLider}</div>
+            </div>
+            <div class="badge-membros" onclick="event.stopPropagation(); editarCelula('${cel.id}')" title="Editar"><i class="fas fa-edit"></i></div>
+        `;
+        card.onclick = () => abrirModalCelula(cel);
+        container.appendChild(card);
+    });
+}
 
     // ========== MODAL DA CÉLULA ==========
     async function abrirModalCelula(cel) {
@@ -625,22 +644,32 @@
     }
 
     async function abrirEditarMembro(id) {
-        const m = dadosMembros.find(x => String(x.id) === String(id));
-        if (!m) return alert('Membro não encontrado.');
-        document.getElementById('editMembroId').value = m.id;
-        document.getElementById('editMembroNome').value = m.nome || '';
-        document.getElementById('editMembroNasc').value = m.nascimento || '';
-        document.getElementById('editMembroTel').value = m.telefone || '';
-        document.getElementById('editMembroCelula').value = m.celula_id || '';
-        document.getElementById('editMembroCat').value = m.tipo || m.categoria || 'Membro';
-        document.getElementById('editMembroBatizado').checked = m.batizado === 'Sim';
-        document.getElementById('editMembroCursao').checked = m.cursao === 'Sim';
-        document.getElementById('editMembroCtl').checked = m.ctl === 'Sim';
-        document.getElementById('editMembroEncontro').checked = m.encontro === 'Sim';
-        document.getElementById('editMembroSeminario').checked = m.seminario === 'Sim';
-        document.getElementById('editMembroDizimista').checked = m.dizimista === 'Sim';
-        document.getElementById('modalEditarMembro').classList.remove('hidden');
-    }
+    const m = dadosMembros.find(x => String(x.id) === String(id));
+    if (!m) return alert('Membro não encontrado.');
+
+    document.getElementById('editMembroId').value = m.id;
+    document.getElementById('editMembroNome').value = m.nome || '';
+    document.getElementById('editMembroNasc').value = m.nascimento || '';
+    document.getElementById('editMembroTel').value = m.telefone || '';
+
+    // Popular o select de células (apenas as supervisionadas pelo discipulador)
+    const selectCelula = document.getElementById('editMembroCelula');
+    selectCelula.innerHTML = '<option value="">Selecione uma célula</option>';
+    dadosCelulas.forEach(c => {
+        const selected = (c.id === m.celula_id) ? 'selected' : '';
+        selectCelula.innerHTML += `<option value="${c.id}" ${selected}>${c.nome}</option>`;
+    });
+
+    document.getElementById('editMembroCat').value = m.tipo || m.categoria || 'Membro';
+    document.getElementById('editMembroBatizado').checked = m.batizado === 'Sim';
+    document.getElementById('editMembroCursao').checked = m.cursao === 'Sim';
+    document.getElementById('editMembroCtl').checked = m.ctl === 'Sim';
+    document.getElementById('editMembroEncontro').checked = m.encontro === 'Sim';
+    document.getElementById('editMembroSeminario').checked = m.seminario === 'Sim';
+    document.getElementById('editMembroDizimista').checked = m.dizimista === 'Sim';
+
+    document.getElementById('modalEditarMembro').classList.remove('hidden');
+}
 
     async function arquivarMembro(id) {
         if (!confirm("Deseja arquivar este membro?")) return;
