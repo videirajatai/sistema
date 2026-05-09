@@ -232,6 +232,33 @@
         .versao-item.selecionada { background: var(--primary); color: white; }
         .btn-youtube { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background-color: #FF0000; color: white; font-weight: bold; text-decoration: none; border-radius: 8px; margin-bottom: 15px; }
         .btn-youtube:hover { background-color: #cc0000; }
+
+
+        /* Estilos da lista de palavras (igual ao líder) */
+            .word-list-item {
+                background: white;
+                border-radius: var(--radius);
+                padding: 15px;
+                margin-bottom: 10px;
+                box-shadow: var(--shadow);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                cursor: pointer;
+                border-left: 4px solid var(--accent);
+                transition: 0.2s;
+            }
+            .word-list-item:active { transform: scale(0.98); }
+            .word-date {
+                font-weight: 800;
+                color: var(--text-main);
+                font-size: 1rem;
+            }
+            .word-theme {
+                font-size: 0.85rem;
+                color: var(--text-light);
+                margin-top: 2px;
+            }
     </style>
 </head>
 <body>
