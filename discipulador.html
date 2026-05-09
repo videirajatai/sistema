@@ -325,65 +325,67 @@
 
     // ========== CARREGAR DADOS ==========
     async function carregarTudo() {
-        const icon = document.getElementById('iconRefresh');
-        if (icon) icon.classList.add('fa-spin');
-        const discipuladorId = sessionStorage.getItem('discipuladorId');
-        try {
-            // Células supervisionadas (onde supervisor_user_id = meu ID)
-            const { data: celulas, error: celError } = await supabaseClient
-                .from('celulas')
-                .select('*')
-                .eq('supervisor_user_id', discipuladorId);
-            if (celError) throw celError;
-            dadosCelulas = celulas || [];
-            celulasSupervisionadas = dadosCelulas;
-            window.celulaMap = {};
-            dadosCelulas.forEach(c => { window.celulaMap[c.id] = c.nome; });
-            renderizarCelulasRede(celulasSupervisionadas);
-            renderizarTabelaCelulas(dadosCelulas);
+    const icon = document.getElementById('iconRefresh');
+    if (icon) icon.classList.add('fa-spin');
+    const discipuladorId = sessionStorage.getItem('discipuladorId');
+    try {
+        // Células supervisionadas (onde supervisor_user_id = meu ID)
+        const { data: celulas, error: celError } = await supabaseClient
+            .from('celulas')
+            .select('*')
+            .eq('supervisor_user_id', discipuladorId);
+        if (celError) throw celError;
+        dadosCelulas = celulas || [];
+        celulasSupervisionadas = dadosCelulas;
+        window.celulaMap = {};
+        dadosCelulas.forEach(c => { window.celulaMap[c.id] = c.nome; });
 
-            // Montar mapa de nomes dos líderes
-            const idsLideres = [...new Set(dadosCelulas.map(c => c.lider_user_id).filter(id => id))];
-            if (idsLideres.length > 0) {
-                const { data: pessoas, error } = await supabaseClient
-                    .from('pessoas')
-                    .select('id, nome')
-                    .in('id', idsLideres);
-                if (!error) {
-                    pessoas.forEach(p => { mapaNomes[p.id] = p.nome; });
-                }
+        // Montar mapa de nomes dos líderes (ANTES de renderizar)
+        const idsLideres = [...new Set(dadosCelulas.map(c => c.lider_user_id).filter(id => id))];
+        if (idsLideres.length > 0) {
+            const { data: pessoas, error } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .in('id', idsLideres);
+            if (!error) {
+                pessoas.forEach(p => { mapaNomes[p.id] = p.nome; });
             }
+        }
 
-            // Membros (todos para possível visualização, mas filtramos por célula quando necessário)
-            const { data: membros, error: memError } = await supabaseClient.from('pessoas').select('*');
-            if (memError) throw memError;
-            dadosMembros = membros || [];
-            renderizarMembrosArquivados(dadosMembros);
+        // Agora SIM, renderizar (o mapa já está pronto)
+        renderizarCelulasRede(celulasSupervisionadas);
+        renderizarTabelaCelulas(dadosCelulas);
 
-            // Relatórios
-            const { data: rels, error: relError } = await supabaseClient.from('relatorios').select('*');
-            if (relError) throw relError;
-            dadosRelatorios = rels || [];
+        // Membros (todos para possível visualização, mas filtramos por célula quando necessário)
+        const { data: membros, error: memError } = await supabaseClient.from('pessoas').select('*');
+        if (memError) throw memError;
+        dadosMembros = membros || [];
+        renderizarMembrosArquivados(dadosMembros);
 
-            // Agenda
-            try {
-                const agendaRes = await fetchGoogle('buscarAgenda', {});
-                listaAgenda = agendaRes || [];
-                renderizarAgenda(listaAgenda);
-            } catch(e) { renderizarAgenda([]); }
+        // Relatórios
+        const { data: rels, error: relError } = await supabaseClient.from('relatorios').select('*');
+        if (relError) throw relError;
+        dadosRelatorios = rels || [];
 
-            // Palavras
-            const { data: palavras, error: palError } = await supabaseClient
-                .from('palavras')
-                .select('*')
-                .order('data', { ascending: false });
-            if (palError) throw palError;
-            listaPalavras = palavras || [];
-            renderizarPalavras(listaPalavras);
-        } catch(err) { console.error(err); }
-        if (icon) icon.classList.remove('fa-spin');
-    }
+        // Agenda
+        try {
+            const agendaRes = await fetchGoogle('buscarAgenda', {});
+            listaAgenda = agendaRes || [];
+            renderizarAgenda(listaAgenda);
+        } catch(e) { renderizarAgenda([]); }
 
+        // Palavras
+        const { data: palavras, error: palError } = await supabaseClient
+            .from('palavras')
+            .select('*')
+            .order('data', { ascending: false });
+        if (palError) throw palError;
+        listaPalavras = palavras || [];
+        renderizarPalavras(listaPalavras);
+    } catch(err) { console.error(err); }
+    if (icon) icon.classList.remove('fa-spin');
+}
+    
     // ========== PREENCHER SELECT DE LÍDERES (PARA FORMULÁRIO DE CÉLULA) ==========
     function preencherSelectLideres(selectLider) {
         // Líderes cujo superior_id é o discipulador logado
@@ -876,7 +878,7 @@ function filtrarCelulasRede() {
     <div id="secao-celulas" class="hidden">
         <h4 style="color:var(--primary);">Todas as Células</h4>
         <table class="table-clean" id="tabelaCelulas">
-            <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th><th>✏️</th></tr></thead>
+            <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th><!--<th>✏️</th>--></tr></thead>
             <tbody id="corpoCelulas"></tbody>
         </table>
     </div>
