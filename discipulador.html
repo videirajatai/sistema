@@ -443,7 +443,7 @@ function filtrarCelulasRede() {
         container.appendChild(card);
     });
 }
-
+    
     // ========== MODAL DA CÉLULA ==========
     async function abrirModalCelula(cel) {
         celulaAtiva = cel;
@@ -543,7 +543,7 @@ function filtrarCelulasRede() {
         document.getElementById('editCelulaId').value = cel.id;
         document.getElementById('editCelulaNomeOriginal').value = cel.nome;
         document.getElementById('editCelulaNome').value = cel.nome || '';
-        document.getElementById('editCelulaLider').value = cel.lider || '';
+        //document.getElementById('editCelulaLider').value = cel.lider || '';
         document.getElementById('editCelulaDia').value = cel.dia_horario || '';
         document.getElementById('editCelulaEnd').value = cel.endereco || '';
         document.getElementById('tituloModalCelula').innerText = 'Editar Célula';
