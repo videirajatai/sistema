@@ -803,9 +803,93 @@ async function abrirApascentar() {
     }
 
     // ========== PALAVRAS ==========
-    function renderizarPalavras(lista) { /* igual ao líder */ }
-    function abrirPalavra(index) { /* igual */ }
-    function baixarPalavraTXT() { /* igual */ }
+    // ========== PALAVRAS ==========
+function renderizarPalavras(lista) {
+    const div = document.getElementById('listaPalavras');
+    if (!div) return;
+    div.innerHTML = '';
+    if (!lista || lista.length === 0) {
+        div.innerHTML = '<p style="text-align:center;">Nenhuma palavra cadastrada.</p>';
+        return;
+    }
+    lista.forEach((p, index) => {
+        let dataF = p.data || '';
+        try {
+            if (dataF.includes('-')) {
+                const dp = dataF.split('-');
+                dataF = `${dp[2]}/${dp[1]}/${dp[0]}`;
+            }
+        } catch (e) {}
+        div.innerHTML += `
+            <div class="word-list-item" onclick="abrirPalavra(${index})">
+                <div>
+                    <div class="word-date"><i class="far fa-calendar-alt"></i> ${dataF}</div>
+                    <div class="word-theme">${p.tema || 'Sem Título'}</div>
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--text-light);"></i>
+            </div>`;
+    });
+}
+
+function abrirPalavra(index) {
+    if (!listaPalavras || index >= listaPalavras.length) return;
+    const p = listaPalavras[index];
+    palavraAtual = p;
+
+    document.getElementById('modalTitulo').innerText = p.tema || '';
+    let dataF = p.data || '';
+    try {
+        if (dataF.includes('-')) {
+            const dp = dataF.split('-');
+            dataF = `${dp[2]}/${dp[1]}/${dp[0]}`;
+        }
+    } catch (e) {}
+    document.getElementById('modalData').innerText = dataF;
+    document.getElementById('modalTexto').innerText = p.texto || '';
+
+    const btn = document.getElementById('btnLinkYoutube');
+    if (p.link_youtube && p.link_youtube.trim()) {
+        btn.href = p.link_youtube;
+        btn.classList.remove('hidden');
+    } else {
+        btn.classList.add('hidden');
+        btn.href = '#';
+    }
+    document.getElementById('modalPalavra').classList.remove('hidden');
+}
+
+function baixarPalavraTXT() {
+    if (!palavraAtual) return;
+    const btn = document.querySelector('#modalPalavra .modal-download');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+    try {
+        const titulo = palavraAtual.tema || 'Palavra';
+        const data = palavraAtual.data || '';
+        const texto = palavraAtual.texto || '';
+        let dataFormatada = data;
+        if (data.includes('-')) {
+            const partes = data.split('-');
+            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        const conteudo = `${titulo}\n${dataFormatada}\n\n${texto}`;
+        const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${titulo.replace(/\s+/g, '_')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('Erro ao gerar arquivo TXT.');
+    } finally {
+        if (icon) icon.className = 'fas fa-download';
+    }
+}
 
     // ========== BÍBLIA ==========
 
