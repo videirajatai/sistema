@@ -239,6 +239,8 @@
             .modal-download { color: var(--primary); }
             .modal-download:hover,
             .modal-close:hover { background: var(--primary); color: white; }
+
+        .btn-copy-link { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         
     </style>
 </head>
@@ -1279,7 +1281,7 @@ async function concluirMultiplicacao() {
         if (insertError) throw insertError;
         const novaCelulaId = novaCelula[0].id;
 
-        // 2. Transferir os membros selecionados para a nova célula
+        // 2. Transferir os membros selecionados
         const { error: updateError } = await supabaseClient
             .from('pessoas')
             .update({ celula_id: novaCelulaId })
@@ -1287,7 +1289,7 @@ async function concluirMultiplicacao() {
 
         if (updateError) throw updateError;
 
-        // 3. Se o novo líder não foi incluído na lista, movê-lo também
+        // 3. Se o novo líder não foi incluído, movê-lo também
         if (!membrosQueVao.includes(novoLiderId)) {
             await supabaseClient
                 .from('pessoas')
@@ -1295,7 +1297,7 @@ async function concluirMultiplicacao() {
                 .eq('id', novoLiderId);
         }
 
-        // 4. Verificar se o novo líder já é um usuário do sistema
+        // 4. Verificar se o novo líder já é usuário do sistema
         const { data: pessoa, error: pessoaError } = await supabaseClient
             .from('pessoas')
             .select('is_user, categoria')
@@ -1304,26 +1306,22 @@ async function concluirMultiplicacao() {
 
         if (pessoaError) throw pessoaError;
 
-        // 5. Se não for um usuário do sistema, ativar o convite automaticamente
+        // 5. Se não for usuário, gerar link de convite
         if (!pessoa.is_user) {
             const tokenConvite = crypto.randomUUID();
             await supabaseClient
                 .from('pessoas')
                 .update({
                     is_user: true,
-                    categoria: 'Líder',          // promove a líder
+                    categoria: 'Líder',
                     token_convite: tokenConvite
                 })
                 .eq('id', novoLiderId);
 
-            // Monta o link de convite
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
             const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
-
-            // Exibe o link para o líder atual compartilhar
-            alert(`Multiplicação concluída!\n\nLink de convite para o novo líder:\n${link}\n\nCopie e envie para ele via WhatsApp.`);
+            mostrarLinkConvite(link);
         } else {
-            // Já é um usuário, apenas avisa
             alert("Multiplicação concluída! O novo líder já possui acesso ao sistema.");
         }
 
@@ -1356,6 +1354,22 @@ async function concluirMultiplicacao() {
             select.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
         });
     }
+}
+
+    function mostrarLinkConvite(link) {
+    document.getElementById('inputLinkConvite').value = link;
+    document.getElementById('notificacaoLink').classList.remove('hidden');
+}
+
+function fecharNotificacaoLink() {
+    document.getElementById('notificacaoLink').classList.add('hidden');
+}
+
+function copiarLinkConviteMultiplicacao() {
+    const input = document.getElementById('inputLinkConvite');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
     
 </script>
@@ -1645,6 +1659,21 @@ async function concluirMultiplicacao() {
             <select id="multCelulaOrigem" onchange="carregarMembrosMultiplicacao()">
                 <option value="">-- Escolha --</option>
             </select>
+        </div>
+        <!-- Notificação de link de convite (multiplicação) -->
+        <div id="notificacaoLink" class="modal-overlay hidden" style="align-items: center;">
+            <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
+                <button class="btn-close-modal" onclick="fecharNotificacaoLink()">&times;</button>
+                <h3 style="color:var(--success-text); margin-top:0;"><i class="fas fa-check-circle"></i> Nova célula criada!</h3>
+                <p style="margin-bottom:15px;">Compartilhe este link com o novo líder:</p>
+                <div class="copy-link-box" style="display:flex; gap:10px; margin-bottom:15px;">
+                    <input type="text" id="inputLinkConvite" readonly style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;">
+                    <button onclick="copiarLinkConviteMultiplicacao()" class="btn-copy-link" style="background:var(--accent); color:white; border:none; padding:10px 15px; border-radius:6px; font-weight:600; cursor:pointer; white-space:nowrap;">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+                <button onclick="fecharNotificacaoLink()" class="btn-save" style="background: #555;">Fechar</button>
+            </div>
         </div>
 
         <!-- Container das duas colunas -->
