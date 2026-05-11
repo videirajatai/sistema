@@ -676,8 +676,26 @@
         nome: document.getElementById('celulaNome').value,
         dia_horario: document.getElementById('celulaDia').value,
         endereco: document.getElementById('celulaEndereco').value,
-        lider_user_id: meuId
+        lider_user_id: meuId,
+        colider_user_id: document.getElementById('celulaColider').value || null
     };
+
+       const selectColider = document.getElementById('celulaColider');
+        selectColider.innerHTML = '<option value="">Nenhum</option>';
+        // membrosDaCelulaAtiva já está carregado (se a célula foi aberta), mas pode não estar se a edição for acionada direto do card.
+        // Vamos buscar os membros da célula que está sendo editada:
+        const { data: membrosCelula, error } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .eq('celula_id', cel.id)
+            .eq('arquivado', false)
+            .order('nome');
+        if (!error && membrosCelula) {
+            membrosCelula.forEach(p => {
+                const selected = (p.id === cel.colider_user_id) ? 'selected' : '';
+                selectColider.innerHTML += `<option value="${p.id}" ${selected}>${p.nome}</option>`;
+            });
+        }
 
     // Só inclui supervisor_user_id se o líder tiver um superior válido
     if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
@@ -1595,6 +1613,7 @@ async function concluirMultiplicacao() {
                 <option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
             </select>
             <label>Endereço</label><input type="text" id="celulaEndereco">
+            <label>Líder em Treinamento</label><select id="celulaColider"><option value="">Nenhum</option></select>
             <button type="submit" class="btn-save">Salvar</button>
         </form>
     </div>
