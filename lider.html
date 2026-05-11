@@ -1246,23 +1246,22 @@ async function concluirMultiplicacao() {
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
         if (!celulaOriginal) throw new Error("Célula original não encontrada.");
 
-        // Cria a nova célula com o novo líder
+        // 1. Criar a nova célula com o novo líder
         const { data: novaCelula, error: insertError } = await supabaseClient
             .from('celulas')
             .insert([{
                 nome: novoNome,
                 dia_horario: celulaOriginal.dia_horario,
                 endereco: celulaOriginal.endereco,
-                lider_user_id: novoLiderId,                      // <-- novo líder
-                supervisor_user_id: celulaOriginal.supervisor_user_id,
-                colider_user_id: null
+                lider_user_id: novoLiderId,
+                supervisor_user_id: celulaOriginal.supervisor_user_id
             }])
             .select();
 
         if (insertError) throw insertError;
         const novaCelulaId = novaCelula[0].id;
 
-        // Atualiza os membros transferidos
+        // 2. Transferir os membros selecionados para a nova célula
         const { error: updateError } = await supabaseClient
             .from('pessoas')
             .update({ celula_id: novaCelulaId })
@@ -1270,7 +1269,7 @@ async function concluirMultiplicacao() {
 
         if (updateError) throw updateError;
 
-        // Se o novo líder não estava na lista de transferidos, transfira-o também
+        // 3. Se o novo líder não foi incluído na lista, movê-lo também
         if (!membrosQueVao.includes(novoLiderId)) {
             await supabaseClient
                 .from('pessoas')
@@ -1278,14 +1277,66 @@ async function concluirMultiplicacao() {
                 .eq('id', novoLiderId);
         }
 
-        // Se o líder original for o mesmo da célula original e não ficou com membros,
-        // talvez precise manter a célula original, mas isso já está ok.
+        // 4. Verificar se o novo líder já é um usuário do sistema
+        const { data: pessoa, error: pessoaError } = await supabaseClient
+            .from('pessoas')
+            .select('is_user, categoria')
+            .eq('id', novoLiderId)
+            .single();
 
-        alert("Multiplicação realizada com sucesso!");
+        if (pessoaError) throw pessoaError;
+
+        // 5. Se não for um usuário do sistema, ativar o convite automaticamente
+        if (!pessoa.is_user) {
+            const tokenConvite = crypto.randomUUID();
+            await supabaseClient
+                .from('pessoas')
+                .update({
+                    is_user: true,
+                    categoria: 'Líder',          // promove a líder
+                    token_convite: tokenConvite
+                })
+                .eq('id', novoLiderId);
+
+            // Monta o link de convite
+            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
+
+            // Exibe o link para o líder atual compartilhar
+            alert(`Multiplicação concluída!\n\nLink de convite para o novo líder:\n${link}\n\nCopie e envie para ele via WhatsApp.`);
+        } else {
+            // Já é um usuário, apenas avisa
+            alert("Multiplicação concluída! O novo líder já possui acesso ao sistema.");
+        }
+
         fecharModalMultiplicar();
         carregarTudo();
     } catch (err) {
         alert("Erro na multiplicação: " + err.message);
+    }
+}
+
+    async function preencherSelectNovoLider() {
+    const select = document.getElementById('multNovoLider');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    const meuId = sessionStorage.getItem('liderId');
+    
+    // Busca todas as pessoas que estão nas células do líder logado
+    const idsCelulas = dadosCelulas.map(c => c.id);
+    if (idsCelulas.length === 0) return;
+
+    const { data: pessoas, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, is_user, categoria')
+        .in('celula_id', idsCelulas)
+        .eq('arquivado', false)
+        .neq('id', meuId)
+        .order('nome');
+    
+    if (!error && pessoas) {
+        pessoas.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+        });
     }
 }
     
