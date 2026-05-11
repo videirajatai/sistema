@@ -1307,30 +1307,32 @@ async function concluirMultiplicacao() {
         if (pessoaError) throw pessoaError;
 
         // 5. Se não for usuário, gerar link de convite
-        if (!pessoa.is_user) {
-            const tokenConvite = crypto.randomUUID();
-            await supabaseClient
-                .from('pessoas')
-                .update({
-                    is_user: true,
-                    categoria: 'Líder',
-                    token_convite: tokenConvite
-                })
-                .eq('id', novoLiderId);
+       if (!pessoa.is_user) {
+    const tokenConvite = crypto.randomUUID();
+    await supabaseClient
+        .from('pessoas')
+        .update({
+            is_user: true,
+            categoria: 'Líder',
+            token_convite: tokenConvite
+        })
+        .eq('id', novoLiderId);
 
-            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
-            mostrarLinkConvite(link);
-        } else {
-            alert("Multiplicação concluída! O novo líder já possui acesso ao sistema.");
-        }
-
-        fecharModalMultiplicar();
-        carregarTudo();
-    } catch (err) {
-        alert("Erro na multiplicação: " + err.message);
-    }
+    const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
+    
+    // Fecha o modal de multiplicação primeiro
+    fecharModalMultiplicar();
+    
+    // Aguarda um pequeno atraso para garantir que o modal foi fechado
+    setTimeout(() => {
+        mostrarLinkConvite(link);
+    }, 300);
+} else {
+    alert("Multiplicação concluída! O novo líder já possui acesso ao sistema.");
+    fecharModalMultiplicar();
 }
+carregarTudo();
 
     async function preencherSelectNovoLider() {
     const select = document.getElementById('multNovoLider');
