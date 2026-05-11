@@ -421,6 +421,34 @@
         document.getElementById('cadastroModalCelulaHidden').value = cel.id;
         await carregarMembrosDaCelula(cel.id);
         renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+        atualizarColiderInfo();   // <-- adicione esta linha
+    }
+    
+        async function atualizarColiderInfo() {
+        const infoDiv = document.getElementById('coliderInfo');
+        if (!celulaAtiva) return;
+        
+        // Recarrega os dados da célula para garantir que temos o colider_user_id atualizado
+        const { data: celula, error } = await supabaseClient
+            .from('celulas')
+            .select('colider_user_id')
+            .eq('id', celulaAtiva.id)
+            .single();
+        
+        if (!error && celula && celula.colider_user_id) {
+            // Busca o nome do colíder
+            const { data: pessoa } = await supabaseClient
+                .from('pessoas')
+                .select('nome')
+                .eq('id', celula.colider_user_id)
+                .single();
+            if (pessoa) {
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;
+                return;
+            }
+        }
+        infoDiv.style.display = 'none';
     }
 
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
@@ -1109,6 +1137,8 @@ async function carregarMembrosMultiplicacao() {
 
     document.getElementById('multContainer').classList.remove('hidden');
     document.getElementById('multNomeContainer').classList.remove('hidden');
+    document.getElementById('multContainerLider').classList.remove('hidden');
+    await preencherSelectNovoLider();
     document.getElementById('btnConcluirMultiplicacao').classList.remove('hidden');
 
     // Nome sugestivo para nova célula
@@ -1117,6 +1147,31 @@ async function carregarMembrosMultiplicacao() {
         document.getElementById('multNomeNovaCelula').value = (celulaOrigem.nome || 'Célula') + ' - Multiplicação';
     }
 }
+
+    async function preencherSelectNovoLider() {
+        const select = document.getElementById('multNovoLider');
+        select.innerHTML = '<option value="">Selecione...</option>';
+        const meuId = sessionStorage.getItem('liderId');
+        
+        // IDs das células do líder
+        const idsCelulas = dadosCelulas.map(c => c.id);
+        if (idsCelulas.length === 0) return;
+        
+        // Busca membros de todas as células do líder (excluindo o próprio líder)
+        const { data: pessoas, error } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .in('celula_id', idsCelulas)
+            .eq('arquivado', false)
+            .neq('id', meuId)
+            .order('nome');
+        
+        if (!error && pessoas) {
+            pessoas.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+            });
+        }
+    }
 
 function renderizarColunasMultiplicacao() {
     const colOrig = document.getElementById('colunaOriginais');
@@ -1172,38 +1227,42 @@ function moverParaOriginal(membroId) {
 async function concluirMultiplicacao() {
     const celulaOrigemId = document.getElementById('multCelulaOrigem').value;
     const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
+    const novoLiderId = document.getElementById('multNovoLider').value;
 
     if (!novoNome) {
         alert("Dê um nome para a nova célula.");
         return;
     }
-
+    if (!novoLiderId) {
+        alert("Selecione um líder para a nova célula.");
+        return;
+    }
     if (membrosQueVao.length === 0) {
         alert("Escolha pelo menos um membro para a nova célula.");
         return;
     }
 
     try {
-        // 1. Pegar dados da célula original para replicar
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
         if (!celulaOriginal) throw new Error("Célula original não encontrada.");
 
-        // 2. Criar a nova célula (copiando dia_horario, endereco, lider_user_id, supervisor_user_id)
+        // Cria a nova célula com o novo líder
         const { data: novaCelula, error: insertError } = await supabaseClient
             .from('celulas')
             .insert([{
                 nome: novoNome,
                 dia_horario: celulaOriginal.dia_horario,
                 endereco: celulaOriginal.endereco,
-                lider_user_id: celulaOriginal.lider_user_id,
-                supervisor_user_id: celulaOriginal.supervisor_user_id
+                lider_user_id: novoLiderId,                      // <-- novo líder
+                supervisor_user_id: celulaOriginal.supervisor_user_id,
+                colider_user_id: null
             }])
             .select();
 
         if (insertError) throw insertError;
         const novaCelulaId = novaCelula[0].id;
 
-        // 3. Atualizar os membros que vão para a nova célula
+        // Atualiza os membros transferidos
         const { error: updateError } = await supabaseClient
             .from('pessoas')
             .update({ celula_id: novaCelulaId })
@@ -1211,13 +1270,25 @@ async function concluirMultiplicacao() {
 
         if (updateError) throw updateError;
 
+        // Se o novo líder não estava na lista de transferidos, transfira-o também
+        if (!membrosQueVao.includes(novoLiderId)) {
+            await supabaseClient
+                .from('pessoas')
+                .update({ celula_id: novaCelulaId })
+                .eq('id', novoLiderId);
+        }
+
+        // Se o líder original for o mesmo da célula original e não ficou com membros,
+        // talvez precise manter a célula original, mas isso já está ok.
+
         alert("Multiplicação realizada com sucesso!");
         fecharModalMultiplicar();
-        carregarTudo();  // recarrega lista de células e membros
+        carregarTudo();
     } catch (err) {
         alert("Erro na multiplicação: " + err.message);
     }
 }
+    
 </script>
 
 <!-- HTML COMPLETO COM MODAIS -->
@@ -1359,6 +1430,7 @@ async function concluirMultiplicacao() {
         <button class="btn-action" style="background:var(--success-text); color:white;" onclick="abrirModalCadastroMembro()"><i class="fas fa-plus"></i> Novo Membro</button>
         <button class="btn-action" style="background:#fef3c7; color:#92400e;" onclick="abrirApascentar()"><i class="fas fa-hands-praying"></i> Apascentar</button>
         <button class="btn-action" style="background:#e0e7ff; color:#1e40af;" onclick="abrirModalRelatorio()"><i class="fas fa-clipboard-list"></i> Lançar Relatório</button>
+        <div id="coliderInfo" style="margin-bottom:15px; padding:8px 15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; display:none;"></div>
     </div>
     <div id="gridMembrosCelulaModal" class="member-grid"></div>
     <input type="hidden" id="cadastroModalCelulaHidden">
@@ -1520,11 +1592,19 @@ async function concluirMultiplicacao() {
             </div>
         </div>
 
-        <!-- Nome da nova célula -->
-        <div id="multNomeContainer" class="form-group hidden" style="margin-top:20px;">
-            <label>Nome da nova célula:</label>
-            <input type="text" id="multNomeNovaCelula" placeholder="Ex: Célula Centro - Filial">
-        </div>
+        <!-- Seleção do novo líder -->
+            <div id="multContainerLider" class="form-group hidden" style="margin-top:20px;">
+                <label>Líder que assumirá a nova célula:</label>
+                <select id="multNovoLider">
+                    <option value="">Selecione...</option>
+                </select>
+            </div>
+            
+            <!-- Nome da nova célula -->
+            <div id="multNomeContainer" class="form-group hidden" style="margin-top:20px;">
+                <label>Nome da nova célula:</label>
+                <input type="text" id="multNomeNovaCelula" placeholder="Ex: Célula Centro - Filial">
+            </div>
 
         <button id="btnConcluirMultiplicacao" class="btn-save hidden" onclick="concluirMultiplicacao()">
             <i class="fas fa-check-circle"></i> Concluir Multiplicação
