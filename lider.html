@@ -546,6 +546,7 @@
         <button class="btn-close-modal" onclick="fecharModalCadastro()">&times;</button>
         <h3 style="color:var(--primary); margin-top:0;">Cadastrar Novo Membro</h3>
         <form id="formMembroModal">
+            <input type="hidden" id="editMembroIdHidden">
             <label>Nome Completo</label><input type="text" name="nome" required>
             <div style="display:flex; gap:10px;">
                 <div style="flex:1;"><label>Nascimento</label><input type="date" name="nascimento"></div>
@@ -603,7 +604,7 @@
     </div>
 </div>
 
-    <!-- MODAL EDITAR MEMBRO -->
+   <!-- <!-- MODAL EDITAR MEMBRO 
 <div id="modalEditarMembro" class="modal-overlay hidden" onclick="fecharModalEditarMembro(event)" style="z-index: 3100; align-items: center;">
     <div class="modal-content" style="max-width: 600px; height: auto; max-height: 90vh; border-radius: 20px;" onclick="event.stopPropagation()">
         <button class="btn-close-modal" onclick="fecharModalEditarMembro()">&times;</button>
@@ -647,7 +648,7 @@
             </div>
         </form>
     </div>
-</div>
+</div>-->
 
 <script>
     // ========== CONFIGURAÇÕES GLOBAIS ==========
