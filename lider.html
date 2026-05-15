@@ -603,6 +603,52 @@
     </div>
 </div>
 
+    <!-- MODAL EDITAR MEMBRO -->
+<div id="modalEditarMembro" class="modal-overlay hidden" onclick="fecharModalEditarMembro(event)" style="z-index: 3100; align-items: center;">
+    <div class="modal-content" style="max-width: 600px; height: auto; max-height: 90vh; border-radius: 20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalEditarMembro()">&times;</button>
+        <h3 style="color:var(--primary); margin-top:0;">Editar Membro</h3>
+        <form id="formEditarMembro">
+            <input type="hidden" id="editMembroId">
+            
+            <label>Nome Completo</label>
+            <input type="text" id="editMembroNome" required>
+            
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label>Nascimento</label><input type="date" id="editMembroNasc"></div>
+                <div style="flex:1;"><label>WhatsApp</label><input type="tel" id="editMembroTel" placeholder="(00) 00000-0000"></div>
+            </div>
+            
+            <label>Célula</label>
+            <select id="editMembroCelula">
+                <option value="">Selecione...</option>
+            </select>
+            
+            <label>Categoria</label>
+            <select id="editMembroCat">
+                <option>Frequentador</option>
+                <option>Membro</option>
+                <option>Líder</option>
+            </select>
+            
+            <label style="margin-top:15px;">Passos de Fé</label>
+            <div class="check-grid">
+                <label class="check-option"><input type="checkbox" id="editMembroBatizado"><span class="checkmark">Batismo</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroCursao"><span class="checkmark">Cursão</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroCtl"><span class="checkmark">CTL</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroEncontro"><span class="checkmark">Encontro</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroSeminario"><span class="checkmark">Seminário</span></label>
+                <label class="check-option"><input type="checkbox" id="editMembroDizimista"><span class="checkmark">Dizimista</span></label>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top: 15px;">
+                <button type="button" onclick="fecharModalEditarMembro()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                <button type="submit" class="btn-save" style="flex:2;">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // ========== CONFIGURAÇÕES GLOBAIS ==========
     const API_URL = sessionStorage.getItem('urlApi');
@@ -1220,6 +1266,113 @@
             icon.className = 'fas fa-download';
         }
     }
+
+// ========== EDIÇÃO DE MEMBRO (versão antiga com tabela 'membros') ==========
+
+/**
+ * Abre o modal de cadastro preenchido com os dados do membro para edição.
+ * @param {string} id - ID do membro na tabela 'membros'.
+ */
+async function abrirEditarMembro(id) {
+    try {
+        // Buscar o membro na tabela 'membros' (nome da tabela antiga)
+        const { data: membro, error } = await supabaseClient
+            .from('membros')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error || !membro) {
+            alert("Membro não encontrado.");
+            return;
+        }
+
+        // Preencher os campos do formulário (usando os mesmos IDs do modal de cadastro)
+        document.getElementById('editMembroIdHidden').value = membro.id;  // campo oculto com o ID
+        document.getElementById('formMembroModal').querySelector('input[name="nome"]').value = membro.nome || '';
+        document.getElementById('formMembroModal').querySelector('input[name="nascimento"]').value = membro.nascimento || '';
+        document.getElementById('formMembroModal').querySelector('input[name="telefone"]').value = membro.telefone || '';
+        document.getElementById('formMembroModal').querySelector('select[name="categoria"]').value = membro.tipo || 'Membro';
+
+        // O campo celula no formulário é um hidden? Ou um select? No código enviado, o campo celula está como hidden: <input type="hidden" name="celula" id="cadastroModalCelulaHidden">
+        // Vamos atualizar esse hidden com o nome da célula do membro (ou o ID, mas a lógica antiga usa nome)
+        document.getElementById('cadastroModalCelulaHidden').value = membro.celula || '';
+
+        // Checkboxes
+        document.getElementById('formMembroModal').querySelector('input[name="batizado"]').checked = (membro.batizado === 'Sim' || membro.batizado === true);
+        document.getElementById('formMembroModal').querySelector('input[name="cursao"]').checked = (membro.cursao === 'Sim' || membro.cursao === true);
+        document.getElementById('formMembroModal').querySelector('input[name="ctl"]').checked = (membro.ctl === 'Sim' || membro.ctl === true);
+        document.getElementById('formMembroModal').querySelector('input[name="encontro"]').checked = (membro.encontro === 'Sim' || membro.encontro === true);
+        document.getElementById('formMembroModal').querySelector('input[name="seminario"]').checked = (membro.seminario === 'Sim' || membro.seminario === true);
+        document.getElementById('formMembroModal').querySelector('input[name="dizimista"]').checked = (membro.dizimista === 'Sim' || membro.dizimista === true);
+
+        // Mudar o título do modal (opcional)
+        document.getElementById('modalCadastroMembro').querySelector('h3').innerText = 'Editar Membro';
+
+        // Exibir o modal
+        document.getElementById('modalCadastroMembro').classList.remove('hidden');
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar dados do membro.");
+    }
+}
+
+// Modificar o evento de submit do formMembroModal para suportar edição
+document.getElementById('formMembroModal').onsubmit = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarModal');
+    btn.disabled = true;
+    btn.innerText = "Salvando...";
+
+    const idEdicao = document.getElementById('editMembroIdHidden').value;
+    const d = {
+        nome: this.nome.value,
+        nascimento: this.nascimento.value || null,
+        tipo: this.categoria.value,
+        celula: this.celula.value,   // campo hidden
+        telefone: this.telefone.value,
+        batizado: this.batizado.checked ? "Sim" : "Não",
+        cursao: this.cursao.checked ? "Sim" : "Não",
+        ctl: this.ctl.checked ? "Sim" : "Não",
+        encontro: this.encontro.checked ? "Sim" : "Não",
+        seminario: this.seminario.checked ? "Sim" : "Não",
+        dizimista: this.dizimista.checked ? "Sim" : "Não",
+        arquivado: "Não"
+    };
+
+    try {
+        if (idEdicao) {
+            // Atualizar membro existente
+            const { error } = await supabaseClient
+                .from('membros')
+                .update(d)
+                .eq('id', idEdicao);
+            if (error) throw error;
+            alert("Membro atualizado com sucesso!");
+        } else {
+            // Inserir novo membro (código original)
+            await salvarSupabase('membros', d);
+            alert("Membro cadastrado com sucesso!");
+        }
+
+        this.reset();
+        document.getElementById('modalCadastroMembro').classList.add('hidden');
+        document.getElementById('modalCadastroMembro').querySelector('h3').innerText = 'Cadastrar Novo Membro'; // restaurar título
+        document.getElementById('editMembroIdHidden').value = ''; // limpar ID oculto
+
+        // Recarregar a lista de membros da célula ativa
+        if (celulaAtiva) {
+            await carregarMembrosDaCelula(celulaAtiva.nome);
+            renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
+        }
+    } catch (err) {
+        alert("Erro ao salvar: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Salvar";
+    }
+};
+    
 </script>
 </body>
 </html>
