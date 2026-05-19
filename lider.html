@@ -1078,6 +1078,52 @@ if (formEdit) {
             alert("Erro ao atualizar: " + err.message);
         }
     };
+
+    // Cadastro de novo líder (via modal)
+const formNovoLider = document.getElementById('formNovoLider');
+if (formNovoLider) {
+    formNovoLider.onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvarNovoLider');
+        btn.disabled = true;
+        btn.innerText = "Salvando...";
+
+        const dados = {
+            usuario: document.getElementById('novoLiderUsuario').value.trim().toLowerCase(),
+            telefone: document.getElementById('novoLiderTelefone').value,
+            categoria: 'Líder',
+            superior_id: document.getElementById('novoLiderSuperior').value || null,
+            is_user: true,
+            nome: document.getElementById('novoLiderUsuario').value.trim().toLowerCase()
+        };
+
+        try {
+            dados.token_convite = crypto.randomUUID();
+            const { data: novaPessoa, error } = await supabaseClient
+                .from('pessoas')
+                .insert([dados])
+                .select();
+            if (error) throw error;
+
+            registrarLogAcao(`Criou novo líder (convite): ${dados.usuario}`);
+
+            // Oculta o formulário e exibe o link de convite
+            document.getElementById('formNovoLider').style.display = 'none';
+            const pessoa = novaPessoa[0];
+            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
+            document.getElementById('linkConviteNovoLider').value = link;
+            document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
+
+        } catch(error) {
+            console.error("Erro ao salvar novo líder:", error);
+            alert("Erro ao salvar. Detalhes: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Salvar";
+        }
+    };
+}
 }
         // Relatório
         const formRel = document.getElementById('formRelatorioModal');
@@ -1391,7 +1437,7 @@ function copiarLinkConviteMultiplicacao() {
     alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
 
-  // ========== CADASTRAR NOVO LÍDER ==========
+ // ========== CADASTRAR NOVO LÍDER ==========
 function abrirModalNovoLider() {
     document.getElementById('formNovoLider').reset();
     document.getElementById('formNovoLider').style.display = 'block';
@@ -1411,7 +1457,6 @@ function fecharNotificacaoNovoLider() {
 }
 
 async function preencherSuperioresNovoLider() {
-    // Buscar apenas pessoas com categoria Discipulador
     const { data: superiores, error } = await supabaseClient
         .from('pessoas')
         .select('id, nome, categoria')
@@ -1425,54 +1470,12 @@ async function preencherSuperioresNovoLider() {
             select.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
         });
     }
-    // Pré-seleciona o discipulador do líder logado (superior_id)
+    // Pre-seleciona o discipulador do líder logado
     const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
     if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
         select.value = meuSuperiorId;
     }
 }
-
-document.getElementById('formNovoLider').onsubmit = async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btnSalvarNovoLider');
-    btn.disabled = true;
-    btn.innerText = "Salvando...";
-
-    const dados = {
-        usuario: document.getElementById('novoLiderUsuario').value.trim().toLowerCase(),
-        telefone: document.getElementById('novoLiderTelefone').value,
-        categoria: 'Líder',
-        superior_id: document.getElementById('novoLiderSuperior').value || null,
-        is_user: true,                       // sempre será usuário
-        nome: document.getElementById('novoLiderUsuario').value.trim().toLowerCase()  // placeholder
-    };
-
-    try {
-        dados.token_convite = crypto.randomUUID();
-        const { data: novaPessoa, error } = await supabaseClient
-            .from('pessoas')
-            .insert([dados])
-            .select();
-        if (error) throw error;
-
-        registrarLogAcao(`Criou novo líder (convite): ${dados.usuario}`);
-
-        // Oculta o formulário e exibe o link de convite
-        document.getElementById('formNovoLider').style.display = 'none';
-        const pessoa = novaPessoa[0];
-        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
-        document.getElementById('linkConviteNovoLider').value = link;
-        document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
-
-    } catch(error) {
-        console.error("Erro ao salvar novo líder:", error);
-        alert("Erro ao salvar. Detalhes: " + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Salvar";
-    }
-};
 
 function copiarLinkConviteNovoLider() {
     const input = document.getElementById('linkConviteNovoLider');
