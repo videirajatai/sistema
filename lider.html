@@ -1158,6 +1158,56 @@ if (formNovoLider) {
                 }
             };
         }
+
+        // Promover membro a líder
+const formPromoverMembro = document.getElementById('formPromoverMembro');
+if (formPromoverMembro) {
+    formPromoverMembro.onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvarPromoverMembro');
+        btn.disabled = true;
+        btn.innerText = "Salvando...";
+
+        const membroId = document.getElementById('promoverMembroSelect').value;
+        if (!membroId) {
+            alert("Selecione um membro.");
+            btn.disabled = false;
+            btn.innerText = "Promover e Gerar Link";
+            return;
+        }
+
+        try {
+            // Atualiza a categoria, is_user e gera token
+            const tokenConvite = crypto.randomUUID();
+            const { error } = await supabaseClient
+                .from('pessoas')
+                .update({
+                    categoria: 'Líder',
+                    is_user: true,
+                    token_convite: tokenConvite
+                })
+                .eq('id', membroId);
+
+            if (error) throw error;
+
+            registrarLogAcao(`Promoveu membro a líder: ${membroId}`);
+
+            // Exibe o link de convite
+            document.getElementById('formPromoverMembro').style.display = 'none';
+            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
+            document.getElementById('linkConvitePromoverMembro').value = link;
+            document.getElementById('convitePromoverMembroBox').classList.remove('hidden');
+
+        } catch(error) {
+            console.error("Erro ao promover membro:", error);
+            alert("Erro ao promover. Detalhes: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Promover e Gerar Link";
+        }
+    };
+}
     }
 
     // ========== MULTIPLICAÇÃO DE CÉLULAS ==========
@@ -1483,6 +1533,58 @@ function copiarLinkConviteNovoLider() {
     document.execCommand('copy');
     alert('Link copiado! Envie para o novo líder via WhatsApp.');
 }
+
+    // ========== PROMOVER MEMBRO A LÍDER ==========
+function abrirModalPromoverMembro() {
+    document.getElementById('formPromoverMembro').reset();
+    document.getElementById('formPromoverMembro').style.display = 'block';
+    document.getElementById('convitePromoverMembroBox').classList.add('hidden');
+    preencherSelectMembrosPromover();
+    document.getElementById('modalPromoverMembro').classList.remove('hidden');
+}
+
+function fecharModalPromoverMembro(e) {
+    if (e && e.target !== document.getElementById('modalPromoverMembro') && !e.target.classList.contains('btn-close-modal')) return;
+    document.getElementById('modalPromoverMembro').classList.add('hidden');
+}
+
+function fecharNotificacaoPromoverMembro() {
+    document.getElementById('convitePromoverMembroBox').classList.add('hidden');
+    document.getElementById('modalPromoverMembro').classList.add('hidden');
+}
+
+async function preencherSelectMembrosPromover() {
+    const select = document.getElementById('promoverMembroSelect');
+    select.innerHTML = '<option value="">Selecione o membro...</option>';
+    const meuId = sessionStorage.getItem('liderId');
+
+    // IDs das células do líder
+    const idsCelulas = dadosCelulas.map(c => c.id);
+    if (idsCelulas.length === 0) return;
+
+    // Buscar membros que não sejam líderes e não sejam o próprio líder
+    const { data: membros, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome')
+        .in('celula_id', idsCelulas)
+        .eq('arquivado', false)
+        .neq('id', meuId)
+        .neq('categoria', 'Líder')   // exclui quem já é líder
+        .order('nome');
+
+    if (!error && membros) {
+        membros.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+        });
+    }
+}
+
+function copiarLinkConvitePromoverMembro() {
+    const input = document.getElementById('linkConvitePromoverMembro');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado! Envie para o novo líder via WhatsApp.');
+}
     
 </script>
 
@@ -1513,20 +1615,22 @@ function copiarLinkConviteNovoLider() {
         <div style="margin-bottom:15px;">
             <h4 style="margin:0 0 10px 0; color: var(--primary);"><i class="fas fa-church"></i> Suas Células</h4>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button onclick="abrirModalNovoLider()" class="btn-action" style="background:#b58900; color:white;">
-                    <i class="fas fa-user-plus"></i> Novo Líder
-                </button>
                 <button onclick="abrirNovaCelula()" class="btn-action" style="background:var(--success-text); color:white;">
                     <i class="fas fa-plus"></i> Nova Célula
                 </button>
                 <button onclick="abrirModalMultiplicar()" class="btn-action" style="background:#0056b3; color:white;">
                     <i class="fas fa-code-branch"></i> Multiplicar Célula
-                </button>                        
+                </button>
+                <button onclick="abrirModalPromoverMembro()" class="btn-action" style="background:#b58900; color:white;">
+                    <i class="fas fa-user-plus"></i> Promover Membro
+                </button>           
             </div>
         </div>
         <div id="listaCelulasLider"></div>
         <p id="nenhumaCelulaMsg" style="color:#999; text-align:center; display:none;">Você não lidera nenhuma célula.</p>
     </div>
+
+    
     
     <!-- CÉLULAS (TABELA) -->
     <div id="secao-celulas" class="hidden">
@@ -1835,39 +1939,34 @@ function copiarLinkConviteNovoLider() {
         </div>
 
 <!-- Modal Cadastrar Novo Líder -->
-<div id="modalNovoLider" class="modal-overlay hidden" onclick="fecharModalNovoLider(event)" style="align-items: center;">
+<!-- Modal Promover Membro -->
+<div id="modalPromoverMembro" class="modal-overlay hidden" onclick="fecharModalPromoverMembro(event)" style="align-items: center;">
     <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModalNovoLider()">&times;</button>
-        <h3 style="color:var(--primary); margin-top:0;">Cadastrar Novo Líder</h3>
+        <button class="btn-close-modal" onclick="fecharModalPromoverMembro()">&times;</button>
+        <h3 style="color:var(--primary); margin-top:0;">Promover Membro a Líder</h3>
         <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 15px;">
-            <i class="fas fa-info-circle"></i> O novo líder receberá um link para definir seu e‑mail e senha.
+            <i class="fas fa-info-circle"></i> Selecione um membro da sua rede para se tornar líder. Ele receberá um link para criar seu acesso.
         </p>
-        <form id="formNovoLider">
-            <label>Usuário (login) *</label>
-            <input type="text" name="usuario" id="novoLiderUsuario" required placeholder="Ex: lider.joao" style="text-transform: lowercase;">
-
-            <label>Telefone (WhatsApp)</label>
-            <input type="tel" name="telefone" id="novoLiderTelefone" placeholder="(64) 99999-9999">
-
-            <label>Superior Hierárquico (Discipulador)</label>
-            <select name="superior_id" id="novoLiderSuperior">
-                <option value="">Selecione o Discipulador</option>
+        <form id="formPromoverMembro">
+            <label>Membro da sua rede</label>
+            <select name="membro_id" id="promoverMembroSelect" required>
+                <option value="">Selecione o membro...</option>
             </select>
 
             <div style="display:flex; gap:10px; margin-top: 15px;">
-                <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
-                <button type="submit" id="btnSalvarNovoLider" class="btn-save" style="flex:2;">Salvar</button>
+                <button type="button" onclick="fecharModalPromoverMembro()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                <button type="submit" id="btnSalvarPromoverMembro" class="btn-save" style="flex:2;">Promover e Gerar Link</button>
             </div>
         </form>
 
-        <!-- Área de notificação do link de convite -->
-        <div id="conviteNovoLiderBox" class="hidden" style="margin-top: 20px;">
-            <label style="color: var(--success-text); font-weight: bold;">Link de Convite</label>
+        <!-- Notificação do link -->
+        <div id="convitePromoverMembroBox" class="hidden" style="margin-top: 20px;">
+            <label style="color: var(--success-text); font-weight: bold;">Link de Convite para o novo Líder</label>
             <div class="copy-link-box">
-                <input type="text" id="linkConviteNovoLider" readonly>
-                <button onclick="copiarLinkConviteNovoLider()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
+                <input type="text" id="linkConvitePromoverMembro" readonly>
+                <button onclick="copiarLinkConvitePromoverMembro()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
             </div>
-            <button onclick="fecharNotificacaoNovoLider()" class="btn-save" style="background: #555; margin-top: 10px;">Fechar</button>
+            <button onclick="fecharNotificacaoPromoverMembro()" class="btn-save" style="background: #555; margin-top: 10px;">Fechar</button>
         </div>
     </div>
 </div>
