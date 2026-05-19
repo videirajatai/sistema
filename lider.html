@@ -1390,6 +1390,98 @@ function copiarLinkConviteMultiplicacao() {
     document.execCommand('copy');
     alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
+
+    // ========== CADASTRAR NOVO LÍDER ==========
+function abrirModalNovoLider() {
+    // Limpa o formulário
+    document.getElementById('formNovoLider').reset();
+    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
+    document.getElementById('novoLiderSuperior').innerHTML = '<option value="">Nenhum (Topo)</option>';
+    // Preenche o select de superiores (apenas categorias que podem supervisionar)
+    preencherSuperioresNovoLider();
+    document.getElementById('modalNovoLider').classList.remove('hidden');
+}
+
+function fecharModalNovoLider(e) {
+    if (e && !e.target.classList.contains('modal-overlay') && !e.target.classList.contains('btn-close-modal')) return;
+    document.getElementById('modalNovoLider').classList.add('hidden');
+}
+
+function fecharNotificacaoNovoLider() {
+    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
+    fecharModalNovoLider();
+}
+
+async function preencherSuperioresNovoLider() {
+    // Busca pessoas que podem ser superiores (administrador, pastor de governo, pastor de rede, discipulador)
+    const { data: superiores, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, categoria')
+        .in('categoria', ['Administrador', 'Pastor de Governo', 'Pastor de Rede', 'Discipulador'])
+        .order('nome');
+    
+    const select = document.getElementById('novoLiderSuperior');
+    if (!error && superiores) {
+        superiores.forEach(u => {
+            select.innerHTML += `<option value="${u.id}">${u.nome} (${u.categoria})</option>`;
+        });
+    }
+    // Opcional: pré-selecionar o discipulador do líder logado
+    const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
+    if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
+        select.value = meuSuperiorId;
+    }
+}
+
+document.getElementById('formNovoLider').onsubmit = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSalvarNovoLider');
+    btn.disabled = true;
+    btn.innerText = "Salvando...";
+
+    const dados = {
+        usuario: document.getElementById('novoLiderUsuario').value.trim().toLowerCase(),
+        telefone: document.getElementById('novoLiderTelefone').value,
+        categoria: 'Líder',
+        superior_id: document.getElementById('novoLiderSuperior').value || null,
+        is_user: document.getElementById('novoLiderIsUser').checked,
+        nome: document.getElementById('novoLiderUsuario').value.trim().toLowerCase()  // placeholder temporário
+    };
+
+    try {
+        // Gera token de convite
+        dados.token_convite = crypto.randomUUID();
+        const { data: novaPessoa, error } = await supabaseClient
+            .from('pessoas')
+            .insert([dados])
+            .select();
+        if (error) throw error;
+
+        registrarLogAcao(`Criou novo líder (convite): ${dados.usuario}`);
+
+        // Exibe o link de convite
+        document.getElementById('formNovoLider').style.display = 'none';
+        const pessoa = novaPessoa[0];
+        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
+        document.getElementById('linkConviteNovoLider').value = link;
+        document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
+
+    } catch(error) {
+        console.error("Erro ao salvar novo líder:", error);
+        alert("Erro ao salvar. Detalhes: " + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Salvar";
+    }
+};
+
+function copiarLinkConviteNovoLider() {
+    const input = document.getElementById('linkConviteNovoLider');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado! Envie para o novo líder via WhatsApp.');
+}
     
 </script>
 
@@ -1421,6 +1513,7 @@ function copiarLinkConviteMultiplicacao() {
             <h4 style="margin:0; color: var(--primary);"><i class="fas fa-church"></i> Suas Células</h4>
             <button onclick="abrirNovaCelula()" class="btn-action" style="background:var(--success-text); color:white;"><i class="fas fa-plus"></i> Nova Célula</button>
             <button onclick="abrirModalMultiplicar()" class="btn-action" style="background:#0056b3; color:white; margin-left: 8px;"><i class="fas fa-code-branch"></i> Multiplicação</button>
+            <button onclick="abrirModalNovoLider()" class="btn-action" style="background:#b58900; color:white; margin-left: 8px;"><i class="fas fa-user-plus"></i> Novo Líder</button>
         </div>
         <div id="listaCelulasLider"></div>
         <p id="nenhumaCelulaMsg" style="color:#999; text-align:center; display:none;">Você não lidera nenhuma célula.</p>
@@ -1731,6 +1824,47 @@ function copiarLinkConviteMultiplicacao() {
                 <button onclick="fecharNotificacaoLink()" class="btn-save" style="background: #555;">Fechar</button>
             </div>
         </div>
+<!-- Modal Cadastrar Novo Líder -->
+<div id="modalNovoLider" class="modal-overlay hidden" onclick="fecharModalNovoLider(event)" style="align-items: center;">
+    <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalNovoLider()">&times;</button>
+        <h3 style="color:var(--primary); margin-top:0;">Cadastrar Novo Líder</h3>
+        <form id="formNovoLider">
+            <label>Usuário (login) *</label>
+            <input type="text" name="usuario" id="novoLiderUsuario" required placeholder="Ex: lider.joao" style="text-transform: lowercase;">
 
+            <label>Telefone (WhatsApp)</label>
+            <input type="tel" name="telefone" id="novoLiderTelefone" placeholder="(64) 99999-9999">
+
+            <label>Superior Hierárquico</label>
+            <select name="superior_id" id="novoLiderSuperior">
+                <option value="">Nenhum (Topo)</option>
+            </select>
+
+            <div class="switch-container">
+                <span class="switch-label">Usuário do sistema (pode fazer login)</span>
+                <label class="switch">
+                    <input type="checkbox" id="novoLiderIsUser" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top: 15px;">
+                <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                <button type="submit" id="btnSalvarNovoLider" class="btn-save" style="flex:2;">Salvar</button>
+            </div>
+        </form>
+
+        <!-- Área de notificação do link de convite (específica para novo líder) -->
+        <div id="conviteNovoLiderBox" class="hidden" style="margin-top: 20px;">
+            <label style="color: var(--success-text); font-weight: bold;">Link de Convite</label>
+            <div class="copy-link-box">
+                <input type="text" id="linkConviteNovoLider" readonly>
+                <button onclick="copiarLinkConviteNovoLider()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
+            </div>
+            <button onclick="fecharNotificacaoNovoLider()" class="btn-save" style="background: #555; margin-top: 10px;">Fechar</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
