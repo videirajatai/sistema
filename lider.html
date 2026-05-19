@@ -1078,53 +1078,7 @@ if (formEdit) {
             alert("Erro ao atualizar: " + err.message);
         }
     };
-
-    // Cadastro de novo líder (via modal)
-const formNovoLider = document.getElementById('formNovoLider');
-if (formNovoLider) {
-    formNovoLider.onsubmit = async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('btnSalvarNovoLider');
-        btn.disabled = true;
-        btn.innerText = "Salvando...";
-
-        const dados = {
-            usuario: document.getElementById('novoLiderUsuario').value.trim().toLowerCase(),
-            telefone: document.getElementById('novoLiderTelefone').value,
-            categoria: 'Líder',
-            superior_id: document.getElementById('novoLiderSuperior').value || null,
-            is_user: true,
-            nome: document.getElementById('novoLiderUsuario').value.trim().toLowerCase()
-        };
-
-        try {
-            dados.token_convite = crypto.randomUUID();
-            const { data: novaPessoa, error } = await supabaseClient
-                .from('pessoas')
-                .insert([dados])
-                .select();
-            if (error) throw error;
-
-            registrarLogAcao(`Criou novo líder (convite): ${dados.usuario}`);
-
-            // Oculta o formulário e exibe o link de convite
-            document.getElementById('formNovoLider').style.display = 'none';
-            const pessoa = novaPessoa[0];
-            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
-            document.getElementById('linkConviteNovoLider').value = link;
-            document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
-
-        } catch(error) {
-            console.error("Erro ao salvar novo líder:", error);
-            alert("Erro ao salvar. Detalhes: " + error.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Salvar";
-        }
-    };
-}
-}
+ }
         // Relatório
         const formRel = document.getElementById('formRelatorioModal');
         if (formRel) formRel.onsubmit = salvarRelatorio;
@@ -1159,7 +1113,54 @@ if (formNovoLider) {
             };
         }
 
-        // Promover membro a líder
+        // ---------- Formulário Novo Líder (cadastro do zero) ----------
+const formNovoLider = document.getElementById('formNovoLider');
+if (formNovoLider) {
+    formNovoLider.onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvarNovoLider');
+        btn.disabled = true;
+        btn.innerText = "Salvando...";
+
+        const dados = {
+            usuario: document.getElementById('novoLiderUsuario').value.trim().toLowerCase(),
+            telefone: document.getElementById('novoLiderTelefone').value,
+            categoria: 'Líder',
+            superior_id: document.getElementById('novoLiderSuperior').value || null,
+            is_user: true,
+            nome: document.getElementById('novoLiderUsuario').value.trim().toLowerCase()
+        };
+
+        try {
+            dados.token_convite = crypto.randomUUID();
+            const { data: novaPessoa, error } = await supabaseClient
+                .from('pessoas')
+                .insert([dados])
+                .select();
+            if (error) throw error;
+
+            registrarLogAcao(`Criou novo líder (convite): ${dados.usuario}`);
+
+            // Exibe o link de convite
+            document.getElementById('camposNovoCadastro').style.display = 'none';
+            document.getElementById('camposPromoverMembro').style.display = 'none';
+            document.getElementById('tipoNovoLider').disabled = true;
+            const pessoa = novaPessoa[0];
+            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const link = `${base}completar-cadastro.html?token=${pessoa.token_convite}`;
+            document.getElementById('linkConviteNovoLider').value = link;
+            document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
+        } catch(error) {
+            console.error("Erro ao salvar novo líder:", error);
+            alert("Erro ao salvar. Detalhes: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Salvar";
+        }
+    };
+}
+
+// ---------- Formulário Promover Membro ----------
 const formPromoverMembro = document.getElementById('formPromoverMembro');
 if (formPromoverMembro) {
     formPromoverMembro.onsubmit = async function(e) {
@@ -1177,7 +1178,6 @@ if (formPromoverMembro) {
         }
 
         try {
-            // Atualiza a categoria, is_user e gera token
             const tokenConvite = crypto.randomUUID();
             const { error } = await supabaseClient
                 .from('pessoas')
@@ -1193,12 +1193,13 @@ if (formPromoverMembro) {
             registrarLogAcao(`Promoveu membro a líder: ${membroId}`);
 
             // Exibe o link de convite
-            document.getElementById('formPromoverMembro').style.display = 'none';
+            document.getElementById('camposNovoCadastro').style.display = 'none';
+            document.getElementById('camposPromoverMembro').style.display = 'none';
+            document.getElementById('tipoNovoLider').disabled = true;
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
             const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
-            document.getElementById('linkConvitePromoverMembro').value = link;
-            document.getElementById('convitePromoverMembroBox').classList.remove('hidden');
-
+            document.getElementById('linkConviteNovoLider').value = link;
+            document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
             console.error("Erro ao promover membro:", error);
             alert("Erro ao promover. Detalhes: " + error.message);
@@ -1487,12 +1488,11 @@ function copiarLinkConviteMultiplicacao() {
     alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
 
- // ========== CADASTRAR NOVO LÍDER ==========
+// ========== MODAL UNIFICADO NOVO LÍDER / PROMOVER MEMBRO ==========
 function abrirModalNovoLider() {
-    document.getElementById('formNovoLider').reset();
-    document.getElementById('formNovoLider').style.display = 'block';
+    document.getElementById('tipoNovoLider').value = 'novo';
+    alternarCamposNovoLider();  // exibe os campos certos
     document.getElementById('conviteNovoLiderBox').classList.add('hidden');
-    preencherSuperioresNovoLider();
     document.getElementById('modalNovoLider').classList.remove('hidden');
 }
 
@@ -1504,6 +1504,18 @@ function fecharModalNovoLider(e) {
 function fecharNotificacaoNovoLider() {
     document.getElementById('conviteNovoLiderBox').classList.add('hidden');
     document.getElementById('modalNovoLider').classList.add('hidden');
+}
+
+function alternarCamposNovoLider() {
+    const tipo = document.getElementById('tipoNovoLider').value;
+    document.getElementById('camposNovoCadastro').style.display = (tipo === 'novo') ? 'block' : 'none';
+    document.getElementById('camposPromoverMembro').style.display = (tipo === 'promover') ? 'block' : 'none';
+    
+    if (tipo === 'novo') {
+        preencherSuperioresNovoLider();
+    } else {
+        preencherSelectMembrosPromover();
+    }
 }
 
 async function preencherSuperioresNovoLider() {
@@ -1520,56 +1532,26 @@ async function preencherSuperioresNovoLider() {
             select.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
         });
     }
-    // Pre-seleciona o discipulador do líder logado
     const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
     if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
         select.value = meuSuperiorId;
     }
 }
 
-function copiarLinkConviteNovoLider() {
-    const input = document.getElementById('linkConviteNovoLider');
-    input.select();
-    document.execCommand('copy');
-    alert('Link copiado! Envie para o novo líder via WhatsApp.');
-}
-
-    // ========== PROMOVER MEMBRO A LÍDER ==========
-function abrirModalPromoverMembro() {
-    document.getElementById('formPromoverMembro').reset();
-    document.getElementById('formPromoverMembro').style.display = 'block';
-    document.getElementById('convitePromoverMembroBox').classList.add('hidden');
-    preencherSelectMembrosPromover();
-    document.getElementById('modalPromoverMembro').classList.remove('hidden');
-}
-
-function fecharModalPromoverMembro(e) {
-    if (e && e.target !== document.getElementById('modalPromoverMembro') && !e.target.classList.contains('btn-close-modal')) return;
-    document.getElementById('modalPromoverMembro').classList.add('hidden');
-}
-
-function fecharNotificacaoPromoverMembro() {
-    document.getElementById('convitePromoverMembroBox').classList.add('hidden');
-    document.getElementById('modalPromoverMembro').classList.add('hidden');
-}
-
 async function preencherSelectMembrosPromover() {
     const select = document.getElementById('promoverMembroSelect');
     select.innerHTML = '<option value="">Selecione o membro...</option>';
     const meuId = sessionStorage.getItem('liderId');
-
-    // IDs das células do líder
     const idsCelulas = dadosCelulas.map(c => c.id);
     if (idsCelulas.length === 0) return;
 
-    // Buscar membros que não sejam líderes e não sejam o próprio líder
     const { data: membros, error } = await supabaseClient
         .from('pessoas')
         .select('id, nome')
         .in('celula_id', idsCelulas)
         .eq('arquivado', false)
         .neq('id', meuId)
-        .neq('categoria', 'Líder')   // exclui quem já é líder
+        .neq('categoria', 'Líder')
         .order('nome');
 
     if (!error && membros) {
@@ -1579,8 +1561,8 @@ async function preencherSelectMembrosPromover() {
     }
 }
 
-function copiarLinkConvitePromoverMembro() {
-    const input = document.getElementById('linkConvitePromoverMembro');
+function copiarLinkConviteNovoLider() {
+    const input = document.getElementById('linkConviteNovoLider');
     input.select();
     document.execCommand('copy');
     alert('Link copiado! Envie para o novo líder via WhatsApp.');
@@ -1938,35 +1920,65 @@ function copiarLinkConvitePromoverMembro() {
             </div>
         </div>
 
-<!-- Modal Cadastrar Novo Líder -->
-<!-- Modal Promover Membro -->
-<div id="modalPromoverMembro" class="modal-overlay hidden" onclick="fecharModalPromoverMembro(event)" style="align-items: center;">
+<!-- Modal Unificado: Novo Líder / Promover Membro -->
+<div id="modalNovoLider" class="modal-overlay hidden" onclick="fecharModalNovoLider(event)" style="align-items: center;">
     <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModalPromoverMembro()">&times;</button>
-        <h3 style="color:var(--primary); margin-top:0;">Promover Membro a Líder</h3>
-        <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 15px;">
-            <i class="fas fa-info-circle"></i> Selecione um membro da sua rede para se tornar líder. Ele receberá um link para criar seu acesso.
-        </p>
-        <form id="formPromoverMembro">
-            <label>Membro da sua rede</label>
-            <select name="membro_id" id="promoverMembroSelect" required>
-                <option value="">Selecione o membro...</option>
+        <button class="btn-close-modal" onclick="fecharModalNovoLider()">&times;</button>
+        <h3 style="color:var(--primary); margin-top:0;">Novo Líder</h3>
+        
+        <!-- Seletor de tipo -->
+        <div class="form-group">
+            <label>Tipo de cadastro</label>
+            <select id="tipoNovoLider" onchange="alternarCamposNovoLider()">
+                <option value="novo">Cadastrar Novo Líder</option>
+                <option value="promover">Promover Membro Existente</option>
             </select>
+        </div>
 
-            <div style="display:flex; gap:10px; margin-top: 15px;">
-                <button type="button" onclick="fecharModalPromoverMembro()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
-                <button type="submit" id="btnSalvarPromoverMembro" class="btn-save" style="flex:2;">Promover e Gerar Link</button>
-            </div>
-        </form>
+        <!-- Campos para NOVO cadastro -->
+        <div id="camposNovoCadastro">
+            <form id="formNovoLider">
+                <label>Usuário (login) *</label>
+                <input type="text" name="usuario" id="novoLiderUsuario" required placeholder="Ex: lider.joao" style="text-transform: lowercase;">
 
-        <!-- Notificação do link -->
-        <div id="convitePromoverMembroBox" class="hidden" style="margin-top: 20px;">
-            <label style="color: var(--success-text); font-weight: bold;">Link de Convite para o novo Líder</label>
+                <label>Telefone (WhatsApp)</label>
+                <input type="tel" name="telefone" id="novoLiderTelefone" placeholder="(64) 99999-9999">
+
+                <label>Superior Hierárquico (Discipulador)</label>
+                <select name="superior_id" id="novoLiderSuperior">
+                    <option value="">Selecione o Discipulador</option>
+                </select>
+
+                <div style="display:flex; gap:10px; margin-top: 15px;">
+                    <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                    <button type="submit" id="btnSalvarNovoLider" class="btn-save" style="flex:2;">Salvar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Campos para PROMOVER membro -->
+        <div id="camposPromoverMembro" style="display:none;">
+            <form id="formPromoverMembro">
+                <label>Membro da sua rede</label>
+                <select name="membro_id" id="promoverMembroSelect" required>
+                    <option value="">Selecione o membro...</option>
+                </select>
+
+                <div style="display:flex; gap:10px; margin-top: 15px;">
+                    <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                    <button type="submit" id="btnSalvarPromoverMembro" class="btn-save" style="flex:2;">Promover e Gerar Link</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Notificação do link (usada por ambos) -->
+        <div id="conviteNovoLiderBox" class="hidden" style="margin-top: 20px;">
+            <label style="color: var(--success-text); font-weight: bold;">Link de Convite</label>
             <div class="copy-link-box">
-                <input type="text" id="linkConvitePromoverMembro" readonly>
-                <button onclick="copiarLinkConvitePromoverMembro()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
+                <input type="text" id="linkConviteNovoLider" readonly>
+                <button onclick="copiarLinkConviteNovoLider()" class="btn-copy-link"><i class="fas fa-copy"></i> Copiar</button>
             </div>
-            <button onclick="fecharNotificacaoPromoverMembro()" class="btn-save" style="background: #555; margin-top: 10px;">Fechar</button>
+            <button onclick="fecharNotificacaoNovoLider()" class="btn-save" style="background: #555; margin-top: 10px;">Fechar</button>
         </div>
     </div>
 </div>
