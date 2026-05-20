@@ -1488,84 +1488,83 @@ function copiarLinkConviteMultiplicacao() {
     alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
 
-// ========== MODAL UNIFICADO NOVO LÍDER / PROMOVER MEMBRO ==========
-function abrirModalNovoLider() {
-    document.getElementById('tipoNovoLider').value = 'novo';
-    alternarCamposNovoLider();  // exibe os campos certos
-    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
-    document.getElementById('modalNovoLider').classList.remove('hidden');
-}
+// ========== SELEÇÃO DE LÍDER PARA MULTIPLICAÇÃO ==========
+let lideresDisponiveis = [];  // cache da lista carregada
 
-function fecharModalNovoLider(e) {
-    if (e && e.target !== document.getElementById('modalNovoLider') && !e.target.classList.contains('btn-close-modal')) return;
-    document.getElementById('modalNovoLider').classList.add('hidden');
-}
-
-function fecharNotificacaoNovoLider() {
-    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
-    document.getElementById('modalNovoLider').classList.add('hidden');
-}
-
-function alternarCamposNovoLider() {
-    const tipo = document.getElementById('tipoNovoLider').value;
-    document.getElementById('camposNovoCadastro').style.display = (tipo === 'novo') ? 'block' : 'none';
-    document.getElementById('camposPromoverMembro').style.display = (tipo === 'promover') ? 'block' : 'none';
+// Abre o modal e carrega a lista de líderes
+async function abrirModalSelecionarLider() {
+    document.getElementById('modalSelecionarLider').classList.remove('hidden');
     
-    if (tipo === 'novo') {
-        preencherSuperioresNovoLider();
-    } else {
-        preencherSelectMembrosPromover();
-    }
-}
-
-async function preencherSuperioresNovoLider() {
-    const { data: superiores, error } = await supabaseClient
-        .from('pessoas')
-        .select('id, nome, categoria')
-        .ilike('categoria', 'Discipulador%')
-        .order('nome');
+    // Preencher filtro de discipuladores
+    const selDisc = document.getElementById('filtroDiscipuladorLider');
+    selDisc.innerHTML = '<option value="">Todos os discipuladores</option>';
     
-    const select = document.getElementById('novoLiderSuperior');
-    select.innerHTML = '<option value="">Selecione o Discipulador</option>';
-    if (!error && superiores) {
-        superiores.forEach(u => {
-            select.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
-        });
-    }
-    const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
-    if (meuSuperiorId && meuSuperiorId !== 'null' && meuSuperiorId !== 'undefined') {
-        select.value = meuSuperiorId;
-    }
-}
-
-async function preencherSelectMembrosPromover() {
-    const select = document.getElementById('promoverMembroSelect');
-    select.innerHTML = '<option value="">Selecione o membro...</option>';
-    const meuId = sessionStorage.getItem('liderId');
-    const idsCelulas = dadosCelulas.map(c => c.id);
-    if (idsCelulas.length === 0) return;
-
-    const { data: membros, error } = await supabaseClient
+    // Buscar discipuladores (para o filtro)
+    const { data: discipuladores } = await supabaseClient
         .from('pessoas')
         .select('id, nome')
-        .in('celula_id', idsCelulas)
-        .eq('arquivado', false)
-        .neq('id', meuId)
-        .neq('categoria', 'Líder')
+        .ilike('categoria', 'Discipulador%')
         .order('nome');
-
-    if (!error && membros) {
-        membros.forEach(m => {
-            select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+    if (discipuladores) {
+        discipuladores.forEach(d => {
+            selDisc.innerHTML += `<option value="${d.id}">${d.nome}</option>`;
         });
     }
+
+    // Buscar todos os líderes (is_user = true, categoria = Líder)
+    const { data: lideres, error } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome, superior_id')
+        .eq('categoria', 'Líder')
+        .eq('is_user', true)
+        .order('nome');
+    
+    if (error) {
+        document.getElementById('listaLideres').innerHTML = '<p style="color:red;">Erro ao carregar líderes.</p>';
+        return;
+    }
+    
+    lideresDisponiveis = lideres || [];
+    filtrarLideres();  // exibe a lista completa
 }
 
-function copiarLinkConviteNovoLider() {
-    const input = document.getElementById('linkConviteNovoLider');
-    input.select();
-    document.execCommand('copy');
-    alert('Link copiado! Envie para o novo líder via WhatsApp.');
+function fecharModalSelecionarLider(e) {
+    if (e && e.target !== document.getElementById('modalSelecionarLider') && !e.target.classList.contains('btn-close-modal')) return;
+    document.getElementById('modalSelecionarLider').classList.add('hidden');
+}
+
+// Filtra a lista conforme o nome e o discipulador selecionado
+function filtrarLideres() {
+    const termo = document.getElementById('filtroNomeLider').value.toLowerCase();
+    const discipuladorId = document.getElementById('filtroDiscipuladorLider').value;
+    
+    let filtrados = lideresDisponiveis;
+    if (termo) {
+        filtrados = filtrados.filter(l => l.nome.toLowerCase().includes(termo));
+    }
+    if (discipuladorId) {
+        filtrados = filtrados.filter(l => l.superior_id === discipuladorId);
+    }
+    
+    const container = document.getElementById('listaLideres');
+    if (filtrados.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum líder encontrado.</p>';
+        return;
+    }
+    
+    container.innerHTML = filtrados.map(l => `
+        <div onclick="selecionarLider('${l.id}', '${l.nome.replace(/'/g, "\\'")}')"
+             style="padding:12px; background:white; border:1px solid #eee; border-radius:8px; cursor:pointer; transition:0.2s; hover:background:#f0f0f0;">
+            <strong>${l.nome}</strong>
+        </div>
+    `).join('');
+}
+
+// Define o líder escolhido e fecha o modal
+function selecionarLider(id, nome) {
+    document.getElementById('multNovoLider').value = id;
+    document.getElementById('nomeLiderSelecionado').innerText = nome;
+    fecharModalSelecionarLider();
 }
     
 </script>
@@ -1884,12 +1883,16 @@ function copiarLinkConviteNovoLider() {
             </div>
         </div>
 
-        <!-- Seleção do novo líder -->
+        <!-- Seleção do novo líder (botão + nome selecionado) -->
             <div id="multContainerLider" class="form-group hidden" style="margin-top:20px;">
                 <label>Líder que assumirá a nova célula:</label>
-                <select id="multNovoLider">
-                    <option value="">Selecione...</option>
-                </select>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button type="button" onclick="abrirModalSelecionarLider()" class="btn-action" style="background:#b58900; color:white;">
+                        <i class="fas fa-search"></i> Selecionar Líder
+                    </button>
+                    <span id="nomeLiderSelecionado" style="font-weight:600; color:var(--primary);">Nenhum líder selecionado</span>
+                </div>
+                <input type="hidden" id="multNovoLider" value="">
             </div>
             
             <!-- Nome da nova célula -->
@@ -1982,5 +1985,29 @@ function copiarLinkConviteNovoLider() {
         </div>
     </div>
 </div>
+
+    <!-- Modal Selecionar Líder -->
+<div id="modalSelecionarLider" class="modal-overlay hidden" onclick="fecharModalSelecionarLider(event)" style="align-items: center;">
+    <div class="modal-content" style="max-width:600px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalSelecionarLider()">&times;</button>
+        <h3 style="margin-top:0; color:var(--primary);">Selecionar Líder</h3>
+
+        <!-- Filtros -->
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="filtroNomeLider" placeholder="🔍 Buscar por nome..." oninput="filtrarLideres()" style="flex:2;">
+            <select id="filtroDiscipuladorLider" onchange="filtrarLideres()" style="flex:1;">
+                <option value="">Todos os discipuladores</option>
+            </select>
+        </div>
+
+        <!-- Lista de líderes -->
+        <div id="listaLideres" style="max-height:50vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+            <p style="text-align:center; color:#999;">Carregando...</p>
+        </div>
+
+        <button onclick="fecharModalSelecionarLider()" class="btn-save" style="background:#555; margin-top:15px;">Cancelar</button>
+    </div>
+</div>
+    
 </body>
 </html>
