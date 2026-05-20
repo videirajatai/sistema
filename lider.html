@@ -1268,8 +1268,7 @@ async function carregarMembrosMultiplicacao() {
 
     document.getElementById('multContainer').classList.remove('hidden');
     document.getElementById('multNomeContainer').classList.remove('hidden');
-    document.getElementById('multContainerLider').classList.remove('hidden');
-    await preencherSelectNovoLider();
+    document.getElementById('multContainerLider').classList.remove('hidden');    
     document.getElementById('btnConcluirMultiplicacao').classList.remove('hidden');
 
     // Nome sugestivo para nova célula
@@ -1279,30 +1278,7 @@ async function carregarMembrosMultiplicacao() {
     }
 }
 
-    async function preencherSelectNovoLider() {
-    const select = document.getElementById('multNovoLider');
-    select.innerHTML = '<option value="">Selecione...</option>';
-    const meuId = sessionStorage.getItem('liderId');
     
-    // IDs das células do líder
-    const idsCelulas = dadosCelulas.map(c => c.id);
-    if (idsCelulas.length === 0) return;
-    
-    // Busca membros de todas as células do líder (excluindo o próprio líder)
-    const { data: pessoas, error } = await supabaseClient
-        .from('pessoas')
-        .select('id, nome')
-        .in('celula_id', idsCelulas)
-        .eq('arquivado', false)
-        .neq('id', meuId)
-        .order('nome');
-    
-    if (!error && pessoas) {
-        pessoas.forEach(p => {
-            select.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
-        });
-    }
-}
 function renderizarColunasMultiplicacao() {
     const colOrig = document.getElementById('colunaOriginais');
     const colNova = document.getElementById('colunaNova');
@@ -1359,24 +1335,12 @@ async function concluirMultiplicacao() {
     const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
     const novoLiderId = document.getElementById('multNovoLider').value;
 
-    if (!novoNome) {
-        alert("Dê um nome para a nova célula.");
-        return;
-    }
-    if (!novoLiderId) {
-        alert("Selecione um líder para a nova célula.");
-        return;
-    }
-    if (membrosQueVao.length === 0) {
-        alert("Escolha pelo menos um membro para a nova célula.");
-        return;
-    }
+    if (!novoNome) { alert("Dê um nome para a nova célula."); return; }
+    if (!novoLiderId) { alert("Selecione um líder."); return; }
+    if (membrosQueVao.length === 0) { alert("Escolha membros."); return; }
 
     try {
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
-        if (!celulaOriginal) throw new Error("Célula original não encontrada.");
-
-        // 1. Criar a nova célula com o novo líder
         const { data: novaCelula, error: insertError } = await supabaseClient
             .from('celulas')
             .insert([{
@@ -1387,65 +1351,18 @@ async function concluirMultiplicacao() {
                 supervisor_user_id: celulaOriginal.supervisor_user_id
             }])
             .select();
-
         if (insertError) throw insertError;
         const novaCelulaId = novaCelula[0].id;
 
-        // 2. Transferir os membros selecionados
-        const { error: updateError } = await supabaseClient
-            .from('pessoas')
-            .update({ celula_id: novaCelulaId })
-            .in('id', membrosQueVao);
-
-        if (updateError) throw updateError;
-
-        // 3. Se o novo líder não foi incluído, movê-lo também
+        await supabaseClient.from('pessoas').update({ celula_id: novaCelulaId }).in('id', membrosQueVao);
         if (!membrosQueVao.includes(novoLiderId)) {
-            await supabaseClient
-                .from('pessoas')
-                .update({ celula_id: novaCelulaId })
-                .eq('id', novoLiderId);
+            await supabaseClient.from('pessoas').update({ celula_id: novaCelulaId }).eq('id', novoLiderId);
         }
 
-        // 4. Verificar se o novo líder já é usuário do sistema
-        const { data: pessoa, error: pessoaError } = await supabaseClient
-            .from('pessoas')
-            .select('is_user, categoria')
-            .eq('id', novoLiderId)
-            .single();
-
-        if (pessoaError) throw pessoaError;
-
-        // 5. Se não for usuário, gerar link de convite
-        if (!pessoa.is_user) {
-            const tokenConvite = crypto.randomUUID();
-            await supabaseClient
-                .from('pessoas')
-                .update({
-                    is_user: true,
-                    categoria: 'Líder',
-                    token_convite: tokenConvite
-                })
-                .eq('id', novoLiderId);
-
-            const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            const link = `${base}completar-cadastro.html?token=${tokenConvite}`;
-            
-            // Fecha o modal de multiplicação primeiro
-            fecharModalMultiplicar();
-            
-            // Aguarda um pequeno atraso para garantir que o modal foi fechado
-            setTimeout(() => {
-                mostrarLinkConvite(link);
-            }, 300);
-        } else {
-            alert("Multiplicação concluída! O novo líder já possui acesso ao sistema.");
-            fecharModalMultiplicar();
-        }
+        alert("Multiplicação concluída!");
+        fecharModalMultiplicar();
         carregarTudo();
-    } catch (err) {
-        alert("Erro na multiplicação: " + err.message);
-    }
+    } catch (err) { alert("Erro: " + err.message); }
 }
 
     async function preencherSelectNovoLider() {
@@ -1565,6 +1482,78 @@ function selecionarLider(id, nome) {
     document.getElementById('multNovoLider').value = id;
     document.getElementById('nomeLiderSelecionado').innerText = nome;
     fecharModalSelecionarLider();
+}
+
+    function abrirModalNovoLider() {
+    document.getElementById('tipoNovoLider').value = 'novo';
+    alternarCamposNovoLider();
+    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
+    document.getElementById('modalNovoLider').classList.remove('hidden');
+}
+
+function fecharModalNovoLider(e) {
+    if (e && e.target !== document.getElementById('modalNovoLider') && !e.target.classList.contains('btn-close-modal')) return;
+    document.getElementById('modalNovoLider').classList.add('hidden');
+}
+
+function fecharNotificacaoNovoLider() {
+    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
+    document.getElementById('modalNovoLider').classList.add('hidden');
+}
+
+function alternarCamposNovoLider() {
+    const tipo = document.getElementById('tipoNovoLider').value;
+    if (tipo === 'novo') {
+        document.getElementById('camposNovoCadastro').style.display = 'block';
+        document.getElementById('camposPromoverMembro').style.display = 'none';
+        preencherSuperioresNovoLider();
+    } else {
+        document.getElementById('camposNovoCadastro').style.display = 'none';
+        document.getElementById('camposPromoverMembro').style.display = 'block';
+        preencherSelectMembrosPromover();
+    }
+    document.getElementById('conviteNovoLiderBox').classList.add('hidden');
+}
+
+async function preencherSuperioresNovoLider() {
+    const { data: superiores } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome')
+        .ilike('categoria', 'Discipulador%')
+        .order('nome');
+    const select = document.getElementById('novoLiderSuperior');
+    select.innerHTML = '<option value="">Selecione o Discipulador</option>';
+    if (superiores) {
+        superiores.forEach(u => select.innerHTML += `<option value="${u.id}">${u.nome}</option>`);
+    }
+    const meuSuperiorId = sessionStorage.getItem('liderSuperiorId');
+    if (meuSuperiorId && meuSuperiorId !== 'null') select.value = meuSuperiorId;
+}
+
+async function preencherSelectMembrosPromover() {
+    const select = document.getElementById('promoverMembroSelect');
+    select.innerHTML = '<option value="">Selecione o membro...</option>';
+    const meuId = sessionStorage.getItem('liderId');
+    const idsCelulas = dadosCelulas.map(c => c.id);
+    if (!idsCelulas.length) return;
+    const { data: membros } = await supabaseClient
+        .from('pessoas')
+        .select('id, nome')
+        .in('celula_id', idsCelulas)
+        .eq('arquivado', false)
+        .neq('id', meuId)
+        .neq('categoria', 'Líder')
+        .order('nome');
+    if (membros) {
+        membros.forEach(m => select.innerHTML += `<option value="${m.id}">${m.nome}</option>`);
+    }
+}
+
+function copiarLinkConviteNovoLider() {
+    const input = document.getElementById('linkConviteNovoLider');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copiado! Envie para o novo líder via WhatsApp.');
 }
     
 </script>
