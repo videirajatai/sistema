@@ -1170,8 +1170,16 @@ if (formPromoverMembro) {
         btn.innerText = "Salvando...";
 
         const membroId = document.getElementById('promoverMembroSelect').value;
+        const usuario = document.getElementById('promoverMembroUsuario').value.trim().toLowerCase();
+
         if (!membroId) {
             alert("Selecione um membro.");
+            btn.disabled = false;
+            btn.innerText = "Promover e Gerar Link";
+            return;
+        }
+        if (!usuario) {
+            alert("Informe o nome de usuário (login) para o novo líder.");
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
@@ -1184,7 +1192,8 @@ if (formPromoverMembro) {
                 .update({
                     categoria: 'Líder',
                     is_user: true,
-                    token_convite: tokenConvite
+                    token_convite: tokenConvite,
+                    usuario: usuario                     // ← agora inclui o nome de usuário
                 })
                 .eq('id', membroId);
 
@@ -1209,7 +1218,8 @@ if (formPromoverMembro) {
         }
     };
 }
-    }
+    
+}
 
     // ========== MULTIPLICAÇÃO DE CÉLULAS ==========
 let listaOriginalMembros = []; // membros da célula original
@@ -1510,6 +1520,8 @@ function alternarCamposNovoLider() {
     } else {
         document.getElementById('camposNovoCadastro').style.display = 'none';
         document.getElementById('camposPromoverMembro').style.display = 'block';
+        // Limpa o campo de usuário do promover (garante que não fique sujo)
+        document.getElementById('promoverMembroUsuario').value = '';
         preencherSelectMembrosPromover();
     }
     document.getElementById('conviteNovoLiderBox').classList.add('hidden');
@@ -1949,19 +1961,22 @@ function copiarLinkConviteNovoLider() {
         </div>
 
         <!-- Campos para PROMOVER membro -->
-        <div id="camposPromoverMembro" style="display:none;">
-            <form id="formPromoverMembro">
-                <label>Membro da sua rede</label>
-                <select name="membro_id" id="promoverMembroSelect" required>
-                    <option value="">Selecione o membro...</option>
-                </select>
-
-                <div style="display:flex; gap:10px; margin-top: 15px;">
-                    <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
-                    <button type="submit" id="btnSalvarPromoverMembro" class="btn-save" style="flex:2;">Promover e Gerar Link</button>
-                </div>
-            </form>
-        </div>
+            <div id="camposPromoverMembro" style="display:none;">
+                <form id="formPromoverMembro">
+                    <label>Membro da sua rede</label>
+                    <select name="membro_id" id="promoverMembroSelect" required>
+                        <option value="">Selecione o membro...</option>
+                    </select>
+            
+                    <label style="margin-top:15px;">Usuário (login) *</label>
+                    <input type="text" name="usuario" id="promoverMembroUsuario" required placeholder="Ex: lider.maria" style="text-transform: lowercase;">
+            
+                    <div style="display:flex; gap:10px; margin-top: 15px;">
+                        <button type="button" onclick="fecharModalNovoLider()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" id="btnSalvarPromoverMembro" class="btn-save" style="flex:2;">Promover e Gerar Link</button>
+                    </div>
+                </form>
+            </div>
 
         <!-- Notificação do link (usada por ambos) -->
         <div id="conviteNovoLiderBox" class="hidden" style="margin-top: 20px;">
