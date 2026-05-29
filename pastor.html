@@ -885,7 +885,7 @@
             const dados = {
                 nome: document.getElementById('campoNome').value,
                 nascimento: document.getElementById('campoNasc').value,
-                tipo: document.getElementById('campoCategoria').value,
+                categoria: document.getElementById('campoCategoria').value,  // Corrigido: agora envia 'categoria'
                 celula_id: document.getElementById('selectCelulas').value || null,
                 telefone: document.getElementById('campoTel').value,
                 batizado: document.getElementById('checkBat').checked ? 'Sim' : 'Não',
@@ -893,16 +893,23 @@
                 ctl: document.getElementById('checkCtl').checked ? 'Sim' : 'Não',
                 encontro: document.getElementById('checkDiz').checked ? 'Sim' : 'Não',
                 seminario: document.getElementById('checkSem').checked ? 'Sim' : 'Não',
-                dizimista: document.getElementById('checkDizi').checked ? 'Sim' : 'Não',
-                arquivado: false
+                dizimista: document.getElementById('checkDizi').checked ? 'Sim' : 'Não'
+                // Removido o campo 'arquivado' para não alterar o status de arquivamento ao editar
             };
             try {
-                if (id) await supabaseClient.from('pessoas').update(dados).eq('id', id);
-                else await supabaseClient.from('pessoas').insert([dados]);
+                if (id) {
+                    await supabaseClient.from('pessoas').update(dados).eq('id', id);
+                } else {
+                    // Ao criar um novo membro, garante que arquivado seja false
+                    dados.arquivado = false;
+                    await supabaseClient.from('pessoas').insert([dados]);
+                }
                 fecharModal('secao-cadastro');
                 await carregarTudo();
                 mudarSecao('lista');
-            } catch (err) { alert("Erro ao salvar membro: " + err.message); }
+            } catch (err) { 
+                alert("Erro ao salvar membro: " + err.message); 
+            }
         });
 
         document.getElementById('formCelula').addEventListener('submit', async e => {
