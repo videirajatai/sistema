@@ -111,6 +111,19 @@
         input:checked+.slider { background-color: var(--success-text); }
         input:checked+.slider:before { transform: translateX(22px); }
         .btn-youtube { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background-color: #FF0000; color: white; font-weight: bold; text-decoration: none; border-radius: 8px; margin-bottom: 15px; }
+
+        .report-section { margin-bottom: 20px; }
+        .report-section h5 { color: var(--primary); font-size: 0.9rem; margin-bottom: 8px; font-weight: 700; }
+        .report-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: white; border: 1px solid var(--border-color); padding: 14px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow); margin-bottom: 8px; text-align: left; font-family: inherit; font-size: 0.85rem; color: var(--text-main); font-weight: 500; }
+        .report-btn:hover { border-color: var(--primary); background: #fdf5f6; }
+        .report-btn i { color: var(--primary); font-size: 1rem; }
+
+        @media print {
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
+            .btn-close-modal, .report-btn { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -135,15 +148,15 @@
     let mapaNomes = {}; // id -> nome
 
     // Função para escapar aspas simples e outros caracteres perigosos no HTML
-        function escaparHTML(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/'/g, '&#39;')
-                .replace(/"/g, '&quot;');
-        }
+    function escaparHTML(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/'/g, '&#39;')
+            .replace(/"/g, '&quot;');
+    }
 
     // ========== AUTENTICAÇÃO ==========
     (async () => {
@@ -296,12 +309,10 @@
     }
 
     async function preencherSelects() {
-
         // Montar mapa de nomes dos líderes e supervisores
         const idsLideres = dadosCelulas.map(c => c[2]).filter(id => id);
         const idsSupervisores = dadosCelulas.map(c => c[5]).filter(id => id);
         const todosIds = [...new Set([...idsLideres, ...idsSupervisores])];
-        
         if (todosIds.length > 0) {
             const { data: pessoas, error } = await supabaseClient
                 .from('pessoas')
@@ -333,62 +344,57 @@
 
     // ========== REDE DE CÉLULAS ==========
     function renderizarCelulasRede(celulas) {
-    const container = document.getElementById('listaCelulasRede');
-    const filtroLider = document.getElementById('filtroLiderRede');
-    const filtroSupervisor = document.getElementById('filtroSupervisorRede');
-    document.getElementById('contagemCelulasRede').innerText = celulas.length;
-
-    // Preencher filtro de líderes com nomes
-    if (filtroLider) {
-        const lideresUnicos = [...new Set(celulas.map(c => c[2]).filter(id => id))];
-        filtroLider.innerHTML = '<option value="">Todos os Líderes</option>';
-        lideresUnicos.forEach(id => {
-            const nome = mapaNomes[id] || 'Não identificado';
-            filtroLider.innerHTML += `<option value="${id}">${nome}</option>`;
-        });
+        const container = document.getElementById('listaCelulasRede');
+        const filtroLider = document.getElementById('filtroLiderRede');
+        const filtroSupervisor = document.getElementById('filtroSupervisorRede');
+        document.getElementById('contagemCelulasRede').innerText = celulas.length;
+        if (filtroLider) {
+            const lideresUnicos = [...new Set(celulas.map(c => c[2]).filter(id => id))];
+            filtroLider.innerHTML = '<option value="">Todos os Líderes</option>';
+            lideresUnicos.forEach(id => {
+                const nome = mapaNomes[id] || 'Não identificado';
+                filtroLider.innerHTML += `<option value="${id}">${nome}</option>`;
+            });
+        }
+        if (filtroSupervisor) {
+            const supervisoresUnicos = [...new Set(celulas.map(c => c[5]).filter(id => id))];
+            filtroSupervisor.innerHTML = '<option value="">Todos os Supervisores</option>';
+            supervisoresUnicos.forEach(id => {
+                const nome = mapaNomes[id] || 'Não identificado';
+                filtroSupervisor.innerHTML += `<option value="${id}">${nome}</option>`;
+            });
+        }
+        window.celulasRedeCompleta = celulas;
+        filtrarCelulasRede();
+        if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
     }
-    // Preencher filtro de supervisores com nomes
-    if (filtroSupervisor) {
-        const supervisoresUnicos = [...new Set(celulas.map(c => c[5]).filter(id => id))];
-        filtroSupervisor.innerHTML = '<option value="">Todos os Supervisores</option>';
-        supervisoresUnicos.forEach(id => {
-            const nome = mapaNomes[id] || 'Não identificado';
-            filtroSupervisor.innerHTML += `<option value="${id}">${nome}</option>`;
-        });
-    }
-
-    window.celulasRedeCompleta = celulas;
-    filtrarCelulasRede();
-    if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
-}
 
     function filtrarCelulasRede() {
-    const liderId = document.getElementById('filtroLiderRede')?.value || '';
-    const supervisorId = document.getElementById('filtroSupervisorRede')?.value || '';
-    const container = document.getElementById('listaCelulasRede');
-    let filtradas = window.celulasRedeCompleta || [];
-    if (liderId) filtradas = filtradas.filter(c => c[2] === liderId);
-    if (supervisorId) filtradas = filtradas.filter(c => c[5] === supervisorId);
+        const liderId = document.getElementById('filtroLiderRede')?.value || '';
+        const supervisorId = document.getElementById('filtroSupervisorRede')?.value || '';
+        const container = document.getElementById('listaCelulasRede');
+        let filtradas = window.celulasRedeCompleta || [];
+        if (liderId) filtradas = filtradas.filter(c => c[2] === liderId);
+        if (supervisorId) filtradas = filtradas.filter(c => c[5] === supervisorId);
+        document.getElementById('contagemCelulasRede').innerText = filtradas.length;
+        container.innerHTML = filtradas.map(c => {
+            const nomeLider = mapaNomes[c[2]] || 'Não definido';
+            const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
+            const nomeCelula = escaparHTML(c[1]);
+            return `
+                <div class="cell-card">
+                    <div class="cell-info" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
+                        <div class="cell-nome">${nomeCelula}</div>
+                        <div class="cell-lider">Líder: ${escaparHTML(nomeLider)} • Supervisor: ${escaparHTML(nomeSupervisor)}</div>
+                    </div>
+                    <div class="cell-card-actions">
+                        <button onclick="event.stopPropagation(); editarCelula('${c[0]}')" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
+                        <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>`;
+        }).join('');
+    }
 
-    document.getElementById('contagemCelulasRede').innerText = filtradas.length;
-    container.innerHTML = filtradas.map(c => {
-        const nomeLider = mapaNomes[c[2]] || 'Não definido';
-        const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
-        const nomeCelula = escaparHTML(c[1]);
-        return `
-            <div class="cell-card">
-                <div class="cell-info" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])">
-                    <div class="cell-nome">${nomeCelula}</div>
-                    <div class="cell-lider">Líder: ${escaparHTML(nomeLider)} • Supervisor: ${escaparHTML(nomeSupervisor)}</div>
-                </div>
-                <div class="cell-card-actions">
-                    <button onclick="event.stopPropagation(); editarCelula('${c[0]}')" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
-                    <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
-                </div>
-            </div>`;
-    }).join('');
-}
-    
     function editarCelula(id) {
         const cel = dadosCelulas.find(c => c[0] == id);
         if (!cel) return;
@@ -470,7 +476,7 @@
         filtrarRelatorios();
     }
 
-       function filtrarRelatorios() {
+    function filtrarRelatorios() {
         const celulaId = document.getElementById('filtroRelCelula').value;
         const inicio = document.getElementById('filtroRelDataInicio').value;
         const fim = document.getElementById('filtroRelDataFim').value;
@@ -603,29 +609,170 @@
         carregarPalavrasDados();
     }
 
-    // ========== MINHA IGREJA ==========
+    // ========== MINHA IGREJA (REMODELADA) ==========
     function carregarEstatisticas() {
         const ativos = obterAtivos();
         const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
         setText('statTotalMembros', ativos.length);
-        setText('statBatizados', ativos.filter(m => m[6] === 'Sim').length);
-        setText('statCursao', ativos.filter(m => m[7] === 'Sim').length);
-        setText('statCtl', ativos.filter(m => m[8] === 'Sim').length);
-        setText('statSeminario', ativos.filter(m => m[11] === 'Sim').length);
-        setText('statDizimistas', ativos.filter(m => m[12] === 'Sim').length);
         setText('statLideres', ativos.filter(m => m[2] === 'Líder').length);
         setText('statDiscipuladores', ativos.filter(m => m[2] === 'Discipulador').length);
-        setText('statFrequentadores', ativos.filter(m => m[2] === 'Frequentador').length);
+        setText('statDizimistas', ativos.filter(m => m[12] === 'Sim').length);
         setText('statCelulas', dadosCelulas.length);
+    }
+
+    function abrirRelatorioLideresSemRelatorio() {
         const agora = new Date();
-        const inicioSemana = new Date(agora); inicioSemana.setDate(agora.getDate() - ((agora.getDay() + 6) % 7)); inicioSemana.setHours(0,0,0,0);
-        const fimSemana = new Date(inicioSemana); fimSemana.setDate(inicioSemana.getDate() + 6); fimSemana.setHours(23,59,59,999);
-        const relSemana = dadosRelatorios.filter(r => { const d = new Date(r.data + 'T00:00:00'); return d >= inicioSemana && d <= fimSemana; });
-        setText('statRelatoriosSemana', relSemana.length);
-        const celulasComRelatorio = new Set(relSemana.map(r => r.celula));
-        const semRelatorio = dadosCelulas.filter(c => !celulasComRelatorio.has(c[1])).map(c => c[1]);
-        const elSemRel = document.getElementById('statCelulasSemRelatorio');
-        if (elSemRel) elSemRel.innerHTML = semRelatorio.length ? semRelatorio.join(', ') : 'Todas enviaram';
+        const inicioSemana = new Date(agora);
+        inicioSemana.setDate(agora.getDate() - ((agora.getDay() + 6) % 7));
+        inicioSemana.setHours(0, 0, 0, 0);
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(inicioSemana.getDate() + 6);
+        fimSemana.setHours(23, 59, 59, 999);
+
+        const relSemana = dadosRelatorios.filter(r => {
+            const d = new Date(r.data + 'T00:00:00');
+            return d >= inicioSemana && d <= fimSemana;
+        });
+        const celulasComRelatorio = new Set(relSemana.map(r => r.celula_id));
+        const celulasSemRelatorio = dadosCelulas.filter(c => !celulasComRelatorio.has(c[0]));
+
+        const lideresAtivos = obterAtivos().filter(m => m[2] === 'Líder');
+        const lideresComCelula = new Set(celulasSemRelatorio.map(c => c[2]));
+        const lideresSemRelatorio = lideresAtivos.filter(l => lideresComCelula.has(l[0]));
+
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = '';
+        if (lideresSemRelatorio.length === 0) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Todos os líderes lançaram relatório esta semana.</p>';
+        } else {
+            conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Líder</th><th>Célula</th></tr></thead><tbody>
+                ${lideresSemRelatorio.map(l => {
+                    const celula = dadosCelulas.find(c => c[2] === l[0]);
+                    return `<tr><td>${l[1]}</td><td>${celula ? celula[1] : 'Sem célula'}</td></tr>`;
+                }).join('')}
+            </tbody></table>`;
+        }
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Líderes sem Relatório na Semana';
+    }
+
+    function abrirRelatorioMembrosFaltosos() {
+        const ativos = obterAtivos();
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+        const dataLimite = trintaDiasAtras.toISOString().split('T')[0];
+
+        const relRecentes = dadosRelatorios.filter(r => r.data >= dataLimite);
+        const faltasPorMembro = {};
+        relRecentes.forEach(r => {
+            const presencas = r.presencas || [];
+        });
+
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = '<p style="text-align:center;">Processando...</p>';
+
+        supabaseClient.from('presencas').select('membro_id, presente').in('relatorio_id', relRecentes.map(r => r.id)).then(({ data: presencas }) => {
+            const faltas = {};
+            presencas?.forEach(p => {
+                if (!p.presente) {
+                    faltas[p.membro_id] = (faltas[p.membro_id] || 0) + 1;
+                }
+            });
+            const faltosos = ativos.filter(m => faltas[m[0]] >= 3);
+            conteudo.innerHTML = '';
+            if (faltosos.length === 0) {
+                conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Nenhum membro com 3 ou mais faltas consecutivas.</p>';
+            } else {
+                conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Membro</th><th>Célula</th><th>Faltas (30 dias)</th></tr></thead><tbody>
+                    ${faltosos.map(m => `<tr><td>${m[1]}</td><td>${m[3]}</td><td>${faltas[m[0]]}</td></tr>`).join('')}
+                </tbody></table>`;
+            }
+            document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+            document.getElementById('tituloRelatorioPersonalizado').innerText = 'Membros com 3+ Faltas (30 dias)';
+        });
+    }
+
+    function abrirRelatorioQuedaFrequencia() {
+        const ultimosRelatorios = {};
+        dadosRelatorios.forEach(r => {
+            if (!ultimosRelatorios[r.celula_id]) ultimosRelatorios[r.celula_id] = [];
+            ultimosRelatorios[r.celula_id].push(r);
+        });
+
+        const resultado = [];
+        Object.entries(ultimosRelatorios).forEach(([celulaId, rels]) => {
+            rels.sort((a, b) => new Date(b.data) - new Date(a.data));
+            const ultimos4 = rels.slice(0, 4);
+            if (ultimos4.length >= 4) {
+                const medias = ultimos4.map(r => r.presentes ? r.presentes.split(',').filter(x => x.trim()).length : 0);
+                const mediaInicial = (medias[3] + medias[2]) / 2;
+                const mediaFinal = (medias[1] + medias[0]) / 2;
+                if (mediaInicial > 0 && mediaFinal < mediaInicial * 0.7) {
+                    resultado.push({
+                        celulaId,
+                        nomeCelula: window.celulaMap[celulaId] || celulaId,
+                        mediaInicial: mediaInicial.toFixed(1),
+                        mediaFinal: mediaFinal.toFixed(1),
+                        queda: (((mediaInicial - mediaFinal) / mediaInicial) * 100).toFixed(0)
+                    });
+                }
+            }
+        });
+
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = '';
+        if (resultado.length === 0) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Nenhuma célula com queda significativa de frequência.</p>';
+        } else {
+            conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Célula</th><th>Média Antiga</th><th>Média Recente</th><th>Queda %</th></tr></thead><tbody>
+                ${resultado.map(r => `<tr><td>${r.nomeCelula}</td><td>${r.mediaInicial}</td><td>${r.mediaFinal}</td><td style="color:var(--danger-text);">${r.queda}%</td></tr>`).join('')}
+            </tbody></table>`;
+        }
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Células com Queda de Frequência';
+    }
+
+    function abrirRelatorioCelulasSemColider() {
+        const celulasSemColider = dadosCelulas.filter(c => !c[6]);
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = '';
+        if (celulasSemColider.length === 0) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Todas as células possuem líder em treinamento.</p>';
+        } else {
+            conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Célula</th><th>Líder</th></tr></thead><tbody>
+                ${celulasSemColider.map(c => {
+                    const nomeLider = mapaNomes[c[2]] || 'Não definido';
+                    return `<tr><td>${c[1]}</td><td>${nomeLider}</td></tr>`;
+                }).join('')}
+            </tbody></table>`;
+        }
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Células sem Líder em Treinamento';
+    }
+
+    function abrirRelatorioStatusEspiritual() {
+        const ativos = obterAtivos();
+        const total = ativos.length;
+        const naoBatizados = ativos.filter(m => m[6] !== 'Sim').length;
+        const naoCursao = ativos.filter(m => m[7] !== 'Sim').length;
+        const naoCtl = ativos.filter(m => m[8] !== 'Sim').length;
+        const naoEncontro = ativos.filter(m => m[9] !== 'Sim').length;
+
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = `
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                <div class="stat-card" style="border-left:4px solid #dc3545;"><div class="stat-number">${naoBatizados}</div><div class="stat-label">Não Batizados (${total ? ((naoBatizados/total)*100).toFixed(1) : 0}%)</div></div>
+                <div class="stat-card" style="border-left:4px solid #fd7e14;"><div class="stat-number">${naoCursao}</div><div class="stat-label">Sem Cursão (${total ? ((naoCursao/total)*100).toFixed(1) : 0}%)</div></div>
+                <div class="stat-card" style="border-left:4px solid #6f42c1;"><div class="stat-number">${naoCtl}</div><div class="stat-label">Sem CTL (${total ? ((naoCtl/total)*100).toFixed(1) : 0}%)</div></div>
+                <div class="stat-card" style="border-left:4px solid #0dcaf0;"><div class="stat-number">${naoEncontro}</div><div class="stat-label">Sem Encontro (${total ? ((naoEncontro/total)*100).toFixed(1) : 0}%)</div></div>
+            </div>
+        `;
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Status Espiritual dos Membros';
+    }
+
+    function imprimirRelatorio() {
+        window.print();
     }
 
     // ========== EDIÇÃO DE MEMBRO ==========
@@ -819,7 +966,6 @@
                 <div style="display:flex; gap:4px;">
                     <button onclick="exportarExcel()" class="btn-card" style="background:#166534; color:white; border-color:#166534;"><i class="fas fa-file-excel"></i></button>
                     <button onclick="exportarPDF()" class="btn-card" style="background:#991b1b; color:white; border-color:#991b1b;"><i class="fas fa-file-pdf"></i></button>
-                    <!--<button onclick="novoCadastro()" class="btn-card" style="background:var(--success-text); color:white; border-color:var(--success-text);"><i class="fas fa-plus"></i> Novo</button>-->
                 </div>
             </div>
             <div class="filtros-container">
@@ -857,7 +1003,6 @@
             <span><strong id="contagemCelulasRede">0</strong> células</span>
             <div style="display:flex; gap:4px;">
                 <button onclick="exportarListaCelulasPDF()" class="btn-card"><i class="fas fa-print"></i> Lista</button>
-                <!--<button onclick="novaCelula()" class="btn-card" style="background:var(--success-text); color:white;"><i class="fas fa-plus"></i> Nova</button>-->
             </div>
         </div>
         <div class="filtro-lider" style="display:flex; gap:8px; background:white; padding:8px; border-radius:12px; margin-bottom:15px;">
@@ -902,26 +1047,44 @@
         <div id="listaPalavras"></div>
     </div>
 
+    <!-- MINHA IGREJA (REMODELADA - PROFISSIONAL) -->
     <div id="secao-minha-igreja" class="hidden">
-        <h4 style="margin-bottom:15px;">Visão Geral da Igreja</h4>
-        <div class="dashboard-grid">
-            <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-number" id="statTotalMembros">0</div><div class="stat-label">Membros</div></div>
-            <div class="stat-card"><div class="stat-icon">✝️</div><div class="stat-number" id="statBatizados">0</div><div class="stat-label">Batizados</div></div>
-            <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-number" id="statCursao">0</div><div class="stat-label">Cursão</div></div>
-            <div class="stat-card"><div class="stat-icon">📖</div><div class="stat-number" id="statCtl">0</div><div class="stat-label">CTL</div></div>
-            <div class="stat-card"><div class="stat-icon">🏫</div><div class="stat-number" id="statSeminario">0</div><div class="stat-label">Seminário</div></div>
-            <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-number" id="statDizimistas">0</div><div class="stat-label">Dizimistas</div></div>
-            <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-number" id="statLideres">0</div><div class="stat-label">Líderes</div></div>
-            <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-number" id="statDiscipuladores">0</div><div class="stat-label">Discipuladores</div></div>
-            <div class="stat-card"><div class="stat-icon">🤝</div><div class="stat-number" id="statFrequentadores">0</div><div class="stat-label">Frequentadores</div></div>
-            <div class="stat-card"><div class="stat-icon">🏠</div><div class="stat-number" id="statCelulas">0</div><div class="stat-label">Células</div></div>
-            <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-number" id="statRelatoriosSemana">0</div><div class="stat-label">Relatórios na Semana</div></div>
-            <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label" style="margin-bottom:4px;">Sem Relatório</div><div style="font-size:0.8rem; font-weight:500; max-height:60px; overflow-y:auto;" id="statCelulasSemRelatorio">-</div></div>
+        <h4 style="margin-bottom:15px;">Indicadores da Igreja</h4>
+        <div class="dashboard-grid" style="margin-bottom:25px;">
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotalMembros">0</div><div class="stat-label">Membros</div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-crown"></i></div><div class="stat-number" id="statLideres">0</div><div class="stat-label">Líderes</div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-user-tie"></i></div><div class="stat-number" id="statDiscipuladores">0</div><div class="stat-label">Discipuladores</div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div><div class="stat-number" id="statDizimistas">0</div><div class="stat-label">Dizimistas</div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-home"></i></div><div class="stat-number" id="statCelulas">0</div><div class="stat-label">Células</div></div>
+        </div>
+
+        <h4 style="margin-bottom:15px;">Relatórios Gerenciais</h4>
+        <div class="report-section">
+            <button class="report-btn" onclick="abrirRelatorioLideresSemRelatorio()">
+                <span><i class="fas fa-clipboard-list"></i> Líderes que não lançaram relatório na semana</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="report-btn" onclick="abrirRelatorioMembrosFaltosos()">
+                <span><i class="fas fa-user-times"></i> Membros com 3 ou mais faltas (30 dias)</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="report-btn" onclick="abrirRelatorioQuedaFrequencia()">
+                <span><i class="fas fa-chart-line"></i> Células com queda de frequência</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="report-btn" onclick="abrirRelatorioCelulasSemColider()">
+                <span><i class="fas fa-user-graduate"></i> Células sem líder em treinamento</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="report-btn" onclick="abrirRelatorioStatusEspiritual()">
+                <span><i class="fas fa-cross"></i> Status espiritual dos membros (%)</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
     </div>
 </div>
 
-<!-- MODAIS -->
+<!-- MODAIS EXISTENTES -->
 <div id="modalRelatorio" class="modal-overlay hidden" onclick="fecharModal('modalRelatorio')">
     <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px; padding: 20px;">
         <button class="btn-close-modal" onclick="fecharModal('modalRelatorio')">&times;</button>
@@ -1029,6 +1192,18 @@
                 <button type="submit" style="flex:2; background:var(--primary); color:white; padding:10px; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Salvar</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- NOVO MODAL PARA RELATÓRIOS GERENCIAIS -->
+<div id="modalRelatorioPersonalizado" class="modal-overlay hidden" onclick="fecharModal('modalRelatorioPersonalizado')">
+    <div class="modal-content" style="max-width: 800px; padding: 20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModal('modalRelatorioPersonalizado')">&times;</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="color: var(--primary); margin: 0;" id="tituloRelatorioPersonalizado">Relatório</h2>
+            <button onclick="imprimirRelatorio()" class="btn-card" style="width:auto; padding:8px 15px; background:var(--primary); color:white; border:none;"><i class="fas fa-print"></i> Imprimir</button>
+        </div>
+        <div id="conteudoRelatorio"></div>
     </div>
 </div>
 
