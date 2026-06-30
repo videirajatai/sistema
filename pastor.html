@@ -388,22 +388,22 @@
                         <div class="cell-lider">Líder: ${escaparHTML(nomeLider)} • Supervisor: ${escaparHTML(nomeSupervisor)}</div>
                     </div>
                     <div class="cell-card-actions">
-                        <!--<button onclick="event.stopPropagation(); editarCelula('${c[0]}')" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button> -->
+                        <button onclick="event.stopPropagation(); editarCelula('${c[0]}')" class="btn-card" title="Editar Célula"><i class="fas fa-edit"></i></button>
                         <span class="badge-membros" style="cursor:pointer;" onclick="abrirModalCelula(['${c[0]}','${nomeCelula}','${c[2]}','${c[3]}','${c[4]}','${c[5]}'])"><i class="fas fa-chevron-right"></i></span>
                     </div>
                 </div>`;
         }).join('');
     }
 
-    function editarCelula(id) {
+    async function editarCelula(id) {
         const cel = dadosCelulas.find(c => c[0] == id);
         if (!cel) return;
         document.getElementById('editCelulaId').value = cel[0];
         document.getElementById('editCelulaNome').value = cel[1];
-        document.getElementById('editCelulaLider').value = cel[2] || '';
         document.getElementById('editCelulaDia').value = cel[3] || '';
         document.getElementById('editCelulaEnd').value = cel[4] || '';
-        preencherSelectLideres();
+        // Aguarda o preenchimento do select de líderes
+        await preencherSelectLideres();
         document.getElementById('editCelulaLider').value = cel[2] || '';
         document.getElementById('modalEditarCelula').classList.remove('hidden');
     }
