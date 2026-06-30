@@ -790,26 +790,27 @@
         document.getElementById('secao-cadastro').classList.remove('hidden');
         preencherSelects();
     }
-    function editarMembro(id) {
-        const m = dadosMembros.find(x => x[0] == id);
-        if (!m) return;
-        document.getElementById('idMembro').value = m[0];
-        document.getElementById('campoNome').value = m[1];
-        document.getElementById('campoNasc').value = m[10];
-        document.getElementById('campoTel').value = m[4];
-        document.getElementById('selectCelulas').value = m[13] || '';
-        document.getElementById('campoCategoria').value = m[2];
-        document.getElementById('checkBat').checked = (m[6] === 'Sim');
-        document.getElementById('checkCur').checked = (m[7] === 'Sim');
-        document.getElementById('checkCtl').checked = (m[8] === 'Sim');
-        document.getElementById('checkDiz').checked = (m[9] === 'Sim');
-        document.getElementById('checkSem').checked = (m[11] === 'Sim');
-        document.getElementById('checkDizi').checked = (m[12] === 'Sim');
-        document.getElementById('tituloFormMembro').innerText = 'Editar Membro';
-        document.getElementById('secao-cadastro').classList.remove('hidden');
-        preencherSelects();
-        setTimeout(() => { document.getElementById('selectCelulas').value = m[13] || ''; }, 50);
-    }
+    async function editarMembro(id) {
+    const m = dadosMembros.find(x => x[0] == id);
+    if (!m) return;
+    document.getElementById('idMembro').value = m[0];
+    document.getElementById('campoNome').value = m[1];
+    document.getElementById('campoNasc').value = m[10];
+    document.getElementById('campoTel').value = m[4];
+    document.getElementById('campoCategoria').value = m[2];
+    document.getElementById('checkBat').checked = (m[6] === 'Sim');
+    document.getElementById('checkCur').checked = (m[7] === 'Sim');
+    document.getElementById('checkCtl').checked = (m[8] === 'Sim');
+    document.getElementById('checkDiz').checked = (m[9] === 'Sim');
+    document.getElementById('checkSem').checked = (m[11] === 'Sim');
+    document.getElementById('checkDizi').checked = (m[12] === 'Sim');
+    document.getElementById('tituloFormMembro').innerText = 'Editar Membro';
+    document.getElementById('secao-cadastro').classList.remove('hidden');
+    
+    // Aguarda o preenchimento do select antes de definir o valor
+    await preencherSelects();
+    document.getElementById('selectCelulas').value = m[13] || '';
+}
     async function arquivarMembro(id, nome) {
         if (confirm(`Arquivar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); }
     }
