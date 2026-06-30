@@ -577,8 +577,15 @@
         document.getElementById('modalDataPalavra').innerText = p.data?.split('-').reverse().join('/');
         document.getElementById('modalTexto').innerText = p.texto;
         const btn = document.getElementById('btnLinkYoutube');
-        if (p.link_youtube) { btn.href = p.link_youtube; btn.classList.remove('hidden'); } else btn.classList.add('hidden');
+        if (p.link_youtube) { 
+            btn.href = p.link_youtube; 
+            btn.classList.remove('hidden'); 
+        } else {
+            btn.classList.add('hidden');
+        }
         document.getElementById('modalPalavra').classList.remove('hidden');
+        // TRAVAR SCROLL DO FUNDO
+        document.body.style.overflow = 'hidden';
     }
     function editarPalavra(index) {
         const p = listaPalavras[index];
@@ -820,7 +827,13 @@
         if (s === 'minha-igreja') carregarEstatisticas();
         if (s === 'lista') aplicarFiltros();
     }
-    function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function fecharModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        // Restaurar o scroll se o modal fechado for o de palavras
+        if (id === 'modalPalavra') {
+            document.body.style.overflow = '';
+        }
+    }
     function fecharModalClique(e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden'); }
 
     function exportarExcel() {
