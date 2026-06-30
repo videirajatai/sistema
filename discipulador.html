@@ -877,7 +877,6 @@ function abrirPalavra(index) {
     const btn = document.getElementById('btnLinkYoutube');
     if (p.link_youtube && p.link_youtube.trim()) {
         let url = p.link_youtube.trim();
-        // Garante que o link tenha https://
         if (!/^https?:\/\//i.test(url)) {
             url = 'https://' + url;
         }
@@ -888,8 +887,10 @@ function abrirPalavra(index) {
         btn.href = '#';
     }
     document.getElementById('modalPalavra').classList.remove('hidden');
+    
+    // TRAVAR SCROLL DO FUNDO
+    document.body.style.overflow = 'hidden';
 }
-
 function baixarPalavraTXT() {
     if (!palavraAtual) return;
     const btn = document.querySelector('#modalPalavra .modal-download');
@@ -1021,7 +1022,15 @@ function capituloProximo() {
     if (s === 'relatorios') carregarRelatorios();   // importante para carregar os dados
 }
     
-    function fecharModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+    function fecharModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+        
+        // Se o modal fechado for o de palavras, restaura o scroll
+        if (id === 'modalPalavra') {
+            document.body.style.overflow = '';
+        }
+    }
     function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
 
     // ========== INICIALIZAR EVENTOS ==========
