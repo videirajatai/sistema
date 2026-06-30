@@ -556,7 +556,7 @@
 
     // ========== PALAVRAS ==========
     async function carregarPalavrasDados() {
-        const { data } = await supabaseClient.from('palavras').select('*').order('id', { ascending: false });
+        const { data } = await supabaseClient.from('palavras').select('*').order('data', { ascending: false });
         listaPalavras = data || [];
         renderizarPalavras();
     }
