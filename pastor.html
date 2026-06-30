@@ -783,7 +783,7 @@
         window.print();
     }
 
-    async function abrirSupervisaoGeral() {
+   async function abrirSupervisaoGeral() {
     // Buscar dados atualizados
     const { data: celulas } = await supabaseClient.from('celulas').select('*');
     if (!celulas || celulas.length === 0) {
@@ -950,7 +950,7 @@
                 <div class="info-item" style="grid-column: span 2;"><strong>Endereço:</strong> <span class="valor">${endereco}</span></div>
             </div>
 
-            <h3 style="margin: 15px 0 10px; color: #800020;">Lista de Membros</h3>
+            <h3 style="margin: 15px 0 10px; color: #800020;">Lista de Membros (${membros.length})</h3>
             <table>
                 <thead>
                     <tr>
