@@ -777,10 +777,236 @@
         document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Status Espiritual dos Membros';
     }
+    
 
     function imprimirRelatorio() {
         window.print();
     }
+
+    async function abrirSupervisaoGeral() {
+    // Buscar dados atualizados
+    const { data: celulas } = await supabaseClient.from('celulas').select('*');
+    if (!celulas || celulas.length === 0) {
+        alert("Nenhuma célula cadastrada.");
+        return;
+    }
+
+    // Buscar pessoas para nomes
+    const { data: pessoas } = await supabaseClient.from('pessoas').select('id, nome');
+    const mapaNomes = {};
+    pessoas.forEach(p => mapaNomes[p.id] = p.nome);
+
+    // Buscar membros não arquivados
+    const { data: todosMembros } = await supabaseClient
+        .from('pessoas')
+        .select('*')
+        .eq('arquivado', false);
+
+    // Agrupar membros por célula
+    const membrosPorCelula = {};
+    todosMembros.forEach(m => {
+        if (m.celula_id) {
+            if (!membrosPorCelula[m.celula_id]) membrosPorCelula[m.celula_id] = [];
+            membrosPorCelula[m.celula_id].push(m);
+        }
+    });
+
+    // Montar HTML para impressão
+    let html = `
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Supervisão Geral - Fichas das Células</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Inter', Arial, sans-serif; background: #fff; padding: 20px; }
+            .celula-page {
+                page-break-after: always;
+                padding: 30px;
+                border: 1px solid #ddd;
+                margin-bottom: 20px;
+                background: #fff;
+                border-radius: 8px;
+            }
+            .celula-page:last-child { page-break-after: auto; }
+            .header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 3px solid #800020;
+                padding-bottom: 15px;
+                margin-bottom: 25px;
+            }
+            .header img { max-height: 70px; }
+            .header h1 {
+                color: #800020;
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                margin: 0;
+            }
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px 20px;
+                margin-bottom: 25px;
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 8px;
+            }
+            .info-item { font-size: 14px; }
+            .info-item strong {
+                display: inline-block;
+                width: 160px;
+                color: #555;
+            }
+            .info-item .valor {
+                font-weight: 600;
+                color: #1e293b;
+            }
+            .info-item .linha {
+                display: inline-block;
+                border-bottom: 1px solid #333;
+                width: 200px;
+                margin-left: 5px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 13px;
+            }
+            th {
+                background: #800020;
+                color: #fff;
+                padding: 10px 8px;
+                text-align: left;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+            }
+            td {
+                padding: 8px 8px;
+                border-bottom: 1px solid #e9ecef;
+            }
+            tr:nth-child(even) td { background: #f8f9fa; }
+            .tag {
+                display: inline-block;
+                padding: 2px 10px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            .tag-sim { background: #d1e7dd; color: #0f5132; }
+            .tag-nao { background: #f8d7da; color: #721c24; }
+            .footer {
+                margin-top: 25px;
+                text-align: center;
+                font-size: 11px;
+                color: #999;
+                border-top: 1px solid #eee;
+                padding-top: 15px;
+            }
+            @media print {
+                .celula-page { border: none; margin: 0; padding: 20px; }
+                body { padding: 0; }
+            }
+        </style>
+    </head>
+    <body>`;
+
+    // Para cada célula, montar uma página
+    celulas.forEach(cel => {
+        const id = cel.id;
+        const nome = cel.nome || 'Sem nome';
+        const liderId = cel.lider_user_id;
+        const supervisorId = cel.supervisor_user_id;
+        const horario = cel.dia_horario || 'Não informado';
+        const endereco = cel.endereco || 'Não informado';
+        const coliderId = cel.colider_user_id || null; // se existir
+
+        const nomeLider = mapaNomes[liderId] || 'Não definido';
+        const nomeSupervisor = mapaNomes[supervisorId] || 'Não definido';
+        const nomeColider = coliderId ? mapaNomes[coliderId] : '';
+
+        const membros = membrosPorCelula[id] || [];
+        membros.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+        html += `
+        <div class="celula-page">
+            <div class="header">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira">
+                <h1>Ficha da Célula</h1>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item"><strong>Nome da Célula:</strong> <span class="valor">${nome}</span></div>
+                <div class="info-item"><strong>Horário:</strong> <span class="valor">${horario}</span></div>
+                <div class="info-item"><strong>Discipulador:</strong> <span class="valor">${nomeSupervisor}</span></div>
+                <div class="info-item"><strong>Líder:</strong> <span class="valor">${nomeLider}</span></div>
+                <div class="info-item"><strong>Líder em Treinamento:</strong> <span class="valor">${nomeColider || '__________________'}</span></div>
+                <div class="info-item"><strong>Anfitrião:</strong> <span class="linha">&nbsp;</span></div>
+                <div class="info-item" style="grid-column: span 2;"><strong>Endereço:</strong> <span class="valor">${endereco}</span></div>
+            </div>
+
+            <h3 style="margin: 15px 0 10px; color: #800020;">Lista de Membros</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>Batismo</th>
+                        <th>Cursão</th>
+                        <th>CTL</th>
+                        <th>Encontro</th>
+                        <th>Seminário</th>
+                        <th>Dizimista</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        if (membros.length === 0) {
+            html += `<tr><td colspan="8" style="text-align:center; color:#999;">Nenhum membro cadastrado nesta célula.</td></tr>`;
+        } else {
+            membros.forEach(m => {
+                const bat = m.batizado === 'Sim' ? 'Sim' : 'Não';
+                const cur = m.cursao === 'Sim' ? 'Sim' : 'Não';
+                const ctl = m.ctl === 'Sim' ? 'Sim' : 'Não';
+                const enc = m.encontro === 'Sim' ? 'Sim' : 'Não';
+                const sem = m.seminario === 'Sim' ? 'Sim' : 'Não';
+                const diz = m.dizimista === 'Sim' ? 'Sim' : 'Não';
+                html += `<tr>
+                    <td><strong>${m.nome || 'Sem nome'}</strong></td>
+                    <td>${m.categoria || 'Membro'}</td>
+                    <td><span class="tag ${bat === 'Sim' ? 'tag-sim' : 'tag-nao'}">${bat}</span></td>
+                    <td><span class="tag ${cur === 'Sim' ? 'tag-sim' : 'tag-nao'}">${cur}</span></td>
+                    <td><span class="tag ${ctl === 'Sim' ? 'tag-sim' : 'tag-nao'}">${ctl}</span></td>
+                    <td><span class="tag ${enc === 'Sim' ? 'tag-sim' : 'tag-nao'}">${enc}</span></td>
+                    <td><span class="tag ${sem === 'Sim' ? 'tag-sim' : 'tag-nao'}">${sem}</span></td>
+                    <td><span class="tag ${diz === 'Sim' ? 'tag-sim' : 'tag-nao'}">${diz}</span></td>
+                </tr>`;
+            });
+        }
+
+        html += `</tbody></table>
+            <div class="footer">Documento gerado pelo Sistema Videira em ${new Date().toLocaleString()} - Supervisão Geral</div>
+        </div>`;
+    });
+
+    html += `</body></html>`;
+
+    // Abrir nova janela para impressão
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) {
+        alert('Por favor, permita pop-ups para esta funcionalidade.');
+        return;
+    }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+}
 
     // ========== EDIÇÃO DE MEMBRO ==========
     function novoCadastro() {
@@ -1081,6 +1307,10 @@
 
         <h4 style="margin-bottom:15px;">Relatórios Gerenciais</h4>
         <div class="report-section">
+            <button class="report-btn" onclick="abrirSupervisaoGeral()">
+                <span><i class="fas fa-print"></i> Supervisão Geral - Fichas das Células</span>
+                <i class="fas fa-chevron-right"></i>
+            </button>
             <button class="report-btn" onclick="abrirRelatorioLideresSemRelatorio()">
                 <span><i class="fas fa-clipboard-list"></i> Líderes que não lançaram relatório na semana</span>
                 <i class="fas fa-chevron-right"></i>
