@@ -364,7 +364,7 @@
         const { data: palavras, error: palError } = await supabaseClient
             .from('palavras')
             .select('*')
-            .order('id', { ascending: false });
+            .order('data', { ascending: false });
         if (palError) throw palError;
         listaPalavras = palavras || [];
         renderizarPalavras(listaPalavras);
@@ -906,7 +906,6 @@
     document.getElementById('modalTexto').innerText = p.texto || '';
     const btn = document.getElementById('btnLinkYoutube');
     if (p.link_youtube?.trim()) {
-        // força URL absoluta
         let url = p.link_youtube.trim();
         if (!/^https?:\/\//i.test(url)) {
             url = 'https://' + url;
@@ -918,10 +917,16 @@
         btn.href = '#';
     }
     document.getElementById('modalPalavra').classList.remove('hidden');
+    // TRAVAR SCROLL DO FUNDO
+    document.body.style.overflow = 'hidden';
 }
 
     function fecharModal(e) { 
-        if(e === null || e.target.id === 'modalPalavra') document.getElementById('modalPalavra').classList.add('hidden');
+        if(e === null || (e.target && e.target.id === 'modalPalavra')) {
+            document.getElementById('modalPalavra').classList.add('hidden');
+            // RESTAURAR SCROLL
+            document.body.style.overflow = '';
+        }
     }
 
     function baixarPalavraTXT() {
