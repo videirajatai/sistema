@@ -659,14 +659,46 @@
     }
 
     async function abrirEditarCelula(id) {
-        const cel = dadosCelulas.find(c => c.id === id);
-        if (!cel) return;
-        document.getElementById('celulaId').value = cel.id;
-        document.getElementById('celulaNome').value = cel.nome;
-        document.getElementById('celulaDia').value = cel.dia_horario || '';
-        document.getElementById('celulaEndereco').value = cel.endereco || '';
-        document.getElementById('modalCelulaForm').classList.remove('hidden');
+    const cel = dadosCelulas.find(c => c.id === id);
+    if (!cel) return;
+    document.getElementById('celulaId').value = cel.id;
+    document.getElementById('celulaNome').value = cel.nome;
+    document.getElementById('celulaDia').value = cel.dia_horario || '';
+    document.getElementById('celulaEndereco').value = cel.endereco || '';
+    document.getElementById('modalCelulaForm').classList.remove('hidden');
+
+    // Preencher select de colíder
+    const selectColider = document.getElementById('celulaColider');
+    selectColider.innerHTML = '<option value="">Nenhum</option>';
+
+    try {
+        const { data: membros, error } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .eq('celula_id', id)
+            .eq('arquivado', false)
+            .order('nome');
+
+        if (error) throw error;
+
+        if (membros && membros.length > 0) {
+            membros.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.nome;
+                selectColider.appendChild(opt);
+            });
+        }
+
+        // Selecionar o colider atual, se existir
+        if (cel.colider_user_id) {
+            selectColider.value = cel.colider_user_id;
+        }
+    } catch (err) {
+        console.error("Erro ao carregar membros para colíder:", err);
+        // Opcional: mostrar mensagem ao usuário
     }
+}
 
   async function salvarCelula(e) {
     e.preventDefault();
