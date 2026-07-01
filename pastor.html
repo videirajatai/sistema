@@ -228,6 +228,7 @@
 
             const ativos = obterAtivos();
             document.getElementById('totalMembros').innerText = ativos.length;
+            ordenarMembros(ativos);
             renderizarCards(ativos);
             await preencherSelects();
             preencherSelectLideres();
@@ -292,7 +293,7 @@
         });
     }
 
-    function aplicarFiltros() {
+    /*function aplicarFiltros() {
         const status = document.getElementById('filtroStatusGeral').value;
         let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
         const busca = document.getElementById('inputBusca').value.toLowerCase();
@@ -310,6 +311,35 @@
             }
             return true;
         });
+        renderizarCards(base);
+        document.getElementById('totalMembros').innerText = base.length;
+    }*/
+
+    function aplicarFiltros() {
+        const status = document.getElementById('filtroStatusGeral').value;
+        let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
+        const busca = document.getElementById('inputBusca').value.toLowerCase();
+        const celulaFiltro = document.getElementById('filtroCelula').value;
+        const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
+        const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
+        base = base.filter(m => {
+            if (busca && !m[1].toLowerCase().includes(busca)) return false;
+            if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
+            if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
+            if (tagsSel.length) {
+                const tags = [];
+                if (m[6] === 'Sim') tags.push('batizado');
+                if (m[7] === 'Sim') tags.push('cursão');
+                if (m[8] === 'Sim') tags.push('ctl');
+                if (m[9] === 'Sim') tags.push('encontro');
+                if (m[11] === 'Sim') tags.push('seminário');
+                if (m[12] === 'Sim') tags.push('dizimista');
+                if (!tagsSel.some(t => tags.includes(t))) return false;
+            }
+            return true;
+        });
+        // ORDENAÇÃO HIERÁRQUICA + ALFABÉTICA
+        ordenarMembros(base);
         renderizarCards(base);
         document.getElementById('totalMembros').innerText = base.length;
     }
@@ -1291,6 +1321,21 @@
     window.onload = () => {
         if (document.getElementById('filtroMesAgenda')) document.getElementById('filtroMesAgenda').value = 'todos';
     };
+
+    function ordenarMembros(lista) {
+            const ordemHierarquia = { 'Pastor': 1, 'Discipulador': 2, 'Líder': 3 };
+            return lista.sort((a, b) => {
+                const catA = a[2];
+                const catB = b[2];
+                const ordemA = ordemHierarquia[catA] || 99;
+                const ordemB = ordemHierarquia[catB] || 99;
+                if (ordemA !== ordemB) {
+                    return ordemA - ordemB;
+                }
+                // Mesma categoria: ordena alfabeticamente pelo nome
+                return (a[1] || '').localeCompare(b[1] || '');
+            });
+        }
 </script>
 
 <div class="container">
