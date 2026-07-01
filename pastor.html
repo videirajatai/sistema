@@ -1204,8 +1204,7 @@
                     if (m[11] === 'Sim') tags.push('seminário');
                     if (m[12] === 'Sim') tags.push('dizimista');
                     if (!tagsSel.some(t => tags.includes(t))) return false;
-                }
-                ordenarMembros(base);
+                }                
                 return true;
             });
         }
