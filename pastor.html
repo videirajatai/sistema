@@ -1190,7 +1190,7 @@
         document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
 
-        document.getElementById('formMembro').addEventListener('submit', async e => {
+        /*document.getElementById('formMembro').addEventListener('submit', async e => {
             e.preventDefault();
             const id = document.getElementById('idMembro').value;
             const dados = {
@@ -1212,6 +1212,44 @@
                     await supabaseClient.from('pessoas').update(dados).eq('id', id);
                 } else {
                     // Ao criar um novo membro, garante que arquivado seja false
+                    dados.arquivado = false;
+                    await supabaseClient.from('pessoas').insert([dados]);
+                }
+                fecharModal('secao-cadastro');
+                await carregarTudo();
+                mudarSecao('lista');
+            } catch (err) { 
+                alert("Erro ao salvar membro: " + err.message); 
+            }
+        });*/
+
+        document.getElementById('formMembro').addEventListener('submit', async e => {
+            e.preventDefault();
+            const id = document.getElementById('idMembro').value;
+            
+            // Captura os valores e trata campos vazios como null
+            const nascimento = document.getElementById('campoNasc').value;
+            const telefone = document.getElementById('campoTel').value;
+            const celulaId = document.getElementById('selectCelulas').value;
+            
+            const dados = {
+                nome: document.getElementById('campoNome').value,
+                nascimento: nascimento || null,          // <-- CONVERTE VAZIO PARA NULL
+                categoria: document.getElementById('campoCategoria').value,
+                celula_id: celulaId || null,             // <-- já estava, mas mantido
+                telefone: telefone || null,              // <-- CONVERTE VAZIO PARA NULL
+                batizado: document.getElementById('checkBat').checked ? 'Sim' : 'Não',
+                cursao: document.getElementById('checkCur').checked ? 'Sim' : 'Não',
+                ctl: document.getElementById('checkCtl').checked ? 'Sim' : 'Não',
+                encontro: document.getElementById('checkDiz').checked ? 'Sim' : 'Não',
+                seminario: document.getElementById('checkSem').checked ? 'Sim' : 'Não',
+                dizimista: document.getElementById('checkDizi').checked ? 'Sim' : 'Não'
+            };
+            
+            try {
+                if (id) {
+                    await supabaseClient.from('pessoas').update(dados).eq('id', id);
+                } else {
                     dados.arquivado = false;
                     await supabaseClient.from('pessoas').insert([dados]);
                 }
