@@ -250,14 +250,14 @@
     function obterAtivos() {
         return dadosMembros.filter(m => 
             (m[14] === 'Não' || m[14] === false) && 
-            m[2] !== 'administrador'
+            m[2] !== 'Administrador'
         );
     }
     /*function obterInativos() { return dadosMembros.filter(m => m[14] === 'Sim' || m[14] === true); }*/
     function obterInativos() {
         return dadosMembros.filter(m => 
             (m[14] === 'Sim' || m[14] === true) && 
-            m[2] !== 'administrador'
+            m[2] !== 'Administrador'
         );
     }
 
@@ -468,7 +468,7 @@
             .select('*')
             .eq('celula_id', cel[0])
             .eq('arquivado', false)
-            .neq('categoria', 'administrador');  // <-- FILTRO ADICIONADO
+            .neq('categoria', 'Administrador');  // <-- FILTRO ADICIONADO
         membrosDaCelulaAtiva = data || [];
         document.getElementById('gridMembrosCelulaModal').innerHTML = membrosDaCelulaAtiva.map(m => `
             <div class="member-card">
@@ -537,7 +537,7 @@
         presencas?.forEach(p => {
             const m = dadosMembros.find(x => String(x[0]) === String(p.membro_id));
             // Só adiciona se o membro não for Administrador
-            if (m && m[2] !== 'administrador') {
+            if (m && m[2] !== 'Administrador') {
                 const nome = m[1];
                 if (p.presente) presentes.push(nome);
                 else ausentes.push(nome);
@@ -1155,7 +1155,7 @@
             const status = document.getElementById('filtroStatusGeral').value;
             let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
             // Filtra administradores
-            base = base.filter(m => m[2] !== 'administrador');
+            base = base.filter(m => m[2] !== 'Administrador');
             
             const busca = document.getElementById('inputBusca').value.toLowerCase();
             const celulaFiltro = document.getElementById('filtroCelula').value;
