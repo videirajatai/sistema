@@ -246,8 +246,20 @@
         }
     }
 
-    function obterAtivos() { return dadosMembros.filter(m => m[14] === 'Não' || m[14] === false); }
-    function obterInativos() { return dadosMembros.filter(m => m[14] === 'Sim' || m[14] === true); }
+    /*function obterAtivos() { return dadosMembros.filter(m => m[14] === 'Não' || m[14] === false); }*/
+    function obterAtivos() {
+        return dadosMembros.filter(m => 
+            (m[14] === 'Não' || m[14] === false) && 
+            m[2] !== 'Administrador'
+        );
+    }
+    /*function obterInativos() { return dadosMembros.filter(m => m[14] === 'Sim' || m[14] === true); }*/
+    function obterInativos() {
+        return dadosMembros.filter(m => 
+            (m[14] === 'Sim' || m[14] === true) && 
+            m[2] !== 'Administrador'
+        );
+    }
 
     // ========== RENDER MEMBROS ==========
     function renderizarCards(lista) {
@@ -431,7 +443,7 @@
     }
 
     // ========== MODAL CÉLULA ==========
-    async function abrirModalCelula(cel) {
+    /*async function abrirModalCelula(cel) {
         celulaAtiva = cel;
         document.getElementById('modalCelulaTitulo').innerText = cel[1];
         document.getElementById('modalCelula').classList.remove('hidden');
@@ -445,6 +457,33 @@
                 </div>
                 ${m.telefone ? `<a href="https://wa.me/55${String(m.telefone).replace(/\D/g,'')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>` : ''}
             </div>`).join('') || '<p style="text-align:center; color:#999;">Nenhum membro nesta célula.</p>';
+    }*/
+
+    async function abrirModalCelula(cel) {
+        celulaAtiva = cel;
+        document.getElementById('modalCelulaTitulo').innerText = cel[1];
+        document.getElementById('modalCelula').classList.remove('hidden');
+        const { data } = await supabaseClient
+            .from('pessoas')
+            .select('*')
+            .eq('celula_id', cel[0])
+            .eq('arquivado', false)
+            .neq('categoria', 'Administrador');  // <-- FILTRO ADICIONADO
+        membrosDaCelulaAtiva = data || [];
+        document.getElementById('gridMembrosCelulaModal').innerHTML = membrosDaCelulaAtiva.map(m => `
+            <div class="member-card">
+                <div class="card-header">
+                    <h4 class="card-name">${m.nome}</h4>
+                    <span class="cat-badge">${m.tipo || m.categoria || 'Membro'}</span>
+                </div>
+                <div class="status-row">
+                    ${['batizado','cursao','ctl','encontro','seminario','dizimista'].map(f => 
+                        `<span class="status-pill ${m[f]==='Sim'?'active':''}">${f.charAt(0).toUpperCase()+f.slice(1)}</span>`
+                    ).join('')}
+                </div>
+                ${m.telefone ? `<a href="https://wa.me/55${String(m.telefone).replace(/\D/g,'')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>` : ''}
+            </div>
+        `).join('') || '<p style="text-align:center; color:#999;">Nenhum membro nesta célula.</p>';
     }
 
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
@@ -497,8 +536,12 @@
         const presentes = [], ausentes = [];
         presencas?.forEach(p => {
             const m = dadosMembros.find(x => String(x[0]) === String(p.membro_id));
-            const nome = m ? m[1] : `ID ${p.membro_id}`;
-            if (p.presente) presentes.push(nome); else ausentes.push(nome);
+            // Só adiciona se o membro não for Administrador
+            if (m && m[2] !== 'Administrador') {
+                const nome = m[1];
+                if (p.presente) presentes.push(nome);
+                else ausentes.push(nome);
+            }
         });
         document.getElementById('detalheRelCelula').innerText = window.celulaMap[rel.celula_id] || 'Célula não encontrada';
         document.getElementById('detalheRelData').innerText = rel.data?.split('-').reverse().join('/');
@@ -1088,7 +1131,7 @@
         });
         doc.save(`Membros_${new Date().toISOString().slice(0,10)}.pdf`);
     }
-    function obterMembrosFiltrados() {
+    /*function obterMembrosFiltrados() {
         const status = document.getElementById('filtroStatusGeral').value;
         let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
         const busca = document.getElementById('inputBusca').value.toLowerCase();
@@ -1106,7 +1149,35 @@
             }
             return true;
         });
-    }
+    }*/
+
+    function obterMembrosFiltrados() {
+            const status = document.getElementById('filtroStatusGeral').value;
+            let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
+            // Filtra administradores
+            base = base.filter(m => m[2] !== 'Administrador');
+            
+            const busca = document.getElementById('inputBusca').value.toLowerCase();
+            const celulaFiltro = document.getElementById('filtroCelula').value;
+            const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
+            const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
+            return base.filter(m => {
+                if (busca && !m[1].toLowerCase().includes(busca)) return false;
+                if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
+                if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
+                if (tagsSel.length) {
+                    const tags = [];
+                    if (m[6] === 'Sim') tags.push('batizado');
+                    if (m[7] === 'Sim') tags.push('cursão');
+                    if (m[8] === 'Sim') tags.push('ctl');
+                    if (m[9] === 'Sim') tags.push('encontro');
+                    if (m[11] === 'Sim') tags.push('seminário');
+                    if (m[12] === 'Sim') tags.push('dizimista');
+                    if (!tagsSel.some(t => tags.includes(t))) return false;
+                }
+                return true;
+            });
+        }
 
     function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
 
