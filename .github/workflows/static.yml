@@ -2,22 +2,18 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-  # Allows you to run this workflow manually from the Actions tab
+    branches: ["main"] # Mude para "master" se a sua branch principal for master
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
-  cancel-in-progress: true # ⚡ CORREÇÃO 1: Cancela deploys antigos se você fizer um novo push (economiza tempo)
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -27,19 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # ⚡ CORREÇÃO 2: Removido 'fetch-depth: 0' que baixava o histórico inteiro do Git sem necessidade
+        uses: actions/checkout@v4 # Baixa apenas a versão atual do código (muito mais rápido)
 
       - name: Setup Node.js 24
-        uses: actions/setup-node@v4 # Utilizando a v4 estável
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm' # ⚡ CORREÇÃO 3: Ativa o cache do npm para acelerar os próximos deploys
-
-      # 💡 NOTA IMPORTANTE: Se o seu projeto usa React, Vite, Vue, etc., desative o comentário das duas linhas abaixo
-      # - name: Install dependencies
-      #   run: npm ci
-      # - name: Build
-      #   run: npm run build
+          node-version: '24' # Força o uso do Node 24 sem procurar arquivos que não existem
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -47,9 +36,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # ⚡ CORREÇÃO 4: Se o seu projeto gera uma pasta de build (ex: 'dist' ou 'build'), mude '.' para './dist'
-          # Se for HTML puro, mantenha '.'. Mas certifique-se de que a pasta 'node_modules' NÃO foi enviada ao GitHub.
-          path: '.' 
+          path: '.' # Envia os arquivos da raiz do seu projeto
 
       - name: Deploy to GitHub Pages
         id: deployment
