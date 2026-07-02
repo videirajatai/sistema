@@ -659,7 +659,13 @@
         document.getElementById('modalPalavra').classList.remove('hidden');
         // TRAVAR SCROLL DO FUNDO
         document.body.style.overflow = 'hidden';
+
+         // 🔹 REGISTRA LOG DA AÇÃO
+        const titulo = p.tema || 'Sem título';
+        const dataFormatada = dataF || 'sem data';
+        registrarLogAcao(`Abriu a palavra "${titulo}" (${dataFormatada})`);
     }
+    
     function editarPalavra(index) {
         const p = listaPalavras[index];
         document.getElementById('palavraId').value = p.id;
