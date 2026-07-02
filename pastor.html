@@ -295,27 +295,7 @@
         });
     }
 
-    /*function aplicarFiltros() {
-        const status = document.getElementById('filtroStatusGeral').value;
-        let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
-        const busca = document.getElementById('inputBusca').value.toLowerCase();
-        const celulaFiltro = document.getElementById('filtroCelula').value;
-        const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
-        const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
-        base = base.filter(m => {
-            if (busca && !m[1].toLowerCase().includes(busca)) return false;
-            if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
-            if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
-            if (tagsSel.length) {
-                const tags = [];
-                if (m[6] === 'Sim') tags.push('batizado'); if (m[7] === 'Sim') tags.push('cursão'); if (m[8] === 'Sim') tags.push('ctl'); if (m[9] === 'Sim') tags.push('encontro'); if (m[11] === 'Sim') tags.push('seminário'); if (m[12] === 'Sim') tags.push('dizimista');
-                if (!tagsSel.some(t => tags.includes(t))) return false;
-            }
-            return true;
-        });
-        renderizarCards(base);
-        document.getElementById('totalMembros').innerText = base.length;
-    }*/
+    
 
     function aplicarFiltros() {
         const status = document.getElementById('filtroStatusGeral').value;
@@ -474,22 +454,7 @@
         doc.save(`Celulas_${new Date().toISOString().slice(0,10)}.pdf`);
     }
 
-    // ========== MODAL CÉLULA ==========
-    /*async function abrirModalCelula(cel) {
-        celulaAtiva = cel;
-        document.getElementById('modalCelulaTitulo').innerText = cel[1];
-        document.getElementById('modalCelula').classList.remove('hidden');
-        const { data } = await supabaseClient.from('pessoas').select('*').eq('celula_id', cel[0]).eq('arquivado', false);
-        membrosDaCelulaAtiva = data || [];
-        document.getElementById('gridMembrosCelulaModal').innerHTML = membrosDaCelulaAtiva.map(m => `
-            <div class="member-card">
-                <div class="card-header"><h4 class="card-name">${m.nome}</h4><span class="cat-badge">${m.tipo || m.categoria || 'Membro'}</span></div>
-                <div class="status-row">
-                    ${['batizado','cursao','ctl','encontro','seminario','dizimista'].map(f => `<span class="status-pill ${m[f]==='Sim'?'active':''}">${f.charAt(0).toUpperCase()+f.slice(1)}</span>`).join('')}
-                </div>
-                ${m.telefone ? `<a href="https://wa.me/55${String(m.telefone).replace(/\D/g,'')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>` : ''}
-            </div>`).join('') || '<p style="text-align:center; color:#999;">Nenhum membro nesta célula.</p>';
-    }*/
+   
 
     async function abrirModalCelula(cel) {
         celulaAtiva = cel;
@@ -689,51 +654,7 @@
             </div>`;
         });
     }
-    /*function abrirPalavra(index) {
-        const p = listaPalavras[index];
-        document.getElementById('modalTitulo').innerText = p.tema;
-        document.getElementById('modalDataPalavra').innerText = p.data?.split('-').reverse().join('/');
-        document.getElementById('modalTexto').innerText = p.texto;
-        const btn = document.getElementById('btnLinkYoutube');
-        if (p.link_youtube) { 
-            btn.href = p.link_youtube; 
-            btn.classList.remove('hidden'); 
-        } else {
-            btn.classList.add('hidden');
-        }
-        document.getElementById('modalPalavra').classList.remove('hidden');
-        // TRAVAR SCROLL DO FUNDO
-        document.body.style.overflow = 'hidden';        
-    }
     
-    function editarPalavra(index) {
-        const p = listaPalavras[index];
-        document.getElementById('palavraId').value = p.id;
-        document.getElementById('palavraData').value = p.data;
-        document.getElementById('palavraTema').value = p.tema;
-        document.getElementById('palavraTexto').value = p.texto;
-        document.getElementById('palavraLink').value = p.link_youtube || '';
-        document.getElementById('modalEditarPalavra').classList.remove('hidden');
-    }
-    function novaPalavra() {
-        document.getElementById('formPalavra').reset();
-        document.getElementById('palavraId').value = '';
-        document.getElementById('modalEditarPalavra').classList.remove('hidden');
-    }
-    async function salvarPalavra(e) {
-        e.preventDefault();
-        const id = document.getElementById('palavraId').value;
-        const dados = {
-            data: document.getElementById('palavraData').value,
-            tema: document.getElementById('palavraTema').value,
-            texto: document.getElementById('palavraTexto').value,
-            link_youtube: document.getElementById('palavraLink').value
-        };
-        if (id) await supabaseClient.from('palavras').update(dados).eq('id', id);
-        else await supabaseClient.from('palavras').insert([dados]);
-        document.getElementById('modalEditarPalavra').classList.add('hidden');
-        carregarPalavrasDados();
-    }*/
 
     function abrirPalavra(index) {
         const p = listaPalavras[index];
@@ -1199,7 +1120,11 @@
     win.document.close();
     win.focus();
     win.print();
+    registrarLogAcao(`Gerou a Supervisão Geral - Fichas das Células (${celulas.length} células)`);
 }
+
+
+    
 
     // ========== EDIÇÃO DE MEMBRO ==========
     function novoCadastro() {
@@ -1259,47 +1184,55 @@
     function exportarExcel() {
         const lista = obterMembrosFiltrados();
         if (!lista.length) return alert("Nenhum dado.");
-        const ws = XLSX.utils.json_to_sheet(lista.map(m => ({ Nome: m[1], Categoria: m[2], Célula: m[3], WhatsApp: m[4], Batismo: m[6], Cursão: m[7], CTL: m[8], Encontro: m[9], Seminário: m[11], Dizimista: m[12] })));
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Membros");
+        const ws = XLSX.utils.json_to_sheet(lista.map(m => ({ 
+            Nome: m[1], 
+            Categoria: m[2], 
+            Célula: m[3], 
+            WhatsApp: m[4], 
+            Batismo: m[6], 
+            Cursão: m[7], 
+            CTL: m[8], 
+            Encontro: m[9], 
+            Seminário: m[11], 
+            Dizimista: m[12] 
+        })));
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, ws, "Membros");
         XLSX.writeFile(wb, `Membros_${new Date().toISOString().slice(0,10)}.xlsx`);
+        // 🔹 REGISTRA LOG DA AÇÃO
+        registrarLogAcao(`Exportou lista de membros em Excel (${lista.length} registros)`);
     }
+    
     async function exportarPDF() {
         const lista = obterMembrosFiltrados();
         if (!lista.length) return alert("Nenhum dado.");
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
         try {
-            const resp = await fetch('logo.png'); const blob = await resp.blob(); const reader = new FileReader(); reader.readAsDataURL(blob);
-            await new Promise(r => reader.onload = r); doc.addImage(reader.result, 'PNG', 14, 10, 16, 16);
+            const resp = await fetch('logo.png'); 
+            const blob = await resp.blob(); 
+            const reader = new FileReader(); 
+            reader.readAsDataURL(blob);
+            await new Promise(r => reader.onload = r); 
+            doc.addImage(reader.result, 'PNG', 14, 10, 16, 16);
         } catch (e) {}
-        doc.setFontSize(16); doc.text("Membros - Videira Jataí", 34, 16);
-        doc.setFontSize(9); doc.text(`Gerado em ${new Date().toLocaleString()} | Total: ${lista.length}`, 34, 22);
+        doc.setFontSize(16); 
+        doc.text("Membros - Videira Jataí", 34, 16);
+        doc.setFontSize(9); 
+        doc.text(`Gerado em ${new Date().toLocaleString()} | Total: ${lista.length}`, 34, 22);
         doc.autoTable({
             head: [["Nome", "Categoria", "Célula", "WhatsApp", "Bat.", "Cur.", "CTL", "Enc.", "Sem.", "Diz."]],
             body: lista.map(m => [m[1], m[2], m[3], m[4], m[6], m[7], m[8], m[9], m[11], m[12]]),
-            startY: 30, theme: 'grid', headStyles: { fillColor: [128, 0, 32] }, styles: { fontSize: 8 }
+            startY: 30, 
+            theme: 'grid', 
+            headStyles: { fillColor: [128, 0, 32] }, 
+            styles: { fontSize: 8 }
         });
         doc.save(`Membros_${new Date().toISOString().slice(0,10)}.pdf`);
+        // 🔹 REGISTRA LOG DA AÇÃO
+        registrarLogAcao(`Exportou lista de membros em PDF (${lista.length} registros)`);
     }
-    /*function obterMembrosFiltrados() {
-        const status = document.getElementById('filtroStatusGeral').value;
-        let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
-        const busca = document.getElementById('inputBusca').value.toLowerCase();
-        const celulaFiltro = document.getElementById('filtroCelula').value;
-        const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
-        const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
-        return base.filter(m => {
-            if (busca && !m[1].toLowerCase().includes(busca)) return false;
-            if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
-            if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
-            if (tagsSel.length) {
-                const tags = [];
-                if (m[6] === 'Sim') tags.push('batizado'); if (m[7] === 'Sim') tags.push('cursão'); if (m[8] === 'Sim') tags.push('ctl'); if (m[9] === 'Sim') tags.push('encontro'); if (m[11] === 'Sim') tags.push('seminário'); if (m[12] === 'Sim') tags.push('dizimista');
-                if (!tagsSel.some(t => tags.includes(t))) return false;
-            }
-            return true;
-        });
-    }*/
+
 
     function obterMembrosFiltrados() {
             const status = document.getElementById('filtroStatusGeral').value;
@@ -1340,38 +1273,7 @@
         document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
 
-        /*document.getElementById('formMembro').addEventListener('submit', async e => {
-            e.preventDefault();
-            const id = document.getElementById('idMembro').value;
-            const dados = {
-                nome: document.getElementById('campoNome').value,
-                nascimento: document.getElementById('campoNasc').value,
-                categoria: document.getElementById('campoCategoria').value,  // Corrigido: agora envia 'categoria'
-                celula_id: document.getElementById('selectCelulas').value || null,
-                telefone: document.getElementById('campoTel').value,
-                batizado: document.getElementById('checkBat').checked ? 'Sim' : 'Não',
-                cursao: document.getElementById('checkCur').checked ? 'Sim' : 'Não',
-                ctl: document.getElementById('checkCtl').checked ? 'Sim' : 'Não',
-                encontro: document.getElementById('checkDiz').checked ? 'Sim' : 'Não',
-                seminario: document.getElementById('checkSem').checked ? 'Sim' : 'Não',
-                dizimista: document.getElementById('checkDizi').checked ? 'Sim' : 'Não'
-                // Removido o campo 'arquivado' para não alterar o status de arquivamento ao editar
-            };
-            try {
-                if (id) {
-                    await supabaseClient.from('pessoas').update(dados).eq('id', id);
-                } else {
-                    // Ao criar um novo membro, garante que arquivado seja false
-                    dados.arquivado = false;
-                    await supabaseClient.from('pessoas').insert([dados]);
-                }
-                fecharModal('secao-cadastro');
-                await carregarTudo();
-                mudarSecao('lista');
-            } catch (err) { 
-                alert("Erro ao salvar membro: " + err.message); 
-            }
-        });*/
+       
 
         document.getElementById('formMembro').addEventListener('submit', async e => {
             e.preventDefault();
