@@ -1,0 +1,53 @@
+name: Deploy para GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # Altere para sua branch principal se não for 'main'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+
+      # --- SE VOCÊ PRECISAR DE BUILD (ex: com Vite, React, etc.) ---
+      # Descomente as linhas abaixo se seu projeto precisar de build
+      # - name: Instalar dependências
+      #   run: npm install
+      #
+      # - name: Rodar build
+      #   run: npm run build
+      #   env:
+      #     NODE_ENV: production
+      #
+      # - name: Fazer upload do build
+      #   uses: actions/upload-pages-artifact@v3
+      #   with:
+      #     path: ./dist  # Substitua pela pasta do seu build (ex: 'build', 'public')
+
+      # --- SE VOCÊ NÃO TEM BUILD (apenas arquivos estáticos) ---
+      # Esta etapa publica diretamente a raiz do repositório
+      - name: Fazer upload dos arquivos estáticos
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .  # Publica a raiz do repositório (todos os arquivos)
+
+      - name: Deploy para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
