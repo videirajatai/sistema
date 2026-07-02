@@ -306,7 +306,7 @@
         }
 
         async function registrarLog(usuarioDigitado, nomeReal, acaoRealizada) {
-            const dataHoraAtual = new Date().toLocaleString('pt-BR');
+            const dataHoraAtual = new Date().toISOString(); // <-- PADRÃO ISO (ordenável)
             try {
                 // Usa o cliente Supabase (já autenticado após o login)
                 await supabaseClient.from('logs').insert([{
