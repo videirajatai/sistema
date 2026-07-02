@@ -588,21 +588,21 @@
           alert('Link copiado! Cole no WhatsApp do usuário.');
       }
 
-      async function registrarLogAcao(acaoRealizada) {
-          const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
-          const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
-          const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
-          try {
-              await supabaseClient.from('logs').insert([{ 
-                  datahora: dataHoraAtual, 
-                  usuario: userEmail, 
-                  nomelider: nomeReal, 
-                  acao: acaoRealizada 
-              }]);
-          } catch (e) { 
-              console.error("Erro ao salvar o log:", e); 
-          }
-      }
+     async function registrarLogAcao(acaoRealizada) {
+        const nomeReal = sessionStorage.getItem('usuarioLogado') || 'Desconhecido';
+        const userEmail = sessionStorage.getItem('loginDigitado') || 'Desconhecido';
+        const dataHoraAtual = new Date().toISOString(); // <-- PADRÃO ISO (ordenável)
+        try {
+            await supabaseClient.from('logs').insert([{ 
+                datahora: dataHoraAtual, 
+                usuario: userEmail, 
+                nomelider: nomeReal, 
+                acao: acaoRealizada 
+            }]);
+        } catch (e) { 
+            console.error("Erro ao salvar o log:", e); 
+        }
+    }
       
       function fazerLogout() {
           if (confirm("Tem certeza que deseja sair do sistema?")) {
