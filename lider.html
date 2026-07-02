@@ -288,7 +288,7 @@
         inicializarEventos();
     })();
 
-    async function registrarLogAcao(acao) {
+    /*async function registrarLogAcao(acao) {
         try {
             await supabaseClient.from('logs').insert([{
                 datahora: new Date().toLocaleString('pt-BR'),
@@ -297,7 +297,18 @@
                 acao: acao
             }]);
         } catch(e) { console.error("Erro no log:", e); }
-    }
+    }*/
+
+    async function registrarLogAcao(acao) {
+            try {
+                await supabaseClient.from('logs').insert([{
+                    datahora: new Date().toISOString(), // <-- ISO 8601
+                    usuario: sessionStorage.getItem('loginDigitado'),
+                    nomelider: sessionStorage.getItem('usuarioLogado'),
+                    acao: acao
+                }]);
+            } catch(e) { console.error("Erro no log:", e); }
+        }
 
     async function fetchGoogle(action, payload = {}) {
         payload.usuarioAtivo = sessionStorage.getItem('usuarioLogado');
@@ -641,6 +652,7 @@
         }));
         await supabaseClient.from('presencas').insert(presencas);
         alert("Relatório salvo com sucesso!");
+        await registrarLogAcao(`Lançou relatório da célula ${celulaAtiva.nome} (${dados.data})`);
         fecharModalRelatorio();
     } catch(err) {
         alert("Erro ao salvar relatório: " + err.message);
@@ -753,6 +765,7 @@
         if (id) {
             // Edição de célula existente
             await supabaseClient.from('celulas').update(dados).eq('id', id);
+            await registrarLogAcao(`Editou célula: ${dados.nome}`);
         } else {
             // Criação de nova célula
             const { data: novaCelula, error: insertError } = await supabaseClient
@@ -777,6 +790,7 @@
                     .update({ celula_id: novaCelulaId })
                     .eq('id', meuId);
             }
+            await registrarLogAcao(`Criou nova célula: ${dados.nome}`);
         }
 
         document.getElementById('modalCelulaForm').classList.add('hidden');
@@ -1060,6 +1074,7 @@
                     const { error } = await supabaseClient.from('pessoas').insert([dados]);
                     if (error) throw error;
                     alert("Membro cadastrado!");
+                    await registrarLogAcao(`Cadastrou novo membro: ${dados.nome}`);
                     this.reset();
                     fecharModalCadastroMembro();
                     // Recarregar e renderizar automaticamente
@@ -1104,6 +1119,7 @@ if (formEdit) {
             if (error) throw error;
 
             alert("Membro atualizado!");
+            await registrarLogAcao(`Editou membro: ${dados.nome}`);
             document.getElementById('modalEditarMembro').classList.add('hidden');
 
             // Recarregar automaticamente a lista de membros da célula ativa
@@ -1140,6 +1156,7 @@ if (formEdit) {
                     }]);
                     if (error) throw error;
                     alert("Pedido enviado com sucesso! Obrigado.");
+                    await registrarLogAcao(`Enviou pedido de oração/sugestão: ${this.mensagem.value.substring(0, 50)}...`);
                     this.reset();
                 } catch(err) {
                     alert("Erro ao enviar: " + err.message);
@@ -1405,7 +1422,7 @@ async function concluirMultiplicacao() {
         if (!membrosQueVao.includes(novoLiderId)) {
             await supabaseClient.from('pessoas').update({ celula_id: novaCelulaId }).eq('id', novoLiderId);
         }
-
+        await registrarLogAcao(`Multiplicou célula "${celulaOriginal.nome}" -> nova célula "${novoNome}" com ${membrosQueVao.length} membros`);
         alert("Multiplicação concluída!");
         fecharModalMultiplicar();
         carregarTudo();
