@@ -185,12 +185,14 @@
     async function registrarLogAcao(acao) {
         try {
             await supabaseClient.from('logs').insert([{
-                datahora: new Date().toLocaleString('pt-BR'),
+                datahora: new Date().toISOString(), // <-- padrão ISO (ordenável)
                 usuario: sessionStorage.getItem('loginDigitado'),
                 nomelider: sessionStorage.getItem('usuarioLogado'),
                 acao
             }]);
-        } catch (e) {}
+        } catch (e) {
+            console.error("Erro ao registrar log:", e);
+        }
     }
 
     async function fetchGoogle(action, payload = {}) {
