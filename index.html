@@ -306,24 +306,18 @@
         }
 
         async function registrarLog(usuarioDigitado, nomeReal, acaoRealizada) {
-            const dataHoraAtual = new Date().toLocaleString('pt-BR'); 
+            const dataHoraAtual = new Date().toLocaleString('pt-BR');
             try {
-                await fetch(`${SB_URL}/rest/v1/logs`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SB_KEY,
-                        'Authorization': `Bearer ${SB_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({
-                        datahora: dataHoraAtual,
-                        usuario: usuarioDigitado,
-                        nomelider: nomeReal,
-                        acao: acaoRealizada
-                    })
-                });
-            } catch (e) { console.error("Aviso: Falha ao registrar log.", e); }
+                // Usa o cliente Supabase (já autenticado após o login)
+                await supabaseClient.from('logs').insert([{
+                    datahora: dataHoraAtual,
+                    usuario: usuarioDigitado,
+                    nomelider: nomeReal,
+                    acao: acaoRealizada
+                }]);
+            } catch (e) {
+                console.error("Erro ao registrar log:", e);
+            }
         }
 
         function sair() {
