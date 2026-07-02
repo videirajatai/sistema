@@ -644,7 +644,7 @@
             </div>`;
         });
     }
-    function abrirPalavra(index) {
+    /*function abrirPalavra(index) {
         const p = listaPalavras[index];
         document.getElementById('modalTitulo').innerText = p.tema;
         document.getElementById('modalDataPalavra').innerText = p.data?.split('-').reverse().join('/');
@@ -658,12 +658,7 @@
         }
         document.getElementById('modalPalavra').classList.remove('hidden');
         // TRAVAR SCROLL DO FUNDO
-        document.body.style.overflow = 'hidden';
-
-         // 🔹 REGISTRA LOG DA AÇÃO
-        const titulo = p.tema || 'Sem título';
-        const dataFormatada = dataF || 'sem data';
-        registrarLogAcao(`Abriu a palavra "${titulo}" (${dataFormatada})`);
+        document.body.style.overflow = 'hidden';        
     }
     
     function editarPalavra(index) {
@@ -693,8 +688,82 @@
         else await supabaseClient.from('palavras').insert([dados]);
         document.getElementById('modalEditarPalavra').classList.add('hidden');
         carregarPalavrasDados();
+    }*/
+
+    function abrirPalavra(index) {
+        const p = listaPalavras[index];
+        document.getElementById('modalTitulo').innerText = p.tema;
+        document.getElementById('modalDataPalavra').innerText = p.data?.split('-').reverse().join('/');
+        document.getElementById('modalTexto').innerText = p.texto;
+        const btn = document.getElementById('btnLinkYoutube');
+        if (p.link_youtube) { 
+            btn.href = p.link_youtube; 
+            btn.classList.remove('hidden'); 
+        } else {
+            btn.classList.add('hidden');
+        }
+        document.getElementById('modalPalavra').classList.remove('hidden');
+        // TRAVAR SCROLL DO FUNDO
+        document.body.style.overflow = 'hidden';
+    
+        // 🔹 REGISTRA LOG DA AÇÃO
+        const titulo = p.tema || 'Sem título';
+        const dataFormatada = p.data ? p.data.split('-').reverse().join('/') : 'sem data';
+        registrarLogAcao(`Visualizou a palavra "${titulo}" (${dataFormatada})`);
     }
 
+    function editarPalavra(index) {
+        const p = listaPalavras[index];
+        document.getElementById('palavraId').value = p.id;
+        document.getElementById('palavraData').value = p.data;
+        document.getElementById('palavraTema').value = p.tema;
+        document.getElementById('palavraTexto').value = p.texto;
+        document.getElementById('palavraLink').value = p.link_youtube || '';
+        document.getElementById('modalEditarPalavra').classList.remove('hidden');
+    
+        // 🔹 REGISTRA LOG DA AÇÃO
+        const titulo = p.tema || 'Sem título';
+        registrarLogAcao(`Abriu edição da palavra "${titulo}"`);
+    }
+
+    function novaPalavra() {
+        document.getElementById('formPalavra').reset();
+        document.getElementById('palavraId').value = '';
+        document.getElementById('modalEditarPalavra').classList.remove('hidden');
+    
+        // 🔹 REGISTRA LOG DA AÇÃO
+        registrarLogAcao('Abriu formulário para criar nova palavra');
+    }
+
+    async function salvarPalavra(e) {
+        e.preventDefault();
+        const id = document.getElementById('palavraId').value;
+        const dados = {
+            data: document.getElementById('palavraData').value,
+            tema: document.getElementById('palavraTema').value,
+            texto: document.getElementById('palavraTexto').value,
+            link_youtube: document.getElementById('palavraLink').value
+        };
+        try {
+            if (id) {
+                await supabaseClient.from('palavras').update(dados).eq('id', id);
+                registrarLogAcao(`Editou a palavra "${dados.tema}" (${dados.data})`);
+            } else {
+                await supabaseClient.from('palavras').insert([dados]);
+                registrarLogAcao(`Criou a palavra "${dados.tema}" (${dados.data})`);
+            }
+            document.getElementById('modalEditarPalavra').classList.add('hidden');
+            await carregarPalavrasDados();
+        } catch (error) {
+            console.error("Erro ao salvar palavra:", error);
+            alert("Erro ao salvar: " + error.message);
+        }
+    }
+
+
+
+
+    
     // ========== MINHA IGREJA (REMODELADA) ==========
     function carregarEstatisticas() {
         const ativos = obterAtivos();
