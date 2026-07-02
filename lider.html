@@ -1036,7 +1036,7 @@
     }
 
     // ========== COPIAR PIX ==========
-    function copiarPix() {
+    /*function copiarPix() {
         const input = document.getElementById('chavePix');
         input.select(); input.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(input.value).then(() => {
@@ -1045,7 +1045,31 @@
             btn.style.background = '#059669';
             setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i> Copiar'; btn.style.background = '#10b981'; }, 2000);
         }).catch(err => alert("Erro ao copiar. Copie manualmente!"));
-    }
+    }*/
+
+    function copiarPix() {
+            const input = document.getElementById('chavePix');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            
+            navigator.clipboard.writeText(input.value)
+                .then(() => {
+                    const btn = document.getElementById('btnCopiarPix');
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                    btn.style.background = '#059669';
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="far fa-copy"></i> Copiar';
+                        btn.style.background = '#10b981';
+                    }, 2000);
+                    
+                    // 🔹 REGISTRA LOG DA AÇÃO
+                    registrarLogAcao('Copiou a chave PIX');
+                })
+                .catch(err => {
+                    alert("Erro ao copiar. Copie manualmente!");
+                    console.error(err);
+                });
+        }
 
     // ========== INICIALIZAR EVENTOS ==========
     function inicializarEventos() {
