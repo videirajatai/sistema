@@ -440,19 +440,34 @@
     }
 
     function exportarListaCelulasPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("Células - Videira Jataí", 14, 20);
-        doc.autoTable({
-            head: [["Nome", "Líder", "Dia", "Endereço", "Supervisor"]],
-            body: (window.celulasRedeCompleta || dadosCelulas).map(c => [c[1], c[2], c[3], c[4], c[5]]),
-            startY: 30,
-            theme: 'grid',
-            headStyles: { fillColor: [128, 0, 32] },
-            styles: { fontSize: 9 }
-        });
-        doc.save(`Celulas_${new Date().toISOString().slice(0,10)}.pdf`);
-    }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Células - Videira Jataí", 14, 20);
+        
+            // Pega a lista de células ativas (filtradas ou todas)
+            const celulas = window.celulasRedeCompleta || dadosCelulas;
+        
+            // Monta o corpo da tabela substituindo os UUIDs pelos nomes
+            const corpo = celulas.map(c => {
+                const nomeLider = mapaNomes[c[2]] || 'Não definido';
+                const nomeSupervisor = mapaNomes[c[5]] || 'Não definido';
+                return [c[1], nomeLider, c[3], c[4], nomeSupervisor];
+            });
+        
+            doc.autoTable({
+                head: [["Nome", "Líder", "Dia", "Endereço", "Supervisor"]],
+                body: corpo,
+                startY: 30,
+                theme: 'grid',
+                headStyles: { fillColor: [128, 0, 32] },
+                styles: { fontSize: 9 }
+            });
+        
+            doc.save(`Celulas_${new Date().toISOString().slice(0,10)}.pdf`);
+        
+            // 🔹 Registra log da ação (opcional, mas consistente)
+            registrarLogAcao(`Exportou lista de células em PDF (${celulas.length} registros)`);
+        }
 
    
 
