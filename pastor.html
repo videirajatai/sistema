@@ -1249,33 +1249,40 @@
     }
 
 
-    function obterMembrosFiltrados() {
-            const status = document.getElementById('filtroStatusGeral').value;
-            let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
-            // Filtra administradores
-            base = base.filter(m => m[2] !== 'Administrador');
-            
-            const busca = document.getElementById('inputBusca').value.toLowerCase();
-            const celulaFiltro = document.getElementById('filtroCelula').value;
-            const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
-            const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
-            return base.filter(m => {
-                if (busca && !m[1].toLowerCase().includes(busca)) return false;
-                if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
-                if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
-                if (tagsSel.length) {
-                    const tags = [];
-                    if (m[6] === 'Sim') tags.push('batizado');
-                    if (m[7] === 'Sim') tags.push('cursão');
-                    if (m[8] === 'Sim') tags.push('ctl');
-                    if (m[9] === 'Sim') tags.push('encontro');
-                    if (m[11] === 'Sim') tags.push('seminário');
-                    if (m[12] === 'Sim') tags.push('dizimista');
-                    if (!tagsSel.some(t => tags.includes(t))) return false;
-                }                
-                return true;
-            });
-        }
+   function obterMembrosFiltrados() {
+        const status = document.getElementById('filtroStatusGeral').value;
+        let base = status === 'ativos' ? obterAtivos() : (status === 'inativos' ? obterInativos() : [...dadosMembros]);
+        
+        // Filtra administradores (já feito nas funções de ativos/inativos, mas mantido por segurança)
+        base = base.filter(m => m[2] !== 'Administrador');
+        
+        const busca = document.getElementById('inputBusca').value.toLowerCase();
+        const celulaFiltro = document.getElementById('filtroCelula').value;
+        const cargos = [...document.querySelectorAll('#multiCargo input:checked')].map(cb => cb.value.toLowerCase());
+        const tagsSel = [...document.querySelectorAll('#multiStatus input:checked')].map(cb => cb.value);
+        
+        // Aplica os filtros
+        base = base.filter(m => {
+            if (busca && !m[1].toLowerCase().includes(busca)) return false;
+            if (celulaFiltro && String(m[13]) !== celulaFiltro) return false;
+            if (cargos.length && !cargos.includes(m[2].toLowerCase())) return false;
+            if (tagsSel.length) {
+                const tags = [];
+                if (m[6] === 'Sim') tags.push('batizado');
+                if (m[7] === 'Sim') tags.push('cursão');
+                if (m[8] === 'Sim') tags.push('ctl');
+                if (m[9] === 'Sim') tags.push('encontro');
+                if (m[11] === 'Sim') tags.push('seminário');
+                if (m[12] === 'Sim') tags.push('dizimista');
+                if (!tagsSel.some(t => tags.includes(t))) return false;
+            }
+            return true;
+        });
+    
+        // 🔹 APLICA A ORDENAÇÃO HIERÁRQUICA ANTES DE RETORNAR
+        ordenarMembros(base);
+        return base;
+    }
 
     function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
 
