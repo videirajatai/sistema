@@ -943,7 +943,7 @@
         });
     }
 
-    function abrirPalavra(index) {
+   /* function abrirPalavra(index) {
     const p = listaPalavras[index]; palavraAtual = p;
     document.getElementById('modalTitulo').innerText = p.tema || '';
     let dataF = p.data || '';
@@ -965,7 +965,37 @@
     document.getElementById('modalPalavra').classList.remove('hidden');
     // TRAVAR SCROLL DO FUNDO
     document.body.style.overflow = 'hidden';
-}
+}*/
+
+    function abrirPalavra(index) {
+        const p = listaPalavras[index];
+        palavraAtual = p;
+        document.getElementById('modalTitulo').innerText = p.tema || '';
+        let dataF = p.data || '';
+        try { if(dataF.includes('-')) { const dp = dataF.split('-'); dataF = `${dp[2]}/${dp[1]}/${dp[0]}`; } } catch(e) {}
+        document.getElementById('modalDataPalavra').innerText = dataF;
+        document.getElementById('modalTexto').innerText = p.texto || '';
+        const btn = document.getElementById('btnLinkYoutube');
+        if (p.link_youtube?.trim()) {
+            let url = p.link_youtube.trim();
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            btn.href = url;
+            btn.classList.remove('hidden');
+        } else {
+            btn.classList.add('hidden');
+            btn.href = '#';
+        }
+        document.getElementById('modalPalavra').classList.remove('hidden');
+        // TRAVAR SCROLL DO FUNDO
+        document.body.style.overflow = 'hidden';
+    
+        // 🔹 REGISTRA LOG DA AÇÃO
+        const titulo = p.tema || 'Sem título';
+        const dataFormatada = dataF || 'sem data';
+        registrarLogAcao(`Abriu a palavra "${titulo}" (${dataFormatada})`);
+    }
 
     function fecharModal(e) { 
         if(e === null || (e.target && e.target.id === 'modalPalavra')) {
