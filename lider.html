@@ -275,11 +275,18 @@
             .select('id, nome, categoria, superior_id')
             .eq('email', user.email)
             .single();
-        if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
+       /* if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
             alert("Acesso restrito a líderes.");
             window.location.href = "index.html";
             return;
-        }
+        }*/
+
+        const catPermitida = normalizarCategoria(pessoa.categoria);
+            if (!pessoa || !['administrador', 'líder', 'lider'].includes(catPermitida)) {
+                alert("Acesso restrito.");
+                window.location.href = "index.html";
+                return;
+            }
         sessionStorage.setItem('liderId', pessoa.id);
         sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
