@@ -17,7 +17,7 @@ permissions:
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true # ⚡ CORREÇÃO 1: Cancela deploys antigos se você fizer um novo push (economiza tempo)
 
 jobs:
   deploy:
@@ -27,36 +27,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Busca todo o histórico (útil se você tiver subdiretórios)
+        uses: actions/checkout@v4 # ⚡ CORREÇÃO 2: Removido 'fetch-depth: 0' que baixava o histórico inteiro do Git sem necessidade
 
-      # 🔹 PASSO OPCIONAL: Configurar Node.js 24 para ações que precisam (elimina aviso)
       - name: Setup Node.js 24
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4 # Utilizando a v4 estável
         with:
-          node-version: '24.x'
+          node-version: '24'
+          cache: 'npm' # ⚡ CORREÇÃO 3: Ativa o cache do npm para acelerar os próximos deploys
 
-      # 🔹 GARANTE QUE .nojekyll EXISTA (para evitar build do Jekyll)
-      - name: Ensure .nojekyll exists
-        run: |
-          if [ ! -f .nojekyll ]; then
-            touch .nojekyll
-            echo "Arquivo .nojekyll criado para evitar build do Jekyll."
-          fi
+      # 💡 NOTA IMPORTANTE: Se o seu projeto usa React, Vite, Vue, etc., desative o comentário das duas linhas abaixo
+      # - name: Install dependencies
+      #   run: npm ci
+      # - name: Build
+      #   run: npm run build
 
-      # 🔹 CONFIGURA O PAGES (necessário para o deploy funcionar)
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 🔹 FAZ UPLOAD DOS ARQUIVOS
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Publica toda a raiz do repositório
-          path: '.'
+          # ⚡ CORREÇÃO 4: Se o seu projeto gera uma pasta de build (ex: 'dist' ou 'build'), mude '.' para './dist'
+          # Se for HTML puro, mantenha '.'. Mas certifique-se de que a pasta 'node_modules' NÃO foi enviada ao GitHub.
+          path: '.' 
 
-      # 🔹 DEPLOY FINAL
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
