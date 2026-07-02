@@ -590,19 +590,62 @@
 
     // ========== PEDIDOS DE ORAÇÃO ==========
     async function carregarSugestoes() {
-        const corpo = document.getElementById('corpoSugestoes'); corpo.innerHTML = '<tr><td colspan="3">Carregando...</td></tr>';
+        const corpo = document.getElementById('corpoSugestoes');
+        corpo.innerHTML = '<tr><td colspan="3">Carregando...</td></tr>';
         const { data } = await supabaseClient.from('sugestoes').select('*').order('id', { ascending: false });
         corpo.innerHTML = '';
-        if (!data?.length) { corpo.innerHTML = '<tr><td colspan="3">Nenhum pedido.</td></tr>'; return; }
+        if (!data?.length) {
+            corpo.innerHTML = '<tr><td colspan="3">Nenhum pedido.</td></tr>';
+            return;
+        }
         data.forEach(s => {
-            corpo.innerHTML += `<tr style="${s.ativo === false ? 'opacity:0.5;' : ''}">
-                <td>${s.data||''}</td><td>${s.mensagem}</td>
-                <td>${s.ativo !== false ? `<button class="btn-card" onclick="concluirPedido(${s.id})"><i class="fas fa-check"></i> Concluir</button>` : '✔️ Concluído'}</td>
+            const ativo = s.ativo !== false; // se for null ou true, está ativo
+            corpo.innerHTML += `<tr style="${!ativo ? 'opacity:0.5;' : ''}">
+                <td>${s.data || ''}</td>
+                <td>${s.mensagem}</td>
+                <td>${ativo ? `<button class="btn-card" onclick="concluirPedido('${s.id}')"><i class="fas fa-check"></i> Concluir</button>` : '✔️ Concluído'}</td>
             </tr>`;
         });
     }
 
-    async function concluirPedido(id) { await supabaseClient.from('sugestoes').update({ ativo: false }).eq('id', id); carregarSugestoes(); }
+    async function concluirPedido(id) {
+        if (!id) {
+            console.warn("ID do pedido não fornecido.");
+            return;
+        }
+        try {
+            // 1. Buscar o pedido para obter a mensagem
+            const { data: pedido, error: fetchError } = await supabaseClient
+                .from('sugestoes')
+                .select('mensagem')
+                .eq('id', id)
+                .single();
+            if (fetchError) throw fetchError;
+            if (!pedido) {
+                alert("Pedido não encontrado.");
+                return;
+            }
+    
+            // 2. Atualizar para concluído (ativo = false)
+            const { error: updateError } = await supabaseClient
+                .from('sugestoes')
+                .update({ ativo: false })
+                .eq('id', id);
+            if (updateError) throw updateError;
+    
+            // 3. Registrar log com a mensagem resumida
+            const mensagemResumida = pedido.mensagem.length > 50 
+                ? pedido.mensagem.substring(0, 50) + '...' 
+                : pedido.mensagem;
+            await registrarLogAcao(`Concluiu pedido de oração: "${mensagemResumida}"`);
+    
+            // 4. Recarregar a lista de pedidos
+            await carregarSugestoes();
+        } catch (e) {
+            console.error("Erro ao concluir pedido:", e);
+            alert("Erro ao concluir. Tente novamente.");
+        }
+    }
 
     // ========== AGENDA ==========
     function renderizarAgenda(lista) {
