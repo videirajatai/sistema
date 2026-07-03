@@ -3,12 +3,14 @@
 <head>
 
     <script>
-      (function() {
-        if (!window.location.search.includes('t=')) {
-          var url = window.location.pathname + '?t=' + Date.now();
-          window.location.replace(url);
-        }
-      })();
+      // Defina a versão atual (mude manualmente sempre que atualizar o sistema)
+      const APP_VERSION = '1.0.1';
+
+      // Se a URL não tiver o parâmetro 'v', redireciona para a versão atual
+      if (!window.location.search.includes('v=')) {
+        const url = window.location.pathname + '?v=' + APP_VERSION;
+        window.location.replace(url);
+      }
     </script>
     
     <meta charset="UTF-8">
@@ -208,11 +210,26 @@
             erro.style.display = 'none';
         
             let emailParaLogin = entrada;
-            if (!entrada.includes('@')) {
+            /*if (!entrada.includes('@')) {
                 const { data, error } = await supabaseClient
                     .from('pessoas')
                     .select('email')
                     .eq('usuario', entrada)
+                    .maybeSingle();
+                if (error || !data) {
+                    erro.innerText = "⚠️ Usuário não encontrado.";
+                    erro.style.display = 'block';
+                    btn.innerText = "Entrar no Sistema"; 
+                    btn.disabled = false;
+                    return;
+                }
+                emailParaLogin = data.email;
+            }*/            
+            if (!entrada.includes('@')) {
+                const { data, error } = await supabaseClient
+                    .from('pessoas')
+                    .select('email')
+                    .ilike('usuario', entrada)   // <-- .ilike ao invés de .eq
                     .maybeSingle();
                 if (error || !data) {
                     erro.innerText = "⚠️ Usuário não encontrado.";
