@@ -1031,7 +1031,13 @@ function capituloProximo() {
             document.body.style.overflow = '';
         }
     }
-    function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
+    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
+    function fazerLogout() { 
+        if(confirm("Sair?")) { 
+            sessionStorage.clear(); 
+           window.location.href = "index.html?t=" + Date.now(); 
+        } 
+    }
 
     // ========== INICIALIZAR EVENTOS ==========
     function inicializarEventos() {
@@ -1136,7 +1142,7 @@ function capituloProximo() {
         <button id="btn-minha-rede" class="nav-btn active" onclick="mudarSecao('minha-rede')"><i class="fas fa-network-wired"></i> Minha Rede</button>
         <button id="btn-celulas" class="nav-btn" onclick="mudarSecao('celulas')"><i class="fas fa-church"></i> Células</button>
         <button id="btn-biblia" class="nav-btn" onclick="mudarSecao('biblia')"><i class="fas fa-bible"></i> Bíblia</button>
-        <button id="btn-arquivos" class="nav-btn" onclick="mudarSecao('arquivos')"><i class="fas fa-archive"></i> Arquivos</button>
+        <button id="btn-arquivos" class="nav-btn" onclick="mudarSecao('arquivos')"><i class="fas fa-archive"></i> Inativos</button>
         <button id="btn-agenda" class="nav-btn" onclick="mudarSecao('agenda')"><i class="far fa-calendar-alt"></i> Agenda</button>
         <button id="btn-palavras" class="nav-btn" onclick="mudarSecao('palavras')"><i class="fas fa-book-open"></i> Palavras</button>
     </div>
@@ -1176,7 +1182,6 @@ function capituloProximo() {
     </div>
 </div>
 
-<!-- MODAIS (colei os mesmos do líder, com IDs adaptados) -->
 <!-- Modal Célula (tela cheia) -->
 <div id="modalCelula" class="modal-celula-full">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:2px solid var(--primary); padding-bottom:15px;">
