@@ -1284,7 +1284,13 @@
         return base;
     }
 
-    function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
+    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
+    function fazerLogout() { 
+        if(confirm("Sair?")) { 
+            sessionStorage.clear(); 
+           window.location.href = "index.html?t=" + Date.now(); 
+        } 
+    }
 
     // ========== EVENTOS ==========
     function inicializarEventos() {
