@@ -234,17 +234,29 @@
             btn.disabled = true; 
             erro.style.display = 'none';
         
-            // Busca única: tenta achar a pessoa tanto pelo campo 'usuario' quanto pelo 'email',
-            // sempre de forma case-insensitive (ilike). Já traz nome/categoria junto,
-            // evitando uma segunda consulta que poderia falhar por diferença de maiúsculas.
+            // Busca SEM maybeSingle(): pode existir mais de um registro na tabela 'pessoas'
+            // que não são contas de login (cadastros de membro sem usuário/email definidos).
+            // Por isso trazemos todos os candidatos e filtramos no JS.
             const entradaEscapada = entrada.replace(/,/g, '');
-            const { data: pessoa, error: buscaError } = await supabaseClient
+            const { data: candidatos, error: buscaError } = await supabaseClient
                 .from('pessoas')
-                .select('nome, categoria, email')
-                .or(`usuario.ilike.${entradaEscapada},email.ilike.${entradaEscapada}`)
-                .maybeSingle();
+                .select('nome, categoria, email, usuario')
+                .or(`usuario.ilike.${entradaEscapada},email.ilike.${entradaEscapada}`);
         
-            if (buscaError || !pessoa || !pessoa.email) {
+            if (buscaError) {
+                erro.innerText = "⚠️ Erro ao buscar usuário.";
+                erro.style.display = 'block';
+                btn.innerText = "Entrar no Sistema"; 
+                btn.disabled = false;
+                return;
+            }
+        
+            // Só consideramos linhas que têm e-mail preenchido de fato,
+            // pois só essas podem ser contas de login válidas no Auth.
+            // Cadastros de "membro" sem usuário/email ficam automaticamente de fora.
+            const candidatosValidos = (candidatos || []).filter(p => p.email && p.email.trim() !== '');
+        
+            if (candidatosValidos.length === 0) {
                 erro.innerText = "⚠️ Usuário não encontrado.";
                 erro.style.display = 'block';
                 btn.innerText = "Entrar no Sistema"; 
@@ -252,8 +264,18 @@
                 return;
             }
         
-            // Usa o e-mail EXATO gravado no banco (com a grafia original) para autenticar,
-            // já que o Auth do Supabase valida o e-mail de forma sensível/normalizada internamente.
+            // Se por algum motivo mais de um candidato válido bater (ex: dado duplicado),
+            // damos preferência a quem casou exatamente no campo 'email',
+            // e em seguida a quem casou no campo 'usuario'.
+            let pessoa = candidatosValidos.find(p => p.email && p.email.toLowerCase() === entrada);
+            if (!pessoa) {
+                pessoa = candidatosValidos.find(p => p.usuario && p.usuario.toLowerCase() === entrada);
+            }
+            if (!pessoa) {
+                pessoa = candidatosValidos[0]; // fallback: pega o primeiro válido
+            }
+        
+            // Usa o e-mail EXATO gravado no banco (grafia original) para autenticar no Auth.
             const emailParaLogin = pessoa.email;
         
             const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
