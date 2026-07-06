@@ -222,8 +222,11 @@
                 return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
             }) : [];
 
+            /*const { data: celData } = await supabaseClient.from('celulas').select('*');
+            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '']) : [];*/
             const { data: celData } = await supabaseClient.from('celulas').select('*');
-            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '']) : [];
+            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
+            
             window.celulaMap = {};
             dadosCelulas.forEach(c => { window.celulaMap[c[0]] = c[1]; });
             dadosMembros.forEach(m => { if (m[13]) m[3] = window.celulaMap[m[13]] || 'Sem Célula'; });
@@ -828,7 +831,7 @@
         });
     }
 
-    function abrirRelatorioQuedaFrequencia() {
+    /*function abrirRelatorioQuedaFrequencia() {
         const ultimosRelatorios = {};
         dadosRelatorios.forEach(r => {
             if (!ultimosRelatorios[r.celula_id]) ultimosRelatorios[r.celula_id] = [];
@@ -866,6 +869,79 @@
         }
         document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Células com Queda de Frequência';
+    }*/
+
+    async function abrirRelatorioQuedaFrequencia() {
+        const conteudo = document.getElementById('conteudoRelatorio');
+        conteudo.innerHTML = '<p style="text-align:center;">Processando...</p>';
+        document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
+        document.getElementById('tituloRelatorioPersonalizado').innerText = 'Células com Queda de Frequência';
+    
+        // Agrupa os relatórios por célula, pegando os 4 mais recentes de cada uma
+        const relatoriosPorCelula = {};
+        dadosRelatorios.forEach(r => {
+            if (!relatoriosPorCelula[r.celula_id]) relatoriosPorCelula[r.celula_id] = [];
+            relatoriosPorCelula[r.celula_id].push(r);
+        });
+    
+        const idsRelevantes = [];
+        const relatoriosUsados = {}; // celula_id -> 4 relatórios mais recentes
+        Object.entries(relatoriosPorCelula).forEach(([celulaId, rels]) => {
+            rels.sort((a, b) => new Date(b.data) - new Date(a.data));
+            const ultimos4 = rels.slice(0, 4);
+            if (ultimos4.length >= 4) {
+                relatoriosUsados[celulaId] = ultimos4;
+                ultimos4.forEach(r => idsRelevantes.push(r.id));
+            }
+        });
+    
+        if (idsRelevantes.length === 0) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Nenhuma célula com histórico suficiente (mínimo 4 relatórios) para análise.</p>';
+            return;
+        }
+    
+        // Busca as presenças reais na tabela 'presencas' (fonte correta dos dados)
+        const { data: presencas, error } = await supabaseClient
+            .from('presencas')
+            .select('relatorio_id, presente')
+            .in('relatorio_id', idsRelevantes);
+    
+        if (error) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--danger-text);">Erro ao carregar presenças.</p>';
+            return;
+        }
+    
+        // Conta presentes por relatório
+        const presentesPorRelatorio = {};
+        presencas?.forEach(p => {
+            if (p.presente) {
+                presentesPorRelatorio[p.relatorio_id] = (presentesPorRelatorio[p.relatorio_id] || 0) + 1;
+            }
+        });
+    
+        const resultado = [];
+        Object.entries(relatoriosUsados).forEach(([celulaId, ultimos4]) => {
+            const medias = ultimos4.map(r => presentesPorRelatorio[r.id] || 0);
+            const mediaInicial = (medias[3] + medias[2]) / 2;
+            const mediaFinal = (medias[1] + medias[0]) / 2;
+            if (mediaInicial > 0 && mediaFinal < mediaInicial * 0.7) {
+                resultado.push({
+                    celulaId,
+                    nomeCelula: window.celulaMap[celulaId] || celulaId,
+                    mediaInicial: mediaInicial.toFixed(1),
+                    mediaFinal: mediaFinal.toFixed(1),
+                    queda: (((mediaInicial - mediaFinal) / mediaInicial) * 100).toFixed(0)
+                });
+            }
+        });
+    
+        if (resultado.length === 0) {
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Nenhuma célula com queda significativa de frequência.</p>';
+        } else {
+            conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Célula</th><th>Média Antiga</th><th>Média Recente</th><th>Queda %</th></tr></thead><tbody>
+                ${resultado.map(r => `<tr><td>${r.nomeCelula}</td><td>${r.mediaInicial}</td><td>${r.mediaFinal}</td><td style="color:var(--danger-text);">${r.queda}%</td></tr>`).join('')}
+            </tbody></table>`;
+        }
     }
 
     function abrirRelatorioCelulasSemColider() {
