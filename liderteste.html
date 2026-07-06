@@ -256,6 +256,16 @@
         return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
+    function escaparHTML(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/'/g, '&#39;')
+            .replace(/"/g, '&quot;');
+    }
+
     let dadosCelulas = [];
     let celulasDoLider = [];
     let celulaAtiva = null;
@@ -265,11 +275,17 @@
     let palavraAtual = null;
     let dadosTodasCelulas = []; // para a aba "Células"
     let mapaNomes = {};
+    let listaAnotacoes = []; // anotações pessoais do usuário logado
+    let meuAuthId = null;    // uuid do usuário no auth.users (Supabase Auth)
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
     (async () => {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) { window.location.href = "index.html"; return; }
+
+        meuAuthId = user.id;
+        sessionStorage.setItem('authUserId', user.id);
+
         const { data: pessoa } = await supabaseClient
             .from('pessoas')
             .select('id, nome, categoria, superior_id')
@@ -837,21 +853,134 @@
         .map(p => ({ ...p, faltas: faltasMap[p.id] }));
 }
 
+    // ========== ANOTAÇÕES (PESSOAIS) ==========
+    async function carregarAnotacoes() {
+        const div = document.getElementById('listaAnotacoes');
+        div.innerHTML = '<p style="text-align:center; color:#999;">Carregando...</p>';
+        // A RLS garante que só voltam as anotações do próprio usuário logado (auth.uid())
+        const { data, error } = await supabaseClient
+            .from('anotacoes')
+            .select('*')
+            .order('atualizado_em', { ascending: false });
+        if (error) {
+            div.innerHTML = `<p style="text-align:center; color:#991b1b;">Erro ao carregar anotações: ${error.message}</p>`;
+            return;
+        }
+        listaAnotacoes = data || [];
+        renderizarAnotacoes();
+    }
+
+    function renderizarAnotacoes() {
+        const div = document.getElementById('listaAnotacoes');
+        div.innerHTML = '';
+        if (!listaAnotacoes.length) {
+            div.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma anotação ainda. Toque em "Nova" para criar a primeira.</p>';
+            return;
+        }
+        listaAnotacoes.forEach(a => {
+            const dataF = a.atualizado_em ? new Date(a.atualizado_em).toLocaleString('pt-BR') : '';
+            const preview = (a.conteudo || '').length > 140 ? a.conteudo.substring(0, 140) + '...' : (a.conteudo || '');
+            div.innerHTML += `
+                <div class="member-card">
+                    <div class="card-header">
+                        <h4 class="card-name">${escaparHTML(a.titulo)}</h4>
+                    </div>
+                    <div class="card-info" style="white-space:pre-wrap; display:block;">${escaparHTML(preview)}</div>
+                    <div class="card-info"><i class="far fa-clock"></i> Atualizado em ${dataF}</div>
+                    <div class="card-actions">
+                        <button onclick="abrirEditarAnotacao('${a.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i> Editar</button>
+                        <button onclick="excluirAnotacao('${a.id}')" class="btn-action btn-archive"><i class="fas fa-trash"></i> Excluir</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function abrirNovaAnotacao() {
+        document.getElementById('anotacaoId').value = '';
+        document.getElementById('anotacaoTitulo').value = '';
+        document.getElementById('anotacaoConteudo').value = '';
+        document.getElementById('tituloModalAnotacao').innerText = 'Nova Anotação';
+        document.getElementById('modalAnotacao').classList.remove('hidden');
+    }
+
+    function abrirEditarAnotacao(id) {
+        const a = listaAnotacoes.find(x => x.id === id);
+        if (!a) return;
+        document.getElementById('anotacaoId').value = a.id;
+        document.getElementById('anotacaoTitulo').value = a.titulo || '';
+        document.getElementById('anotacaoConteudo').value = a.conteudo || '';
+        document.getElementById('tituloModalAnotacao').innerText = 'Editar Anotação';
+        document.getElementById('modalAnotacao').classList.remove('hidden');
+    }
+
+    function fecharModalAnotacao() {
+        document.getElementById('modalAnotacao').classList.add('hidden');
+    }
+
+    function fecharModalAnotacaoClique(e) {
+        if (e.target.classList.contains('modal-overlay')) fecharModalAnotacao();
+    }
+
+    async function salvarAnotacao(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvarAnotacao');
+        btn.disabled = true;
+        const id = document.getElementById('anotacaoId').value;
+        const titulo = document.getElementById('anotacaoTitulo').value.trim();
+        const conteudo = document.getElementById('anotacaoConteudo').value.trim();
+        if (!titulo) {
+            alert("Informe um título para a anotação.");
+            btn.disabled = false;
+            return;
+        }
+        try {
+            if (id) {
+                const { error } = await supabaseClient
+                    .from('anotacoes')
+                    .update({ titulo, conteudo })
+                    .eq('id', id);
+                if (error) throw error;
+                await registrarLogAcao(`Editou a anotação "${titulo}"`);
+            } else {
+                const { error } = await supabaseClient
+                    .from('anotacoes')
+                    .insert([{ titulo, conteudo, usuario_id: meuAuthId }]);
+                if (error) throw error;
+                await registrarLogAcao(`Criou a anotação "${titulo}"`);
+            }
+            fecharModalAnotacao();
+            await carregarAnotacoes();
+        } catch (err) {
+            alert("Erro ao salvar anotação: " + err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function excluirAnotacao(id) {
+        const a = listaAnotacoes.find(x => x.id === id);
+        const titulo = a ? a.titulo : '';
+        if (!confirm(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`)) return;
+        try {
+            const { error } = await supabaseClient.from('anotacoes').delete().eq('id', id);
+            if (error) throw error;
+            await registrarLogAcao(`Excluiu a anotação "${titulo}"`);
+            await carregarAnotacoes();
+        } catch (err) {
+            alert("Erro ao excluir anotação: " + err.message);
+        }
+    }
+
     // ========== ABAS E NAVEGAÇÃO ==========
     function mudarSecao(s) {
-    const secoes = ['minha-celula', 'celulas', 'biblia', 'agenda', 'palavras', 'sugestao', 'anotacoes'];
-    secoes.forEach(id => {
-        const el = document.getElementById('secao-'+id);
-        if (el) el.classList.add('hidden');
-    });
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const secao = document.getElementById('secao-'+s);
-    if (secao) secao.classList.remove('hidden');
-    const btn = document.getElementById('btn-'+s);
-    if (btn) btn.classList.add('active');
-    if (s === 'biblia') abrirBiblia();
-    if (s === 'anotacoes') carregarAnotacoes();
-}
+        const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao','anotacoes'];
+        secoes.forEach(id => { const el = document.getElementById('secao-'+id); if(el) el.classList.add('hidden'); });
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        const secao = document.getElementById('secao-'+s); if(secao) secao.classList.remove('hidden');
+        const btn = document.getElementById('btn-'+s); if(btn) btn.classList.add('active');
+        if (s === 'biblia') abrirBiblia();
+        if (s === 'anotacoes') carregarAnotacoes();
+    }
 
     //function fazerLogout() { if(confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
     function fazerLogout() { 
@@ -1156,11 +1285,6 @@
                 } catch(err) { alert("Erro: " + err.message); }
                 finally { btn.disabled = false; }
             };
-
-            const formAnotacao = document.getElementById('formAnotacao');
-            if (formAnotacao) {
-                formAnotacao.onsubmit = salvarAnotacao;
-            }
         }
 
       
@@ -1217,6 +1341,10 @@ if (formEdit) {
         // Célula
         const formCel = document.getElementById('formCelula');
         if (formCel) formCel.onsubmit = salvarCelula;
+
+        // Anotações (aba pessoal)
+        const formAnot = document.getElementById('formAnotacao');
+        if (formAnot) formAnot.onsubmit = salvarAnotacao;
 
         // Sugestão / pedido de oração
         const formSug = document.getElementById('formSugestao');
@@ -1699,176 +1827,6 @@ function copiarLinkConviteNovoLider() {
     document.execCommand('copy');
     alert('Link copiado! Envie para o novo líder via WhatsApp.');
 }
-
-  async function carregarAnotacoes() {
-    const container = document.getElementById('listaAnotacoes');
-    container.innerHTML = '<p style="text-align:center; color:#999;">Carregando...</p>';
-    
-    const usuarioId = sessionStorage.getItem('liderId');
-    if (!usuarioId) {
-        container.innerHTML = '<p style="text-align:center; color:#999;">Erro: usuário não identificado.</p>';
-        return;
-    }
-
-    const { data: anotacoes, error } = await supabaseClient
-        .from('anotacoes')
-        .select('*')
-        .eq('usuario_id', usuarioId)
-        .eq('arquivado', false)
-        .order('data_atualizacao', { ascending: false });
-
-    if (error) {
-        console.error("Erro ao carregar anotações:", error);
-        container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar anotações.</p>';
-        return;
-    }
-
-    if (!anotacoes || anotacoes.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma anotação cadastrada.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-    anotacoes.forEach(anot => {
-        const data = new Date(anot.data_atualizacao).toLocaleString('pt-BR');
-        const card = document.createElement('div');
-        card.className = 'member-card';
-        card.style.borderLeft = `4px solid ${anot.cor || '#f8f9fa'}`;
-        card.innerHTML = `
-            <div class="card-header">
-                <h4 class="card-name">${anot.titulo || 'Sem título'}</h4>
-                <div class="card-actions">
-                    <button onclick="editarAnotacao('${anot.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i></button>
-                    <button onclick="excluirAnotacao('${anot.id}')" class="btn-action btn-archive"><i class="fas fa-trash-alt"></i></button>
-                </div>
-            </div>
-            <div class="card-info" style="font-size:0.85rem; margin-top:4px; white-space:pre-wrap;">${anot.conteudo}</div>
-            <div class="card-info" style="font-size:0.7rem; color:#999; margin-top:8px;">
-                <i class="far fa-clock"></i> ${data}
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-
-  function abrirModalAnotacao() {
-    document.getElementById('formAnotacao').reset();
-    document.getElementById('anotacaoId').value = '';
-    document.getElementById('tituloModalAnotacao').innerText = 'Nova Anotação';
-    document.getElementById('modalAnotacao').classList.remove('hidden');
-}
-
-  async function editarAnotacao(id) {
-    const usuarioId = sessionStorage.getItem('liderId');
-    const { data: anot, error } = await supabaseClient
-        .from('anotacoes')
-        .select('*')
-        .eq('id', id)
-        .eq('usuario_id', usuarioId)
-        .single();
-
-    if (error || !anot) {
-        alert("Anotação não encontrada ou você não tem permissão.");
-        return;
-    }
-
-    document.getElementById('anotacaoId').value = anot.id;
-    document.getElementById('anotacaoTitulo').value = anot.titulo || '';
-    document.getElementById('anotacaoConteudo').value = anot.conteudo;
-    document.getElementById('anotacaoCor').value = anot.cor || '#f8f9fa';
-    document.getElementById('tituloModalAnotacao').innerText = 'Editar Anotação';
-    document.getElementById('modalAnotacao').classList.remove('hidden');
-}
-
-
-
-  async function salvarAnotacao(e) {
-    e.preventDefault();
-    const id = document.getElementById('anotacaoId').value;
-    const titulo = document.getElementById('anotacaoTitulo').value.trim();
-    const conteudo = document.getElementById('anotacaoConteudo').value.trim();
-    const cor = document.getElementById('anotacaoCor').value;
-    const usuarioId = sessionStorage.getItem('liderId');
-
-    if (!conteudo) {
-        alert("O conteúdo da anotação é obrigatório.");
-        return;
-    }
-
-    const dados = {
-        titulo: titulo || null,
-        conteudo: conteudo,
-        cor: cor || '#f8f9fa',
-        usuario_id: usuarioId
-    };
-
-    try {
-        let response;
-        if (id) {
-            // Edição
-            response = await supabaseClient
-                .from('anotacoes')
-                .update(dados)
-                .eq('id', id)
-                .eq('usuario_id', usuarioId);
-            if (response.error) throw response.error;
-            await registrarLogAcao(`Editou anotação: "${titulo || 'Sem título'}"`);
-        } else {
-            // Nova
-            response = await supabaseClient
-                .from('anotacoes')
-                .insert([dados])
-                .select();
-            if (response.error) throw response.error;
-            const novaAnot = response.data[0];
-            await registrarLogAcao(`Criou anotação: "${titulo || 'Sem título'}"`);
-        }
-        fecharModalAnotacao();
-        await carregarAnotacoes();
-    } catch (error) {
-        console.error("Erro ao salvar anotação:", error);
-        alert("Erro ao salvar: " + error.message);
-    }
-}
-
-
-
-  async function excluirAnotacao(id) {
-    if (!confirm("Tem certeza que deseja excluir esta anotação permanentemente?")) return;
-    const usuarioId = sessionStorage.getItem('liderId');
-    // Buscar título para o log
-    const { data: anot } = await supabaseClient
-        .from('anotacoes')
-        .select('titulo')
-        .eq('id', id)
-        .eq('usuario_id', usuarioId)
-        .single();
-
-    const { error } = await supabaseClient
-        .from('anotacoes')
-        .delete()
-        .eq('id', id)
-        .eq('usuario_id', usuarioId);
-
-    if (error) {
-        alert("Erro ao excluir: " + error.message);
-    } else {
-        const titulo = anot?.titulo || 'Sem título';
-        await registrarLogAcao(`Excluiu anotação: "${titulo}"`);
-        await carregarAnotacoes();
-    }
-}
-
-  function fecharModalAnotacao(e) {
-    if (!e || e.target.classList.contains('modal-overlay') || e.target.classList.contains('btn-close-modal')) {
-        document.getElementById('modalAnotacao').classList.add('hidden');
-    }
-}
-
-
-
-  
     
 </script>
 
@@ -1891,7 +1849,7 @@ function copiarLinkConviteNovoLider() {
         <button onclick="mudarSecao('biblia')" class="nav-btn" id="btn-biblia"><i class="fas fa-bible"></i> Bíblia</button>
         <button onclick="mudarSecao('agenda')" class="nav-btn" id="btn-agenda"><i class="far fa-calendar-alt"></i> Agenda</button>
         <button onclick="mudarSecao('palavras')" class="nav-btn" id="btn-palavras"><i class="fas fa-book-open"></i> Palavras</button>
-        <button onclick="mudarSecao('anotacoes')" class="nav-btn" id="btn-anotacoes"><i class="fas fa-sticky-note"></i> Anotações</button>
+        <button onclick="mudarSecao('anotacoes')" class="nav-btn" id="btn-anotacoes"><i class="fas fa-note-sticky"></i> Anotações</button>
         <button onclick="mudarSecao('sugestao')" class="nav-btn" id="btn-sugestao"><i class="fas fa-hand-holding-heart"></i> Oferta</button>
     </div>
 
@@ -1979,6 +1937,18 @@ function copiarLinkConviteNovoLider() {
         <div id="listaPalavras"></div>
     </div>
 
+    <!-- ANOTAÇÕES (PESSOAIS, PRIVADAS DE CADA USUÁRIO) -->
+    <div id="secao-anotacoes" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h4 style="margin:0; color: var(--primary);"><i class="fas fa-note-sticky"></i> Minhas Anotações</h4>
+            <button onclick="abrirNovaAnotacao()" class="btn-action" style="background:var(--success-text); color:white;">
+                <i class="fas fa-plus"></i> Nova
+            </button>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-light); margin-bottom:15px;"><i class="fas fa-lock"></i> Suas anotações são privadas e visíveis apenas para você.</p>
+        <div id="listaAnotacoes" class="member-grid"></div>
+    </div>
+
     <!-- OFERTAS (sugestao) -->
     <div id="secao-sugestao" class="hidden">
         <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos e Ofertas</h4>
@@ -1994,11 +1964,6 @@ function copiarLinkConviteNovoLider() {
                 <button onclick="copiarPix()" id="btnCopiarPix"><i class="far fa-copy"></i> Copiar</button>
             </div>
         </div>
-        <!--<div class="member-card" style="text-align: center; margin-bottom: 25px; border-top: 4px solid #009ee3; opacity: 0.8;">
-            <h3 style="margin-top:0; color:#009ee3;"><i class="fas fa-credit-card"></i> Cartão / Mercado Pago</h3>
-            <p style="font-size: 0.9rem; color:var(--text-light);">Em breve você poderá ofertar usando seu cartão de crédito de forma segura.</p>
-            <button disabled style="background:#cbd5e1; color:#64748b; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; cursor:not-allowed; margin-top:10px; width: 100%;"><i class="fas fa-lock"></i> Disponível em Breve</button>
-        </div>-->
         <div class="form-box">
             <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos e Sugestões</h3>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Envie seu pedido de oração, sugestão ou feedback.</p>
@@ -2008,20 +1973,8 @@ function copiarLinkConviteNovoLider() {
                 <button type="submit" id="btnSugestao" class="btn-save">Enviar Mensagem</button>
             </form>
         </div>
-    </div>  
+    </div>
 </div>
-<!--===================================================================================================================================================================================================================================-->
-  <div id="secao-anotacoes" class="hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <h4 style="margin:0; color: var(--primary);"><i class="fas fa-sticky-note"></i> Minhas Anotações</h4>
-          <button onclick="abrirModalAnotacao()" class="btn-action" style="background:var(--success-text); color:white;">
-              <i class="fas fa-plus"></i> Nova Anotação
-          </button>
-      </div>
-      <div id="listaAnotacoes" class="member-grid">
-          <p style="text-align:center; color:#999;">Carregando anotações...</p>
-      </div>
-  </div>
 
 <!-- MODAIS -->
 
@@ -2166,6 +2119,22 @@ function copiarLinkConviteNovoLider() {
         <small id="modalDataPalavra" style="color:#777; display:block; margin-bottom:15px;"></small>
         <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden" style="display:inline-flex; align-items:center; gap:8px; background:#ff0000; color:white; text-decoration:none; padding:10px 20px; border-radius:8px; font-weight:bold; margin-bottom:20px; margin-top:15px;"><i class="fab fa-youtube"></i> Assistir Palavra Completa</a>
         <div id="modalTexto" style="white-space:pre-wrap; line-height:1.6;"></div>
+    </div>
+</div>
+
+<!-- modalAnotacao (nova/editar anotação pessoal) -->
+<div id="modalAnotacao" class="modal-overlay hidden" onclick="fecharModalAnotacaoClique(event)" style="align-items: center;">
+    <div class="modal-content" style="max-width:600px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="fecharModalAnotacao()">&times;</button>
+        <h3 id="tituloModalAnotacao" style="color:var(--primary); margin-top:0;">Nova Anotação</h3>
+        <form id="formAnotacao">
+            <input type="hidden" id="anotacaoId">
+            <label>Título</label>
+            <input type="text" id="anotacaoTitulo" required placeholder="Ex: Conversa com fulano">
+            <label>Anotação</label>
+            <textarea id="anotacaoConteudo" rows="8" placeholder="Escreva aqui sua anotação pessoal..."></textarea>
+            <button type="submit" class="btn-save" id="btnSalvarAnotacao">Salvar</button>
+        </form>
     </div>
 </div>
 
@@ -2325,40 +2294,6 @@ function copiarLinkConviteNovoLider() {
         </div>
 
         <button onclick="fecharModalSelecionarLider()" class="btn-save" style="background:#555; margin-top:15px;">Cancelar</button>
-    </div>
-</div>
-
-  <!-- MODAL ANOTAÇÃO (CRIAR/EDITAR) -->
-<div id="modalAnotacao" class="modal-overlay hidden" onclick="fecharModalAnotacao(event)" style="align-items: center;">
-    <div class="modal-content" style="max-width:600px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModalAnotacao()">&times;</button>
-        <h3 style="color:var(--primary); margin-top:0;" id="tituloModalAnotacao">Nova Anotação</h3>
-        <form id="formAnotacao">
-            <input type="hidden" id="anotacaoId">
-            <div class="form-group">
-                <label>Título (opcional)</label>
-                <input type="text" id="anotacaoTitulo" placeholder="Ex: Ideias para célula">
-            </div>
-            <div class="form-group">
-                <label>Conteúdo *</label>
-                <textarea id="anotacaoConteudo" rows="5" required placeholder="Escreva sua anotação..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Cor de destaque</label>
-                <select id="anotacaoCor">
-                    <option value="#f8f9fa">Padrão</option>
-                    <option value="#fff3cd">Amarelo</option>
-                    <option value="#d1e7dd">Verde</option>
-                    <option value="#f8d7da">Vermelho</option>
-                    <option value="#cfe2ff">Azul</option>
-                    <option value="#e2d9f3">Roxo</option>
-                </select>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button type="button" onclick="fecharModalAnotacao()" style="flex:1; background:#eee; color:#555; border:none; border-radius:8px; cursor:pointer;">Cancelar</button>
-                <button type="submit" class="btn-save" style="flex:2;">Salvar</button>
-            </div>
-        </form>
     </div>
 </div>
     
