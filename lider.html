@@ -883,7 +883,7 @@
         const div = document.getElementById('listaAnotacoes');
         div.innerHTML = '';
         if (!listaAnotacoes.length) {
-            div.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma anotação ainda. Toque em "Nova" para criar a primeira.</p>';
+            div.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma anotação cadastrada.</p>';
             return;
         }
         listaAnotacoes.forEach(a => {
@@ -1944,7 +1944,7 @@ function copiarLinkConviteNovoLider() {
 
     <!-- PALAVRAS -->
     <div id="secao-palavras" class="hidden">
-        <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras & Estudos</h4>
+        <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras dos Cultos</h4>
         <div id="listaPalavras"></div>
     </div>
 
@@ -1962,7 +1962,7 @@ function copiarLinkConviteNovoLider() {
 
     <!-- OFERTAS (sugestao) -->
     <div id="secao-sugestao" class="hidden">
-        <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos e Ofertas</h4>
+        <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos, Ofertas e Pedidos de Oração</h4>
         <div class="member-card" style="text-align: center; border-top: 4px solid #10b981; margin-bottom: 15px;">
             <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h3>
             <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
@@ -1976,7 +1976,7 @@ function copiarLinkConviteNovoLider() {
             </div>
         </div>
         <div class="form-box">
-            <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos e Sugestões</h3>
+            <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos</h3>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Envie seu pedido de oração, sugestão ou feedback.</p>
             <form id="formSugestao">
                 <label>Mensagem</label>
