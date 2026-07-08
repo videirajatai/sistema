@@ -67,6 +67,26 @@
       .copy-link-box { display: flex; gap: 10px; margin-top: 10px; }
       .copy-link-box input { flex: 1; }
       .btn-copy-link { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+      .dropdown-item {
+        display: block;
+        padding: 10px 18px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: background 0.2s;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+      }
+      .dropdown-item:hover {
+        background: #f0f2f5;
+      }
+      .dropdown-item i {
+        margin-right: 8px;
+      }
     </style>
   </head>
   <body>
@@ -102,9 +122,26 @@
           <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
           <h3>Painel Admin</h3>
         </div>
-        <div style="display:flex; align-items:center; gap: 15px;">
-          <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
-          <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
+        <div style="display:flex; align-items:center; gap: 15px; position: relative;">
+          <!-- Botão para trocar de painel -->
+          <button onclick="toggleMenuPainel()" class="btn-refresh" title="Trocar Painel">
+            <i class="fas fa-exchange-alt"></i>
+          </button>
+          <!-- Menu dropdown -->
+          <div id="menuTrocaPainel" style="display: none; position: absolute; right: 0; top: 45px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0; min-width: 160px; z-index: 1000;">
+            <a href="admin.html?t=" onclick="redirecionarPainel('admin')" class="dropdown-item">🛡️ Admin</a>
+            <a href="pastor.html?t=" onclick="redirecionarPainel('pastor')" class="dropdown-item">⛪ Pastoral</a>
+            <a href="discipulador.html?t=" onclick="redirecionarPainel('discipulador')" class="dropdown-item">📖 Discipulador</a>
+            <a href="lider.html?t=" onclick="redirecionarPainel('lider')" class="dropdown-item">👥 Líder</a>
+          </div>
+          <!-- Botão Refresh -->
+          <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados">
+            <i id="iconRefresh" class="fas fa-sync-alt"></i>
+          </button>
+          <!-- Botão Sair -->
+          <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
         </div>
       </div>
 
@@ -603,6 +640,28 @@
             console.error("Erro ao salvar o log:", e); 
         }
     }      
+
+      function toggleMenuPainel() {
+        const menu = document.getElementById('menuTrocaPainel');
+        if (menu.style.display === 'block') {
+          menu.style.display = 'none';
+        } else {
+          menu.style.display = 'block';
+        }
+      }
+      
+      document.addEventListener('click', function(event) {
+        const menu = document.getElementById('menuTrocaPainel');
+        const botao = document.querySelector('.btn-refresh[title="Trocar Painel"]');
+        if (menu && botao && !menu.contains(event.target) && !botao.contains(event.target)) {
+          menu.style.display = 'none';
+        }
+      });
+      
+      function redirecionarPainel(painel) {
+        const timestamp = new Date().getTime();
+        window.location.href = painel + '.html?t=' + timestamp;
+      }
       
       function fazerLogout() { 
          if(confirm("Sair?")) { 
