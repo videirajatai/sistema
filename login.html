@@ -201,6 +201,7 @@
 
     <div id="splash-screen">
         <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Carregando" class="splash-logo">
+         <p id="saudacao-lider" font-weight:500;></p>         
         <p id="splash-texto">Autenticando e carregando painel...</p>
     </div>
 
@@ -422,6 +423,13 @@
             sessionStorage.setItem('loginDigitado', emailParaLogin);
             sessionStorage.setItem('urlApi', urlBackend);
             sessionStorage.setItem('categoria', categoriaNormalizada);
+
+            const nomeUsuario = sessionStorage.getItem('usuarioLogado');
+            const saudacaoEl = document.getElementById('saudacao-lider');
+            if (saudacaoEl && nomeUsuario) {
+                const primeiroNome = nomeUsuario.split(' ')[0];
+                saudacaoEl.innerText = `Graça e Paz, ${primeiroNome}`;
+            }
         
             // Redirecionamento conforme categoria
             let paginas = [];
