@@ -166,7 +166,7 @@
 
         
 
-        async function finalizarCadastro() {
+        /*async function finalizarCadastro() {
             const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
             const email = document.getElementById('email').value.trim();
             const senha = document.getElementById('senha').value.trim();
@@ -243,7 +243,104 @@
             }
         }
 
-        carregarDados();
+        carregarDados();*/
+
+        async function finalizarCadastro() {
+    const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value.trim();
+    const erro = document.getElementById('mensagem-erro');
+    const btn = document.getElementById('btn-salvar');
+    const grupoSuperior = document.getElementById('grupo-superior');
+    const selectSuperior = document.getElementById('superior_id');
+
+    let superiorId = (selectSuperior && !grupoSuperior.classList.contains('hidden')) 
+                        ? (selectSuperior.value || null) 
+                        : null;
+    if (!superiorId) {
+        superiorId = superiorOriginalId;
+    }
+
+    // Validações
+    if (!nomeCompleto || !email || !senha) {
+        erro.innerText = 'Todos os campos com * são obrigatórios.';
+        erro.style.display = 'block';
+        return;
+    }
+    if (senha.length < 6 || !/^\d+$/.test(senha)) {
+        erro.innerText = 'A senha deve ter 6 dígitos numéricos.';
+        erro.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = 'Salvando...';
+    erro.style.display = 'none';
+
+    try {
+        // 1. Criar usuário no Supabase Auth
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: senha
+        });
+
+        // LOG PARA DEPURAÇÃO (importante)
+        console.log('authData:', authData);
+        console.log('authError:', authError);
+
+        if (authError) {
+            // Tenta extrair a mensagem de erro
+            let mensagem = authError.message || authError.code || 'Erro desconhecido. Verifique o console.';
+            if (authError.status) mensagem += ` (status ${authError.status})`;
+            erro.innerText = 'Erro ao criar conta: ' + mensagem;
+            erro.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = "Salvar e Acessar o Sistema";
+            return;
+        }
+
+        // 2. Atualizar a tabela pessoas
+        const { error: updateError } = await supabaseClient
+            .from('pessoas')
+            .update({
+                nome: nomeCompleto,
+                email: email,
+                superior_id: superiorId,
+                token_convite: null
+            })
+            .eq('id', pessoaId);
+
+        if (updateError) {
+            console.error('Erro ao atualizar pessoas:', updateError);
+            // Se falhar, tenta excluir o usuário do Auth (limpeza)
+            if (authData?.user) {
+                await supabaseClient.auth.admin.deleteUser(authData.user.id);
+            }
+            throw new Error('Falha ao atualizar cadastro: ' + updateError.message);
+        }
+
+        // 3. Registrar log (em um try separado para não quebrar o fluxo)
+        try {
+            await registrarLogCompletarCadastro(nomeCompleto, email);
+        } catch (logError) {
+            console.warn('Erro ao registrar log (não crítico):', logError);
+        }
+
+        // Sucesso
+        document.getElementById('area-form').style.display = 'none';
+        document.getElementById('div-sucesso').style.display = 'block';
+        setTimeout(() => {
+            window.location.href = "index.html?t=" + Date.now();
+        }, 2000);
+
+    } catch (e) {
+        console.error('Erro geral:', e);
+        erro.innerText = 'Erro: ' + (e.message || 'Ocorreu um erro inesperado.');
+        erro.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = "Salvar e Acessar o Sistema";
+    }
+}
     </script>
 </body>
 </html>
