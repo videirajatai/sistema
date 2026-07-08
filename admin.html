@@ -612,6 +612,7 @@
               if (error) throw error;
               registrarLogAcao(`Enviou link de redefinição de senha para: ${email}`);
               alert("Link de redefinição enviado com sucesso! O usuário receberá um e-mail.");
+              registrarLogAcao(`Resetou a senha: ${d.usuario}`);
           } catch (e) {
               console.error("Erro ao enviar link:", e);
               alert("Erro ao enviar link de redefinição: " + e.message);
