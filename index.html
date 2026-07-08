@@ -1,46 +1,145 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=login.html">
-    <title>Redirecionando....</title>
-</head>
-<style>
-     
-     #splash-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Videira Jataí</title>
+
+    <!-- Impede cache do navegador -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Fonte e ícones (mesmo do login) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Sistema Videira">
+    <meta name="apple-mobile-web-app-title" content="Sistema Videira">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        /* Reset e fundo igual ao login */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            overflow: hidden;
             background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
-            z-index: 5; opacity: 0; transition: opacity 0.4s ease;
+            font-family: 'Inter', sans-serif;
         }
-        .splash-logo { width: 120px; animation: pulse 1.5s infinite ease-in-out; }
-        #splash-screen p { margin-top: 25px; color: var(--text-main, #2d3748); font-size: 15px; font-weight: 600; }
-</style>
-    
+
+        /* Splash Screen – ocupa a tela inteira */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%);
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.6s ease;
+        }
+
+        .splash-logo {
+            width: 130px;
+            height: auto;
+            animation: pulse 1.8s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        .splash-texto {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+        }
+
+        .splash-loader {
+            margin-top: 25px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(96, 0, 24, 0.15);
+            border-top: 4px solid #600018;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mensagem de fallback caso o redirecionamento demore */
+        .fallback {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #718096;
+        }
+        .fallback a {
+            color: #600018;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px dashed #600018;
+        }
+    </style>
+</head>
 <body>
-   <div id="splash-screen">
-        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Carregando" class="splash-logo">
-        <p id="splash-texto">Autenticando e carregando painel...</p>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Videira Jataí" class="splash-logo">
+        <p class="splash-texto">Bem‑vindo(a) ao Sistema</p>
+        <div class="splash-loader"></div>
+        <p class="fallback">
+            <i class="fas fa-spinner fa-pulse"></i> 
+            Se não for redirecionado, <a href="login.html">clique aqui</a>.
+        </p>
     </div>
-</body>
 
-    
-<script>
-    function entrarNoPainel(nome, urlDestino) {
-            const telaLogin = document.getElementById('tela-login');
-            const splashScreen = document.getElementById('splash-screen');
-            document.getElementById('splash-texto').innerText = `Carregando...`;
-
-            telaLogin.style.opacity = '0'; 
-            setTimeout(() => {
-                telaLogin.style.display = 'none';
-                splashScreen.style.display = 'flex';
-                setTimeout(() => splashScreen.style.opacity = '1', 10);
-                setTimeout(() => {
-                    //window.location.href = urlDestino + ".html";
-                    window.location.href = urlDestino + "login.html?t=" + Date.now();
-                }, 1000);
-            }, 400);
+    <script>
+        // --- Limpeza de cache e Service Workers (igual ao login) ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
         }
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) caches.delete(name);
+            });
+        }
+
+        // --- Redirecionamento com splash ---
+        // Aguarda 2 segundos para o splash ser visto, depois redireciona
+        setTimeout(function() {
+            // Gera timestamp para evitar cache
+            var timestamp = new Date().getTime();
+            window.location.replace('login.html?t=' + timestamp);
+        }, 2000);
     </script>
+
+</body>
 </html>
