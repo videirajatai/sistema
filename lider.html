@@ -1183,12 +1183,13 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            registrarLogAcao(`Baixou a palavra "${titulo}" (${dataFormatada})`);
         } catch (e) {
             alert('Erro ao gerar arquivo TXT.');
         } finally {
             icon.className = 'fas fa-download';
         }
-        registrarLogAcao(`Baixou a palavra "${titulo}" (${dataFormatada})`);
+        
     }
 
     // ========== AGENDA ==========
