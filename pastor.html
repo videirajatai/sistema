@@ -521,9 +521,9 @@
         faltosos.length
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
-            : "Nenhum faltoso nos últimos 30 dias."
-        registrarLogAcao(`Calculou lista de faltosos da célula: ${m.faltas} registros`);
+            : "Nenhum faltoso nos últimos 30 dias."       
     );
+         registrarLogAcao(`Calculou lista de faltosos da célula: ${faltosos.length} registros`);
 }
 
     async function calcularFaltosos() {
