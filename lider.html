@@ -320,16 +320,6 @@
         }
     })();
 
-    /*async function registrarLogAcao(acao) {
-        try {
-            await supabaseClient.from('logs').insert([{
-                datahora: new Date().toLocaleString('pt-BR'),
-                usuario: sessionStorage.getItem('loginDigitado'),
-                nomelider: sessionStorage.getItem('usuarioLogado'),
-                acao: acao
-            }]);
-        } catch(e) { console.error("Erro no log:", e); }
-    }*/
 
     async function registrarLogAcao(acao) {
             try {
