@@ -847,6 +847,7 @@
         }
         document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Líderes sem Relatório na Semana';
+        registrarLogAcao(`Gerou relatório de líderes sem relatório na semana: ${lideresSemRelatorio.length} líder(es) encontrado(s)`);
     }
 
     function abrirRelatorioMembrosFaltosos() {
