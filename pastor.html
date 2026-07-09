@@ -530,11 +530,19 @@
         const trintaDiasAtras = new Date();
         trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
     
-        // Busca os relatórios da célula ativa (celula_id) nos últimos 30 dias
+        // Obtém o ID da célula ativa de forma segura (objeto ou array)
+        const celulaId = celulaAtiva?.id !== undefined ? celulaAtiva.id : celulaAtiva?.[0];
+    
+        if (!celulaId) {
+            console.error("calcularFaltosos: celulaAtiva não possui ID válido", celulaAtiva);
+            return [];
+        }
+    
+        // Busca os relatórios da célula ativa nos últimos 30 dias
         const { data: rels } = await supabaseClient
             .from('relatorios')
             .select('id')
-            .eq('celula_id', celulaAtiva.id)          // ← usa o UUID da célula
+            .eq('celula_id', celulaId)
             .gte('data', trintaDiasAtras.toISOString().split('T')[0]);
     
         if (!rels || !rels.length) return [];
@@ -557,7 +565,7 @@
         // Retorna os membros da célula ativa que tiveram faltas
         return membrosDaCelulaAtiva
             .filter(p => faltasMap[p.id] > 0)
-            .map(p => ({ ...p, faltas: faltasMap[p.id] }));        
+            .map(p => ({ ...p, faltas: faltasMap[p.id] }));
     }
 
     // ========== RELATÓRIOS ==========
