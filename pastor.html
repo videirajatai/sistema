@@ -883,6 +883,7 @@
             }
             document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
             document.getElementById('tituloRelatorioPersonalizado').innerText = 'Membros com 3+ Faltas (30 dias)';
+            registrarLogAcao(`Gerou relatório de membros faltosos: ${faltosos.length} membros encontrado(s)`);
         });
     }
 
