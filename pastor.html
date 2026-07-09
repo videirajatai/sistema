@@ -1016,6 +1016,7 @@
         }
         document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Células sem Líder em Treinamento';
+        registrarLogAcao(`Gerou relatório de céluas sem líder em treinamento ${celulasSemColider.length} célula(s) encontrada(s)`);
     }
 
     function abrirRelatorioStatusEspiritual() {
@@ -1037,6 +1038,7 @@
         `;
         document.getElementById('modalRelatorioPersonalizado').classList.remove('hidden');
         document.getElementById('tituloRelatorioPersonalizado').innerText = 'Status Espiritual dos Membros';
+        registrarLogAcao(`Abriu estatistica espiritual dos Membros`);
     }
     
 
