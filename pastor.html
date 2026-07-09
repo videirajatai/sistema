@@ -522,6 +522,7 @@
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
             : "Nenhum faltoso nos últimos 30 dias."
+        registrarLogAcao(`Calculou lista de faltosos da célula: ${m.faltas} registros`);
     );
 }
 
@@ -556,8 +557,7 @@
         // Retorna os membros da célula ativa que tiveram faltas
         return membrosDaCelulaAtiva
             .filter(p => faltasMap[p.id] > 0)
-            .map(p => ({ ...p, faltas: faltasMap[p.id] }));
-        registrarLogAcao(`Calculou lista de faltosos da célula: ${membrosDaCelulaAtiva} registros`);
+            .map(p => ({ ...p, faltas: faltasMap[p.id] }));        
     }
 
     // ========== RELATÓRIOS ==========
