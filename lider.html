@@ -1673,6 +1673,7 @@ async function concluirMultiplicacao() {
     function mostrarLinkConvite(link) {
     document.getElementById('inputLinkConvite').value = link;
     document.getElementById('notificacaoLink').classList.remove('hidden');
+    registrarLogAcao(`Criou Link de Novo Líder`);
 }
 
 function fecharNotificacaoLink() {
@@ -1683,7 +1684,8 @@ function copiarLinkConviteMultiplicacao() {
     const input = document.getElementById('inputLinkConvite');
     input.select();
     document.execCommand('copy');
-    alert('Link copiado! Cole no WhatsApp do novo líder.');
+    alert('Link copiado! Cole no WhatsApp do novo líder.');    
+    // registrarLogAcao(`Copiou Link de Novo Líder`);
 }
 
 // ========== SELEÇÃO DE LÍDER PARA MULTIPLICAÇÃO ==========
@@ -1837,6 +1839,7 @@ function copiarLinkConviteNovoLider() {
     input.select();
     document.execCommand('copy');
     alert('Link copiado! Envie para o novo líder via WhatsApp.');
+    registrarLogAcao(`Copiou Link de Novo Líder`);
 }
     
 </script>
