@@ -836,8 +836,7 @@
         const conteudo = document.getElementById('conteudoRelatorio');
         conteudo.innerHTML = '';
         if (lideresSemRelatorio.length === 0) {
-            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Todos os líderes lançaram relatório esta semana.</p>';
-             registrarLogAcao(`Abriu tela de Líderes sem relatórios na Semana: ${lideresSemRelatorio.length)`);
+            conteudo.innerHTML = '<p style="text-align:center; color:var(--success-text);">Todos os líderes lançaram relatório esta semana.</p>';             
         } else {
             conteudo.innerHTML = `<table class="table-clean"><thead><tr><th>Líder</th><th>Célula</th></tr></thead><tbody>
                 ${lideresSemRelatorio.map(l => {
