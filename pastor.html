@@ -423,7 +423,7 @@
         }).join('');
     }
 
-    async function editarCelula(id) {
+    /*async function editarCelula(id) {
         const cel = dadosCelulas.find(c => c[0] == id);
         if (!cel) return;
         document.getElementById('editCelulaId').value = cel[0];
@@ -450,6 +450,58 @@
             });
         }
         
+        document.getElementById('modalEditarCelula').classList.remove('hidden');
+    }*/
+
+    async function editarCelula(id) {
+    const cel = dadosCelulas.find(c => c[0] == id);
+    if (!cel) return;
+    document.getElementById('editCelulaId').value = cel[0];
+    document.getElementById('editCelulaNome').value = cel[1];
+    document.getElementById('editCelulaDia').value = cel[3] || '';
+    document.getElementById('editCelulaEnd').value = cel[4] || '';
+
+    // Preencher select de líderes e depois garantir que o líder atual esteja selecionado
+    await preencherSelectLideres();
+        const selectLider = document.getElementById('editCelulaLider');
+        selectLider.value = cel[2] || '';
+    
+        // Se o líder atual não apareceu no select (por categoria ou porque foi removido),
+        // busca o nome dele e adiciona como opção
+        if (cel[2] && selectLider.value !== cel[2]) {
+            const { data: pessoa } = await supabaseClient
+                .from('pessoas')
+                .select('nome')
+                .eq('id', cel[2])
+                .single();
+            if (pessoa) {
+                const opt = document.createElement('option');
+                opt.value = cel[2];
+                opt.textContent = pessoa.nome + ' (atual)';
+                selectLider.appendChild(opt);
+                selectLider.value = cel[2];
+            }
+        }
+    
+        // Preencher select de anfitrião (se o campo existir)
+        const selectAnfitriao = document.getElementById('editCelulaAnfitriao');
+        if (selectAnfitriao) {
+            selectAnfitriao.innerHTML = '<option value="">Nenhum</option>';
+            const { data: membros } = await supabaseClient
+                .from('pessoas')
+                .select('id, nome')
+                .eq('celula_id', id)
+                .eq('arquivado', false)
+                .order('nome');
+            if (membros) {
+                const anfitriaoAtual = cel[7] || null; // posição 7 = anfitriao_user_id
+                membros.forEach(m => {
+                    const selected = (m.id === anfitriaoAtual) ? 'selected' : '';
+                    selectAnfitriao.innerHTML += `<option value="${m.id}" ${selected}>${m.nome}</option>`;
+                });
+            }
+        }
+    
         document.getElementById('modalEditarCelula').classList.remove('hidden');
     }
 
