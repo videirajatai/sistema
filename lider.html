@@ -459,7 +459,7 @@
         atualizarColiderInfo();   // <-- adicione esta linha
     }
     
-        async function atualizarColiderInfo() {
+        /*async function atualizarColiderInfo() {
         const infoDiv = document.getElementById('coliderInfo');
         if (!celulaAtiva) return;
         
@@ -479,14 +479,66 @@
                 .single();
             if (pessoa) {
                 infoDiv.style.display = 'block';
-                infoDiv.innerHTML = `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;
+                infoDiv.innerHTML = `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;            
                 return;
             }
         }
         infoDiv.style.display = 'none';
+    }*/
+
+    async function atualizarColiderInfo() {
+    const infoDiv = document.getElementById('coliderInfo');
+    if (!celulaAtiva) return;
+
+    // Busca tanto o colider_user_id quanto o anfitriao_user_id
+    const { data: celula, error } = await supabaseClient
+        .from('celulas')
+        .select('colider_user_id, anfitriao_user_id')
+        .eq('id', celulaAtiva.id)
+        .single();
+
+    if (error || !celula) {
+        infoDiv.style.display = 'none';
+        return;
     }
 
+    let html = '';
+
+    // Se houver colíder, busca o nome
+    if (celula.colider_user_id) {
+        const { data: pessoa } = await supabaseClient
+            .from('pessoas')
+            .select('nome')
+            .eq('id', celula.colider_user_id)
+            .single();
+        if (pessoa) {
+            html += `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;
+        }
+    }
+
+    // Se houver anfitrião, busca o nome
+    if (celula.anfitriao_user_id) {
+        const { data: pessoa } = await supabaseClient
+            .from('pessoas')
+            .select('nome')
+            .eq('id', celula.anfitriao_user_id)
+            .single();
+        if (pessoa) {
+            html += `<i class="fas fa-home"></i> <strong>Anfitrião:</strong> ${pessoa.nome}<br>`;
+        }
+    }
+
+    if (html) {
+        infoDiv.style.display = 'block';
+        infoDiv.innerHTML = html;
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+    
+
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
+    
 
     async function carregarMembrosDaCelula(celulaId) {
     const meuId = sessionStorage.getItem('liderId');
