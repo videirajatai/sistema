@@ -684,15 +684,29 @@
 }
 
     // ========== GESTÃO DE CÉLULAS ==========
-    function abrirNovaCelula() {
+    
+    
+    /*function abrirNovaCelula() {
         document.getElementById('celulaId').value = '';
         document.getElementById('celulaNome').value = '';
         document.getElementById('celulaDia').value = '';
         document.getElementById('celulaEndereco').value = '';
         document.getElementById('modalCelulaForm').classList.remove('hidden');
-    }
+    }versão sem anfitrião*/
 
-    async function abrirEditarCelula(id) {
+    function abrirNovaCelula() {
+    document.getElementById('celulaId').value = '';
+    document.getElementById('celulaNome').value = '';
+    document.getElementById('celulaDia').value = '';
+    document.getElementById('celulaEndereco').value = '';
+    document.getElementById('celulaColider').innerHTML = '<option value="">Nenhum</option>';
+    document.getElementById('celulaAnfitriao').innerHTML = '<option value="">Nenhum</option>';
+    document.getElementById('modalCelulaForm').classList.remove('hidden');
+    // Opcional: preencher o anfitrião com membros de todas as células
+    preencherSelectAnfitriao();
+}
+
+   /* async function abrirEditarCelula(id) {
     const cel = dadosCelulas.find(c => c.id === id);
     if (!cel) return;
     document.getElementById('celulaId').value = cel.id;
@@ -732,6 +746,37 @@
         console.error("Erro ao carregar membros para colíder:", err);
         // Opcional: mostrar mensagem ao usuário
     }
+}versão sem anfitrião*/
+
+    async function abrirEditarCelula(id) {
+    const cel = dadosCelulas.find(c => c.id === id);
+    if (!cel) return;
+    document.getElementById('celulaId').value = cel.id;
+    document.getElementById('celulaNome').value = cel.nome;
+    document.getElementById('celulaDia').value = cel.dia_horario || '';
+    document.getElementById('celulaEndereco').value = cel.endereco || '';
+    document.getElementById('modalCelulaForm').classList.remove('hidden');
+
+    // Preencher select de colíder
+    const selectColider = document.getElementById('celulaColider');
+    selectColider.innerHTML = '<option value="">Nenhum</option>';
+    try {
+        const { data: membros } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .eq('celula_id', id)
+            .eq('arquivado', false)
+            .order('nome');
+        if (membros) {
+            membros.forEach(p => {
+                const selected = (p.id === cel.colider_user_id) ? 'selected' : '';
+                selectColider.innerHTML += `<option value="${p.id}" ${selected}>${p.nome}</option>`;
+            });
+        }
+    } catch (e) { console.error(e); }
+
+    // Preencher select de anfitrião
+    await preencherSelectAnfitriao(cel.anfitriao_user_id || null);
 }
 
   async function salvarCelula(e) {
@@ -745,7 +790,8 @@
         dia_horario: document.getElementById('celulaDia').value,
         endereco: document.getElementById('celulaEndereco').value,
         lider_user_id: meuId,
-        colider_user_id: document.getElementById('celulaColider').value || null
+        colider_user_id: document.getElementById('celulaColider').value || null,
+        anfitriao_user_id: document.getElementById('celulaAnfitriao').value || null
     };
 
     // Popular o select de colíder
@@ -1636,6 +1682,28 @@ async function concluirMultiplicacao() {
     } catch (err) { alert("Erro: " + err.message); }
 }
 
+    async function preencherSelectAnfitriao(anfitriaoAtualId = null) {
+        const select = document.getElementById('celulaAnfitriao');
+        select.innerHTML = '<option value="">Nenhum</option>';
+        const meuId = sessionStorage.getItem('liderId');
+        const idsCelulas = dadosCelulas.map(c => c.id);
+        if (idsCelulas.length === 0) return;
+    
+        const { data: membros, error } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .in('celula_id', idsCelulas)
+            .eq('arquivado', false)
+            .order('nome');
+    
+        if (!error && membros) {
+            membros.forEach(p => {
+                const selected = (p.id === anfitriaoAtualId) ? 'selected' : '';
+                select.innerHTML += `<option value="${p.id}" ${selected}>${p.nome}</option>`;
+            });
+        }
+    }
+
     async function preencherSelectNovoLider() {
     const select = document.getElementById('multNovoLider');
     select.innerHTML = '<option value="">Selecione...</option>';
@@ -2094,8 +2162,8 @@ function copiarLinkConviteNovoLider() {
     </div>
 </div>
 
-<!-- modalCelulaForm (nova/editar célula) -->
-<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
+<!-- modalCelulaForm (nova/editar célula) SEM ANFITRIÃO-->
+<!--<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
     <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
         <button class="btn-close-modal" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')">&times;</button>
         <h3 style="color:var(--primary); margin-top:0;">Célula</h3>
@@ -2112,7 +2180,32 @@ function copiarLinkConviteNovoLider() {
             <button type="submit" class="btn-save">Salvar</button>
         </form>
     </div>
-</div>
+</div>-->
+
+
+<!-- modalCelulaForm (nova/editar célula) -->
+<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
+    <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
+        <button class="btn-close-modal" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')">&times;</button>
+        <h3 style="color:var(--primary); margin-top:0;">Célula</h3>
+        <form id="formCelula">
+            <input type="hidden" id="celulaId">
+            <label>Nome da Célula</label><input type="text" id="celulaNome" required>
+            <label>Dia da Semana</label>
+            <select id="celulaDia">
+                <option value="">Selecione</option>
+                <option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
+            </select>
+            <label>Endereço</label><input type="text" id="celulaEndereco">
+            <label>Líder em Treinamento</label>
+            <select id="celulaColider"><option value="">Nenhum</option></select>
+            <label>Anfitrião</label>
+            <select id="celulaAnfitriao"><option value="">Nenhum</option></select>
+            <button type="submit" class="btn-save">Salvar</button>
+        </form>
+    </div>
+</div>    
+    
 
 <!-- Modal Palavra (existente) -->
 <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
