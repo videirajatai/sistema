@@ -339,6 +339,7 @@
         // Montar mapa de nomes dos líderes e supervisores
         const idsLideres = dadosCelulas.map(c => c[2]).filter(id => id);
         const idsSupervisores = dadosCelulas.map(c => c[5]).filter(id => id);
+        const idsAnfitrioes = dadosCelulas.map(c => c[7]).filter(id => id);
         const todosIds = [...new Set([...idsLideres, ...idsSupervisores])];
         if (todosIds.length > 0) {
             const { data: pessoas, error } = await supabaseClient
