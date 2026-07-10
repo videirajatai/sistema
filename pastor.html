@@ -1237,8 +1237,8 @@
         const membros = membrosPorCelula[id] || [];
         membros.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
 
-        const anfitriaoId = cel[7];
-        const nomeAnfitriao = (anfitriaoId && mapaNomes[anfitriaoId]) ? mapaNomes[anfitriaoId] : '__________________';
+        const anfitriaoId = cel.anfitriao_user_id || null;
+        const nomeAnfitriao = anfitriaoId && mapaNomes[anfitriaoId] ? mapaNomes[anfitriaoId] : '__________________';
 
         html += `
         <div class="celula-page">
