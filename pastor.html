@@ -432,6 +432,23 @@
         // Aguarda o preenchimento do select de líderes
         await preencherSelectLideres();
         document.getElementById('editCelulaLider').value = cel[2] || '';
+
+        // Preencher anfitrião com membros da célula
+        const selectAnfitriao = document.getElementById('editCelulaAnfitriao');
+        selectAnfitriao.innerHTML = '<option value="">Nenhum</option>';
+        const { data: membros } = await supabaseClient
+            .from('pessoas')
+            .select('id, nome')
+            .eq('celula_id', id)
+            .eq('arquivado', false)
+            .order('nome');
+        if (membros) {
+            membros.forEach(m => {
+                const selected = (m.id === cel[7]) ? 'selected' : '';
+                selectAnfitriao.innerHTML += `<option value="${m.id}" ${selected}>${m.nome}</option>`;
+            });
+        }
+        
         document.getElementById('modalEditarCelula').classList.remove('hidden');
     }
 
@@ -1478,6 +1495,7 @@
         document.getElementById('filtroMesAgenda').addEventListener('change', () => renderizarAgenda(listaAgenda));
         document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
+        
 
        
 
@@ -1527,7 +1545,8 @@
                 lider_user_id: document.getElementById('editCelulaLider').value,
                 dia_horario: document.getElementById('editCelulaDia').value,
                 endereco: document.getElementById('editCelulaEnd').value,
-                supervisor_user_id: sessionStorage.getItem('pastorId')
+                supervisor_user_id: sessionStorage.getItem('pastorId'),
+                anfitriao_user_id: document.getElementById('editCelulaAnfitriao').value || null
             };
             try {
                 if (id) await supabaseClient.from('celulas').update(dados).eq('id', id);
@@ -1536,6 +1555,7 @@
                 await carregarTudo();
             } catch (err) { alert("Erro ao salvar célula: " + err.message); }
         });
+        
 
         document.getElementById('formPalavra').addEventListener('submit', salvarPalavra);
         setupMultiselects();
@@ -1781,6 +1801,10 @@
             <div class="form-group"><label>Líder</label><select id="editCelulaLider" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></select></div>
             <div class="form-group"><label>Dia/Horário</label><select id="editCelulaDia" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"><option value="">Selecione</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option></select></div>
             <div class="form-group"><label>Endereço</label><input type="text" id="editCelulaEnd" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
+            <div class="form-group"><label>Anfitrião</label><select id="editCelulaAnfitriao" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;">
+        <option value="">Nenhum</option>
+    </select>
+</div>
             <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;">Salvar</button>
         </form>
     </div>
