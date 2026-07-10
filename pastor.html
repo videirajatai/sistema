@@ -339,8 +339,8 @@
         // Montar mapa de nomes dos líderes e supervisores
         const idsLideres = dadosCelulas.map(c => c[2]).filter(id => id);
         const idsSupervisores = dadosCelulas.map(c => c[5]).filter(id => id);
-        const idsAnfitrioes = dadosCelulas.map(c => c[7]).filter(id => id);
-        const todosIds = [...new Set([...idsLideres, ...idsSupervisores])];
+        const idsAnfitrioes = dadosCelulas.map(c => c[7]).filter(id => id);        
+        const todosIds = [...new Set([...idsLideres, ...idsSupervisores, ...idsAnfitrioes])];
         if (todosIds.length > 0) {
             const { data: pessoas, error } = await supabaseClient
                 .from('pessoas')
@@ -390,7 +390,7 @@
             supervisoresUnicos.forEach(id => {
                 const nome = mapaNomes[id] || 'Não identificado';
                 filtroSupervisor.innerHTML += `<option value="${id}">${nome}</option>`;
-            });
+            });      
         }
         window.celulasRedeCompleta = celulas;
         filtrarCelulasRede();
@@ -400,10 +400,11 @@
     function filtrarCelulasRede() {
         const liderId = document.getElementById('filtroLiderRede')?.value || '';
         const supervisorId = document.getElementById('filtroSupervisorRede')?.value || '';
-        const container = document.getElementById('listaCelulasRede');
+        const container = document.getElementById('listaCelulasRede');        
         let filtradas = window.celulasRedeCompleta || [];
         if (liderId) filtradas = filtradas.filter(c => c[2] === liderId);
         if (supervisorId) filtradas = filtradas.filter(c => c[5] === supervisorId);
+        
         document.getElementById('contagemCelulasRede').innerText = filtradas.length;
         container.innerHTML = filtradas.map(c => {
             const nomeLider = mapaNomes[c[2]] || 'Não definido';
