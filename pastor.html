@@ -222,10 +222,10 @@
                 return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
             }) : [];
 
-            /*const { data: celData } = await supabaseClient.from('celulas').select('*');
-            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '']) : [];*/
+            
             const { data: celData } = await supabaseClient.from('celulas').select('*');
-            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
+           // dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
+            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '', c.anfitriao_user_id || '']) : [];
             
             window.celulaMap = {};
             dadosCelulas.forEach(c => { window.celulaMap[c[0]] = c[1]; });
@@ -483,7 +483,7 @@
             .select('*')
             .eq('celula_id', cel[0])
             .eq('arquivado', false)
-            .neq('categoria', 'Administrador');  // <-- FILTRO ADICIONADO
+            .neq('categoria', 'Administrador'); 
         membrosDaCelulaAtiva = data || [];
         document.getElementById('gridMembrosCelulaModal').innerHTML = membrosDaCelulaAtiva.map(m => `
             <div class="member-card">
@@ -499,7 +499,48 @@
                 ${m.telefone ? `<a href="https://wa.me/55${String(m.telefone).replace(/\D/g,'')}" target="_blank" class="btn-card btn-zap"><i class="fab fa-whatsapp"></i></a>` : ''}
             </div>
         `).join('') || '<p style="text-align:center; color:#999;">Nenhum membro nesta célula.</p>';
+        atualizarInfoCelulaPastoral(cel);
     }
+
+    async function atualizarInfoCelulaPastoral(cel) {
+        const infoDiv = document.getElementById('infoCelulaPastoral');
+        if (!cel) return;
+    
+        // Recarrega os dados da célula para obter colider_user_id e anfitriao_user_id
+        const { data: celula } = await supabaseClient
+            .from('celulas')
+            .select('colider_user_id, anfitriao_user_id')
+            .eq('id', cel[0])
+            .single();
+    
+        let html = '';
+        if (celula) {
+            if (celula.colider_user_id) {
+                const { data: pessoa } = await supabaseClient
+                    .from('pessoas')
+                    .select('nome')
+                    .eq('id', celula.colider_user_id)
+                    .single();
+                if (pessoa) html += `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}<br>`;
+            }
+            if (celula.anfitriao_user_id) {
+                const { data: pessoa } = await supabaseClient
+                    .from('pessoas')
+                    .select('nome')
+                    .eq('id', celula.anfitriao_user_id)
+                    .single();
+                if (pessoa) html += `<i class="fas fa-home"></i> <strong>Anfitrião:</strong> ${pessoa.nome}<br>`;
+            }
+        }
+    
+        if (html) {
+            infoDiv.style.display = 'block';
+            infoDiv.innerHTML = html;
+        } else {
+            infoDiv.style.display = 'none';
+        }
+    }
+    
 
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
 
@@ -1196,6 +1237,9 @@
         const membros = membrosPorCelula[id] || [];
         membros.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
 
+        const anfitriaoId = cel[7];
+        const nomeAnfitriao = (anfitriaoId && mapaNomes[anfitriaoId]) ? mapaNomes[anfitriaoId] : '__________________';
+
         html += `
         <div class="celula-page">
             <div class="header">
@@ -1208,8 +1252,8 @@
                 <div class="info-item"><strong>Horário:</strong> <span class="valor">${horario}</span></div>
                 <div class="info-item"><strong>Discipulador:</strong> <span class="valor">${nomeSupervisor}</span></div>
                 <div class="info-item"><strong>Líder:</strong> <span class="valor">${nomeLider}</span></div>
-                <div class="info-item"><strong>Líder em Treinamento:</strong> <span class="valor">${nomeColider || '__________________'}</span></div>
-                <div class="info-item"><strong>Anfitrião:</strong> <span class="linha">&nbsp;</span></div>
+                <div class="info-item"><strong>Líder em Treinamento:</strong> <span class="valor">${nomeColider || '__________________'}</span></div>                
+                <div class="info-item"><strong>Anfitrião:</strong> <span class="valor">${nomeAnfitriao}</span></div>
                 <div class="info-item" style="grid-column: span 2;"><strong>Endereço:</strong> <span class="valor">${endereco}</span></div>
             </div>
 
@@ -1742,7 +1786,7 @@
     </div>
 </div>
 
-<div id="modalCelula" class="modal-overlay hidden">
+<!--<div id="modalCelula" class="modal-overlay hidden">
     <div class="modal-content" style="max-height:90vh;">
         <div style="display:flex; justify-content:space-between; border-bottom:2px solid var(--primary); padding-bottom:15px;">
             <h2 id="modalCelulaTitulo"></h2>
@@ -1754,7 +1798,23 @@
         </div>
         <div id="gridMembrosCelulaModal" class="member-grid"></div>
     </div>
-</div>
+</div>VERSÃO SEM MOSTRAR ANFITRIÃO 10/07/2026 10:09-->
+
+<div id="modalCelula" class="modal-overlay hidden">
+    <div class="modal-content" style="max-height:90vh;">
+        <div style="display:flex; justify-content:space-between; border-bottom:2px solid var(--primary); padding-bottom:15px;">
+            <h2 id="modalCelulaTitulo"></h2>
+            <button class="btn-close-modal" onclick="fecharModalCelula()" style="position:static;">&times;</button>
+        </div>
+        <div style="display:flex; gap:8px; margin:15px 0;">
+            <button class="btn-card" onclick="abrirModalCadastroMembro()"><i class="fas fa-plus"></i> Novo Membro</button>
+            <button class="btn-card" onclick="abrirApascentar()"><i class="fas fa-hands-praying"></i> Apascentar</button>
+        </div>
+        <!-- NOVA DIV PARA EXIBIR COLÍDER E ANFITRIÃO -->
+        <div id="infoCelulaPastoral" style="margin-bottom:15px; padding:8px 15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; display:none;"></div>
+        <div id="gridMembrosCelulaModal" class="member-grid"></div>
+    </div>
+</div>    
 
 <div id="secao-cadastro" class="modal-overlay hidden" onclick="fecharModalClique(event)">
     <div class="modal-content" style="max-width:600px; max-height:90vh;" onclick="event.stopPropagation()">
