@@ -1747,13 +1747,15 @@
             <button onclick="carregarTudo()" class="btn-refresh"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
             <button onclick="fazerLogout()" class="btn-refresh" style="color:#991b1b;"><i class="fas fa-sign-out-alt"></i></button>
         </div>
-    </div>
-    <!-- Player Vinha FM (abaixo do título) -->
-    <div class="radio-player-mini">
-        <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
-            <i id="radioIcon" class="fas fa-play"></i>
-        </button>
-        <span class="radio-label">Vinha FM</span>
+    </div>   
+    <!-- Segunda linha: player Vinha FM -->
+    <div style="display:flex; justify-content:flex-start; margin-top:8px; width:100%;">
+        <div class="radio-player-mini">
+            <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
+                <i id="radioIcon" class="fas fa-play"></i>
+            </button>
+            <span class="radio-label">Vinha FM</span>
+        </div>
     </div>
 </div>
 
