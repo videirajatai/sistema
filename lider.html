@@ -1996,46 +1996,57 @@ function copiarLinkConviteNovoLider() {
 
 
     // ----- Player Vinha FM (simples) -----
-let radioPlaying = false;
-const radioAudio = document.getElementById('radioAudio');
-const radioToggle = document.getElementById('radioToggle');
-const radioIcon = document.getElementById('radioIcon');
+// ----- Player Vinha FM (simples e seguro) -----
+document.addEventListener('DOMContentLoaded', function() {
+    const radioAudio = document.getElementById('radioAudio');
+    const radioToggle = document.getElementById('radioToggle');
+    const radioIcon = document.getElementById('radioIcon');
 
-function toggleRadio() {
-    if (!radioPlaying) {
-        radioAudio.play()
-            .then(() => {
-                radioPlaying = true;
-                radioToggle.classList.add('playing');
-                radioIcon.className = 'fas fa-pause';
-            })
-            .catch((err) => {
-                console.warn('Erro ao iniciar stream:', err);
-                alert('Não foi possível conectar à Vinha FM. Tente novamente.');
-            });
-    } else {
-        radioAudio.pause();
-        radioPlaying = false;
-        radioToggle.classList.remove('playing');
-        radioIcon.className = 'fas fa-play';
+    // Se algum elemento não existir, não prossegue
+    if (!radioAudio || !radioToggle || !radioIcon) {
+        console.warn('Player Vinha FM: elementos não encontrados.');
+        return;
     }
-}
 
-// Tratamento para quando a música termina ou ocorre erro
-radioAudio.addEventListener('pause', () => {
-    if (radioPlaying) {
-        radioPlaying = false;
-        radioToggle.classList.remove('playing');
-        radioIcon.className = 'fas fa-play';
-    }
-});
-radioAudio.addEventListener('error', () => {
-    if (radioPlaying) {
-        radioPlaying = false;
-        radioToggle.classList.remove('playing');
-        radioIcon.className = 'fas fa-play';
-        alert('Stream indisponível no momento.');
-    }
+    let radioPlaying = false;
+
+    window.toggleRadio = function() {
+        if (!radioPlaying) {
+            radioAudio.play()
+                .then(() => {
+                    radioPlaying = true;
+                    radioToggle.classList.add('playing');
+                    radioIcon.className = 'fas fa-pause';
+                })
+                .catch((err) => {
+                    console.warn('Erro ao iniciar stream:', err);
+                    alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+                });
+        } else {
+            radioAudio.pause();
+            radioPlaying = false;
+            radioToggle.classList.remove('playing');
+            radioIcon.className = 'fas fa-play';
+        }
+    };
+
+    // Tratamento para quando a música é pausada ou erro
+    radioAudio.addEventListener('pause', () => {
+        if (radioPlaying) {
+            radioPlaying = false;
+            radioToggle.classList.remove('playing');
+            radioIcon.className = 'fas fa-play';
+        }
+    });
+
+    radioAudio.addEventListener('error', () => {
+        if (radioPlaying) {
+            radioPlaying = false;
+            radioToggle.classList.remove('playing');
+            radioIcon.className = 'fas fa-play';
+            alert('Stream indisponível no momento.');
+        }
+    });
 });
     
 </script>
@@ -2049,7 +2060,7 @@ radioAudio.addEventListener('error', () => {
         <!-- Player Vinha FM (discreto) -->
         <div class="radio-player-mini">
             <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
-                <i class="fas fa-play" id="radioIcon"></i>
+                <i id="radioIcon" class="fas fa-play"></i>
             </button>
             <span class="radio-label">Vinha FM</span>
         </div>
