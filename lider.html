@@ -243,12 +243,13 @@
         .btn-copy-link { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
 
-         /* --- Player Vinha FM (discreto) --- */
+        
+       /* --- Player Vinha FM (discreto) --- */
         .radio-player-mini {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-left: 20px;
+            margin-top: 4px;  /* pequeno espaçamento abaixo do título */
         }
         .radio-btn {
             background: transparent;
@@ -2053,24 +2054,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- HTML COMPLETO COM MODAIS -->
 <div class="container">
-    <div class="header">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
-        <h3>Painel do Líder</h3>
-        <!-- Player Vinha FM (discreto) -->
-        <div class="radio-player-mini">
-            <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
-                <i id="radioIcon" class="fas fa-play"></i>
-            </button>
-            <span class="radio-label">Vinha FM</span>
+        <div class="header">
+        <!-- Primeira linha: logo, título e botões de ação -->
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
+                <h3>Painel do Líder</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+                <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+        <!-- Segunda linha: player Vinha FM -->
+        <div style="display:flex; justify-content:flex-start; margin-top:8px; width:100%;">
+            <div class="radio-player-mini">
+                <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
+                    <i id="radioIcon" class="fas fa-play"></i>
+                </button>
+                <span class="radio-label">Vinha FM</span>
+            </div>
         </div>
     </div>
-    <div style="display:flex; align-items:center; gap: 15px;">
-        <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
-        <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
-    </div>
-</div>
-
     
 
     <div class="nav-menu">
