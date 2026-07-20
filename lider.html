@@ -244,12 +244,31 @@
 
 
         
-       /* --- Player Vinha FM (discreto) --- */
+      
+        /* --- Player Vinha FM (discreto, abaixo do título) --- */
+        .header {
+            flex-wrap: wrap; /* permite quebra de linha */
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .header-bottom {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+            width: 100%;
+            justify-content: flex-start;
+            border-top: 1px solid rgba(128, 0, 32, 0.1);
+            padding-top: 8px;
+        }
         .radio-player-mini {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 4px;  /* pequeno espaçamento abaixo do título */
         }
         .radio-btn {
             background: transparent;
@@ -2054,9 +2073,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- HTML COMPLETO COM MODAIS -->
 <div class="container">
-        <div class="header">
-        <!-- Primeira linha: logo, título e botões de ação -->
-        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+       <div class="header">
+        <!-- Linha superior: logo, título e botões -->
+        <div class="header-top">
             <div style="display:flex; align-items:center; gap:12px;">
                 <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
                 <h3>Painel do Líder</h3>
@@ -2066,8 +2085,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
-        <!-- Segunda linha: player Vinha FM -->
-        <div style="display:flex; justify-content:flex-start; margin-top:8px; width:100%;">
+    
+        <!-- Linha inferior: player Vinha FM -->
+        <div class="header-bottom">
             <div class="radio-player-mini">
                 <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
                     <i id="radioIcon" class="fas fa-play"></i>
