@@ -124,6 +124,49 @@
             .modal-content { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
             .btn-close-modal, .report-btn { display: none !important; }
         }
+
+        /* --- Player Vinha FM (discreto) --- */
+        .radio-player-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px; /* para dar espaço abaixo do título */
+        }
+        .radio-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary);
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .radio-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .radio-btn.playing {
+            border-color: #25D366;
+            color: #25D366;
+            animation: pulse-radio 1.5s infinite;
+        }
+        @keyframes pulse-radio {
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.3); }
+            70% { box-shadow: 0 0 0 6px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+        }
+        .radio-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            font-weight: 500;
+            user-select: none;
+        }
+        
     </style>
 </head>
 <body>
@@ -1640,10 +1683,62 @@
                 return (a[1] || '').localeCompare(b[1] || '');
             });
         }
+
+    // ----- Player Vinha FM (simples e seguro) -----
+        document.addEventListener('DOMContentLoaded', function() {
+            const radioAudio = document.getElementById('radioAudio');
+            const radioToggle = document.getElementById('radioToggle');
+            const radioIcon = document.getElementById('radioIcon');
+        
+            if (!radioAudio || !radioToggle || !radioIcon) {
+                console.warn('Player Vinha FM: elementos não encontrados.');
+                return;
+            }
+        
+            let radioPlaying = false;
+        
+            window.toggleRadio = function() {
+                if (!radioPlaying) {
+                    radioAudio.play()
+                        .then(() => {
+                            radioPlaying = true;
+                            radioToggle.classList.add('playing');
+                            radioIcon.className = 'fas fa-pause';
+                        })
+                        .catch((err) => {
+                            console.warn('Erro ao iniciar stream:', err);
+                            alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+                        });
+                } else {
+                    radioAudio.pause();
+                    radioPlaying = false;
+                    radioToggle.classList.remove('playing');
+                    radioIcon.className = 'fas fa-play';
+                }
+            };
+        
+            radioAudio.addEventListener('pause', () => {
+                if (radioPlaying) {
+                    radioPlaying = false;
+                    radioToggle.classList.remove('playing');
+                    radioIcon.className = 'fas fa-play';
+                }
+            });
+        
+            radioAudio.addEventListener('error', () => {
+                if (radioPlaying) {
+                    radioPlaying = false;
+                    radioToggle.classList.remove('playing');
+                    radioIcon.className = 'fas fa-play';
+                    alert('Stream indisponível no momento.');
+                }
+            });
+        });
 </script>
 
 <div class="container">
-    <div class="header">
+    <div class="header" style="flex-direction: column; align-items: stretch; gap: 8px;">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:12px;">
             <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 100px;">
             <h3>Painel Pastoral</h3>
@@ -1653,6 +1748,14 @@
             <button onclick="fazerLogout()" class="btn-refresh" style="color:#991b1b;"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </div>
+    <!-- Player Vinha FM (abaixo do título) -->
+    <div class="radio-player-mini">
+        <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
+            <i id="radioIcon" class="fas fa-play"></i>
+        </button>
+        <span class="radio-label">Vinha FM</span>
+    </div>
+</div>
 
     <div class="nav-menu">
         <button id="btn-lista" class="nav-btn active" onclick="mudarSecao('lista')"><i class="fas fa-users"></i> Membros</button>
@@ -1935,6 +2038,11 @@
         <div id="conteudoRelatorio"></div>
     </div>
 </div>
+
+    <!-- Player de áudio (Vinha FM) -->
+    <audio id="radioAudio" preload="none" style="display:none;">
+        <source src="https://streaming.vinhafm.com.br/stream" type="audio/mpeg">
+    </audio>
 
 </body>
 </html>
