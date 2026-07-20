@@ -187,13 +187,13 @@
           
           <label>Nível de Acesso (Categoria)</label>
           <select name="categoria" id="cadCategoria" required>
-             <option value="Administrador">Administrador</option>
+             <!--<option value="Administrador">Administrador</option>-->
              <option value="Pastor de Governo">Pastor de Governo</option>
              <option value="Pastor de Rede">Pastor de Rede</option>
              <option value="Discipulador">Discipulador</option>
              <option value="Líder">Líder</option>
-             <option value="Tesoureiro">Tesoureiro</option>
-             <option value="Membro">Membro</option>
+             <!--<option value="Tesoureiro">Tesoureiro</option>-->
+             <!--<option value="Membro">Membro</option>-->
           </select>
 
           <label>Superior Hierárquico</label>
@@ -264,27 +264,7 @@
          if(document.getElementById('btn-'+s)) document.getElementById('btn-'+s).classList.add('active');
       }
 
-      /*async function carregarTudo() {
-         const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
-         try {
-             const [ { data: users }, { data: celulas }, { data: logs } ] = await Promise.all([
-                 supabaseClient.from('pessoas').select('*').order('nome', { ascending: true }),
-                 supabaseClient.from('celulas').select('*').order('nome', { ascending: true }),
-                 supabaseClient.from('logs').select('*').order('id', { ascending: false }).limit(100)
-             ]);
-
-             dadosUsuarios = users || [];
-             dadosCelulas = celulas || [];
-             filtrarUsuarios();
-             renderizarLogs(logs || []);
-         } catch(e) {
-             console.error("Erro ao carregar dados:", e);
-             alert("Erro ao carregar dados do servidor. Verifique sua conexão.");
-         } finally {
-             if(icon) icon.classList.remove('fa-spin');
-         }
-      }*/
-
+     
       async function carregarTudo() {
          const icon = document.getElementById('iconRefresh'); if(icon) icon.classList.add('fa-spin');
          try {
@@ -355,21 +335,7 @@
          });
       }
 
-      /*function renderizarLogs(lista) {
-         const div = document.getElementById('listaLogs'); div.innerHTML = '';
-         if(!lista || lista.length === 0) { div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum registro encontrado.</p>'; return; }
-         
-         lista.forEach(l => {
-             let dataF = l.datahora; let login = l.usuario; let nome = l.nomelider; let acao = l.acao || "";
-             let borderClass = acao.includes("Sucesso") ? "Sucesso" : "";
-             div.innerHTML += `
-             <div class="log-card ${borderClass}">
-                <div class="log-date"><i class="far fa-clock"></i> ${dataF}</div>
-                <p class="log-text"><strong>${nome}</strong> (${login})<br>${acao}</p>
-             </div>`;
-         });
-      }*/
-
+     
       function renderizarLogs(lista) {
           const div = document.getElementById('listaLogs'); 
           div.innerHTML = '';
