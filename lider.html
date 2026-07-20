@@ -241,7 +241,49 @@
             .modal-close:hover { background: var(--primary); color: white; }
 
         .btn-copy-link { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        
+
+
+         /* --- Player Vinha FM (discreto) --- */
+        .radio-player-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+        .radio-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary);
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .radio-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .radio-btn.playing {
+            border-color: #25D366;
+            color: #25D366;
+            animation: pulse-radio 1.5s infinite;
+        }
+        @keyframes pulse-radio {
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.3); }
+            70% { box-shadow: 0 0 0 6px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+        }
+        .radio-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            font-weight: 500;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -1951,21 +1993,72 @@ function copiarLinkConviteNovoLider() {
     alert('Link copiado! Envie para o novo líder via WhatsApp.');
     registrarLogAcao(`Copiou Link de Novo Líder`);
 }
+
+
+    // ----- Player Vinha FM (simples) -----
+let radioPlaying = false;
+const radioAudio = document.getElementById('radioAudio');
+const radioToggle = document.getElementById('radioToggle');
+const radioIcon = document.getElementById('radioIcon');
+
+function toggleRadio() {
+    if (!radioPlaying) {
+        radioAudio.play()
+            .then(() => {
+                radioPlaying = true;
+                radioToggle.classList.add('playing');
+                radioIcon.className = 'fas fa-pause';
+            })
+            .catch((err) => {
+                console.warn('Erro ao iniciar stream:', err);
+                alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+            });
+    } else {
+        radioAudio.pause();
+        radioPlaying = false;
+        radioToggle.classList.remove('playing');
+        radioIcon.className = 'fas fa-play';
+    }
+}
+
+// Tratamento para quando a música termina ou ocorre erro
+radioAudio.addEventListener('pause', () => {
+    if (radioPlaying) {
+        radioPlaying = false;
+        radioToggle.classList.remove('playing');
+        radioIcon.className = 'fas fa-play';
+    }
+});
+radioAudio.addEventListener('error', () => {
+    if (radioPlaying) {
+        radioPlaying = false;
+        radioToggle.classList.remove('playing');
+        radioIcon.className = 'fas fa-play';
+        alert('Stream indisponível no momento.');
+    }
+});
     
 </script>
 
 <!-- HTML COMPLETO COM MODAIS -->
 <div class="container">
     <div class="header">
-        <div style="display:flex; align-items:center; gap:12px;">
-            <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
-            <h3>Painel do Líder</h3>           
-        </div>
-        <div style="display:flex; align-items:center; gap: 15px;">
-            <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
-            <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
+        <h3>Painel do Líder</h3>
+        <!-- Player Vinha FM (discreto) -->
+        <div class="radio-player-mini">
+            <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
+                <i class="fas fa-play" id="radioIcon"></i>
+            </button>
+            <span class="radio-label">Vinha FM</span>
         </div>
     </div>
+    <div style="display:flex; align-items:center; gap: 15px;">
+        <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+        <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+</div>
 
     
 
@@ -2447,6 +2540,11 @@ function copiarLinkConviteNovoLider() {
         <button onclick="fecharModalSelecionarLider()" class="btn-save" style="background:#555; margin-top:15px;">Cancelar</button>
     </div>
 </div>
+
+    <!-- Player de áudio (Vinha FM) -->
+    <audio id="radioAudio" preload="none" style="display:none;">
+        <source src="https://streaming.vinhafm.com.br/stream" type="audio/mpeg">
+    </audio>
     
 </body>
 </html>
