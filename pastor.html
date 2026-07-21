@@ -1704,6 +1704,7 @@
                             radioPlaying = true;
                             radioToggle.classList.add('playing');
                             radioIcon.className = 'fas fa-pause';
+                            registrarLogAcao('Iniciou o player Vinha FM');
                         })
                         .catch((err) => {
                             console.warn('Erro ao iniciar stream:', err);
@@ -1714,6 +1715,7 @@
                     radioPlaying = false;
                     radioToggle.classList.remove('playing');
                     radioIcon.className = 'fas fa-play';
+                    registrarLogAcao('Iniciou o player Vinha FM');
                 }
             };
         
