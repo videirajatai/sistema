@@ -2015,7 +2015,7 @@ function copiarLinkConviteNovoLider() {
 }
 
 
-    // ----- Player Vinha FM (simples) -----
+ 
 // ----- Player Vinha FM (simples e seguro) -----
 document.addEventListener('DOMContentLoaded', function() {
     const radioAudio = document.getElementById('radioAudio');
@@ -2037,6 +2037,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     radioPlaying = true;
                     radioToggle.classList.add('playing');
                     radioIcon.className = 'fas fa-pause';
+                    registrarLogAcao('Iniciou o player Vinha FM');
                 })
                 .catch((err) => {
                     console.warn('Erro ao iniciar stream:', err);
@@ -2047,6 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
             radioPlaying = false;
             radioToggle.classList.remove('playing');
             radioIcon.className = 'fas fa-play';
+            registrarLogAcao('Pausou o player Vinha FM');
         }
     };
 
