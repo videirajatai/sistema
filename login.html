@@ -425,7 +425,7 @@
                 if (error) throw error;
 
                 alert("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
-                registrarLog(nomeReal, "Solicitou Recuperação de Senha");
+                registrarLog(email, "Solicitou Recuperação de Senha");
                 document.getElementById('rec-email').value = "";
                 mudarTela('bloco-login');
             } catch (e) {
