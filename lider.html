@@ -255,7 +255,7 @@
             justify-content: space-between;
             width: 100%;
         }
-        .header-bottom {
+        /*.header-bottom {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -264,7 +264,38 @@
             justify-content: flex-start;
             border-top: 1px solid rgba(128, 0, 32, 0.1);
             padding-top: 8px;
+        }*/
+        .header-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
         }
+        /* Estilo do botão Bíblia (semelhante ao player) */
+        .btn-biblia-header {
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 4px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Inter', sans-serif;
+            height: 32px;
+        }
+        .btn-biblia-header:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-biblia-header i {
+            font-size: 0.9rem;
+        }
+        
         .radio-player-mini {
             display: flex;
             align-items: center;
@@ -2089,13 +2120,27 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     
         <!-- Linha inferior: player Vinha FM -->
-        <div class="header-bottom">
+        <!--<div class="header-bottom">
             <div class="radio-player-mini">
                 <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
                     <i id="radioIcon" class="fas fa-play"></i>
                 </button>
                 <span class="radio-label">Vinha FM</span>
             </div>
+        </div>-->
+        <div class="header-bottom">
+            <!-- Lado esquerdo: player da rádio -->
+            <div class="radio-player-mini">
+                <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
+                    <i id="radioIcon" class="fas fa-play"></i>
+                </button>
+                <span class="radio-label">Vinha FM</span>
+            </div>
+        
+            <!-- Lado direito: botão da Bíblia -->
+            <button class="btn-biblia-header" onclick="abrirBiblia()" title="Abrir Bíblia">
+                <i class="fas fa-bible"></i> Bíblia
+            </button>
         </div>
     </div>
     
@@ -2107,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <button onclick="mudarSecao('agenda')" class="nav-btn" id="btn-agenda"><i class="far fa-calendar-alt"></i> Agenda</button>        
         <button onclick="mudarSecao('sugestao')" class="nav-btn" id="btn-sugestao"><i class="fas fa-hand-holding-heart"></i> Oferta</button>
         <button onclick="mudarSecao('anotacoes')" class="nav-btn" id="btn-anotacoes"><i class="fas fa-note-sticky"></i> Anotações</button>
-        <button onclick="mudarSecao('biblia')" class="nav-btn" id="btn-biblia"><i class="fas fa-bible"></i> Bíblia</button>
+        <!--<button onclick="mudarSecao('biblia')" class="nav-btn" id="btn-biblia"><i class="fas fa-bible"></i> Bíblia</button>-->
     </div>
 
     <!-- MINHA CÉLULA -->
