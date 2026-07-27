@@ -1191,6 +1191,7 @@
         setTimeout(() => document.getElementById('biblia-overlay').style.opacity = '1', 10);
         if (typeof Biblia !== 'undefined') {
             if (!Biblia.bibliaCarregada) await Biblia.inicializar();
+            registrarLogAcao(`Abriu a bíblia`);
             versaoSelecionada = Biblia.getVersaoAtiva();
             document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[versaoSelecionada] || versaoSelecionada;
         }
