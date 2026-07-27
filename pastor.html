@@ -741,13 +741,31 @@
         filtrarRelatorios();
     }
 
-    function filtrarRelatorios() {
+    /*function filtrarRelatorios() {
         const celulaId = document.getElementById('filtroRelCelula').value;
         const inicio = document.getElementById('filtroRelDataInicio').value;
         const fim = document.getElementById('filtroRelDataFim').value;
         const div = document.getElementById('listaRelatorios');
         div.innerHTML = '';
         const filtrados = dadosRelatorios.filter(r => (!celulaId || r.celula_id === celulaId) && (!inicio || r.data >= inicio) && (!fim || r.data <= fim));
+        if (!filtrados.length) { div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório encontrado.</p>'; return; }
+        filtrados.forEach(r => {
+            const nomeCelula = window.celulaMap[r.celula_id] || 'Célula não encontrada';
+            div.innerHTML += `<div class="cell-card" onclick="abrirDetalheRelatorio('${r.id}')" style="justify-content:space-between;"><div><strong>${nomeCelula}</strong><br><small>${r.data?.split('-').reverse().join('/')}</small></div><i class="fas fa-chevron-right"></i></div>`;
+        });
+    }*/
+
+    function filtrarRelatorios() {
+        const celulaId = document.getElementById('filtroRelCelula').value;
+        const inicio = document.getElementById('filtroRelDataInicio').value;
+        const fim = document.getElementById('filtroRelDataFim').value;
+        const div = document.getElementById('listaRelatorios');
+        div.innerHTML = '';
+        let filtrados = dadosRelatorios.filter(r => (!celulaId || r.celula_id === celulaId) && (!inicio || r.data >= inicio) && (!fim || r.data <= fim));
+        
+        // 🔹 ORDENA POR DATA (MAIS RECENTE PRIMEIRO)
+        filtrados.sort((a, b) => (a.data < b.data ? 1 : -1));
+        
         if (!filtrados.length) { div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum relatório encontrado.</p>'; return; }
         filtrados.forEach(r => {
             const nomeCelula = window.celulaMap[r.celula_id] || 'Célula não encontrada';
