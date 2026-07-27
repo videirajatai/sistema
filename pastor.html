@@ -126,7 +126,16 @@
         }
 
         /* --- Player Vinha FM (discreto) --- */
-         /*.header-bottom {
+         .header {
+            flex-wrap: wrap; /* permite quebra de linha */
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        /*.header-bottom {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -136,7 +145,7 @@
             border-top: 1px solid rgba(128, 0, 32, 0.1);
             padding-top: 8px;
         }*/
-         .header-bottom {
+        .header-bottom {
             display: flex;
             justify-content: space-between;
             align-items: center;
