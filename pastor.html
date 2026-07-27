@@ -135,7 +135,7 @@
             justify-content: space-between;
             width: 100%;
         }
-        /*.header-bottom {
+        .header-bottom {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -144,15 +144,8 @@
             justify-content: flex-start;
             border-top: 1px solid rgba(128, 0, 32, 0.1);
             padding-top: 8px;
-        }*/
-        .header-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            border-top: 1px solid rgba(128, 0, 32, 0.1);
-            padding-top: 8px;
         }
+      
         .radio-player-mini {
             display: flex;
             align-items: center;
@@ -1796,7 +1789,7 @@
         </div>
     </div>   
     <!-- Segunda linha: player Vinha FM -->
-    <div style="display:flex; justify-content:flex-start; margin-top:8px; width:100%;">
+    <div class="header-bottom">
         <div class="radio-player-mini">
             <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
                 <i id="radioIcon" class="fas fa-play"></i>
