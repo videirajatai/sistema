@@ -170,20 +170,20 @@
               .eq('email', user.email)
               .single();
 
-          const cat = (usuario?.categoria || "membro").toLowerCase();
-          const permitidos = ["tesoureiro", "pastor", "administrador"];
 
-          if (!permitidos.includes(cat)) {
-              alert("Acesso restrito. Você não tem permissão para este painel.");
-              if (cat === "membro") window.location.href = "membro.html";
-              else if (cat === "lider" || cat === "líder") window.location.href = "lider.html";
-              else window.location.href = "index.html";
-          }
-
-          // Salva as informações necessárias no sessionStorage (mantendo compatibilidade com Google Agenda)
+         // Salva as informações necessárias no sessionStorage (mantendo compatibilidade com Google Agenda)
           sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
           sessionStorage.setItem('loginDigitado', user.email);
           // A urlApi continua vindo de sessionStorage (definida no login)
+          const cat = (usuario?.categoria || "membro").toLowerCase();
+          const permitidos = ["Tesoureiro", "Pastor", "Administrador"];
+
+          if (!permitidos.includes(cat)) {
+              alert("Acesso restrito. Você não tem permissão para este painel.");
+              window.location.href = "index.html";
+          }
+
+         
       })();
     </script>
 
