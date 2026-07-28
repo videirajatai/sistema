@@ -451,7 +451,7 @@
                 if (error) throw error;
                 
                 // Registrar log da exclusão (opcional, mas mantido)
-                await registrarLogAcao('Excluiu um log individualmente (ID: ' + id + ')');
+                //await registrarLogAcao('Excluiu um log individualmente (ID: ' + id + ')');
                 
                 // Recarregar a lista de logs (sem recarregar tudo)
                 const { data: logs } = await supabaseClient
