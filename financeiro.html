@@ -154,37 +154,43 @@
 </head>
 <body>
    <script>
-      (async () => {
-           const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
+     (async () => {
+    const supabaseTemp = supabase.createClient(SB_URL, SB_KEY);
+    const { data: { user } } = await supabaseTemp.auth.getUser();
+    if (!user) {
+        window.location.href = "index.html";
+        return;
+    }
 
-          const { data: { user } } = await supabaseTemp.auth.getUser();
+    // 🔹 CORREÇÃO: usar a tabela 'pessoas' (padrão do sistema)
+    const { data: usuario } = await supabaseTemp
+        .from('pessoas')           // <-- antes era 'usuarios'
+        .select('categoria')
+        .eq('email', user.email)
+        .single();
 
-          if (!user) {
-              window.location.href = "index.html";
-              return;
-          }
+    // Salva as informações na sessão
+    sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
+    sessionStorage.setItem('loginDigitado', user.email);
 
-          const { data: usuario } = await supabaseTemp
-              .from('usuarios')
-              .select('categoria')
-              .eq('email', user.email)
-              .single();
+    // 🔹 CORREÇÃO: normalizar a categoria (minúsculo, sem acentos)
+    const categoriaNormalizada = (usuario?.categoria || 'membro')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
 
+    // 🔹 CORREÇÃO: comparar com valores em minúsculo
+    const permitidos = ['tesoureiro', 'pastor', 'administrador'];
 
-         // Salva as informações necessárias no sessionStorage (mantendo compatibilidade com Google Agenda)
-          sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
-          sessionStorage.setItem('loginDigitado', user.email);
-          // A urlApi continua vindo de sessionStorage (definida no login)
-          const cat = (usuario?.categoria || "membro").toLowerCase();
-          const permitidos = ["Tesoureiro", "Pastor", "Administrador"];
+    if (!permitidos.includes(categoriaNormalizada)) {
+        alert("Acesso restrito. Você não tem permissão para este painel.");
+        window.location.href = "index.html";
+        return;
+    }
 
-          if (!permitidos.includes(cat)) {
-              alert("Acesso restrito. Você não tem permissão para este painel.");
-              window.location.href = "index.html";
-          }
-
-         
-      })();
+    // (Opcional) armazenar a categoria para uso posterior
+    sessionStorage.setItem('categoria', categoriaNormalizada);
+})();
     </script>
 
   <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" class="watermark">
