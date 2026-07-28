@@ -336,7 +336,7 @@
       }
 
      
-      function renderizarLogs(lista) {
+      /*function renderizarLogs(lista) {
           const div = document.getElementById('listaLogs'); 
           div.innerHTML = '';
           if (!lista || lista.length === 0) {
@@ -376,7 +376,97 @@
                       <p class="log-text"><strong>${nome}</strong> (${login})<br>${acao}</p>
                   </div>`;
           });
+      }*/
+
+      function renderizarLogs(lista) {
+          const div = document.getElementById('listaLogs'); 
+          div.innerHTML = '';
+          if (!lista || lista.length === 0) {
+              div.innerHTML = '<p style="text-align:center; color:#999;">Nenhum registro encontrado.</p>';
+              return;
+          }
+          // Ordena por data/hora (mais recente primeiro)
+          lista.sort((a, b) => new Date(b.datahora) - new Date(a.datahora));
+      
+          lista.forEach(l => {
+              // Formata a data/hora para exibição
+              let dataF = l.datahora;
+              try {
+                  const dateObj = new Date(l.datahora);
+                  if (!isNaN(dateObj)) {
+                      dataF = dateObj.toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                      });
+                  }
+              } catch (e) {}
+      
+              let login = l.usuario || 'Sistema';
+              let nome = l.nomelider || 'Desconhecido';
+              let acao = l.acao || "";
+              let borderClass = acao.includes("Sucesso") ? "Sucesso" : "";
+              
+              div.innerHTML += `
+                  <div class="log-card ${borderClass}" style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="flex:1;">
+                          <div class="log-date"><i class="far fa-clock"></i> ${dataF}</div>
+                          <p class="log-text"><strong>${nome}</strong> (${login})<br>${acao}</p>
+                      </div>
+                      <button onclick="excluirLogIndividual('${l.id}')" class="btn-icon-action btn-del" title="Excluir este log" style="flex-shrink:0; margin-left:8px;">
+                          <i class="fas fa-trash-alt"></i>
+                      </button>
+                  </div>`;
+          });
       }
+
+      // Senha para excluir logs individualmente (altere aqui se quiser)
+        const SENHA_EXCLUSAO_LOG = '142569';
+        
+        async function excluirLogIndividual(id) {
+            if (!id) return;
+            
+            // 1. Pedir a senha
+            const senhaDigitada = prompt('Digite a senha para excluir este log:');
+            if (senhaDigitada === null) return; // cancelou
+            
+            // 2. Validar senha
+            if (senhaDigitada !== SENHA_EXCLUSAO_LOG) {
+                alert('Senha incorreta. Ação cancelada.');
+                return;
+            }
+            
+            // 3. Confirmar exclusão
+            if (!confirm('Tem certeza que deseja excluir este log individualmente?')) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('logs')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                // Registrar log da exclusão (opcional, mas mantido)
+                await registrarLogAcao('Excluiu um log individualmente (ID: ' + id + ')');
+                
+                // Recarregar a lista de logs (sem recarregar tudo)
+                const { data: logs } = await supabaseClient
+                    .from('logs')
+                    .select('*')
+                    .order('datahora', { ascending: false })
+                    .limit(100);
+                renderizarLogs(logs || []);
+                
+                alert('Log excluído com sucesso.');
+            } catch (e) {
+                console.error('Erro ao excluir log:', e);
+                alert('Erro ao excluir: ' + e.message);
+            }
+        }
 
      async function preencherSelects(idSuperiorAtual = null) {
         const selSuperior = document.getElementById('cadSuperior');
