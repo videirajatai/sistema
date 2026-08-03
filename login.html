@@ -165,7 +165,8 @@
                                inputmode="numeric" 
                                pattern="[0-9]*" 
                                placeholder="Somente Números" 
-                               onkeypress="verificarEnter(event, 'login')">
+                               onkeypress="verificarEnter(event, 'login')"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     
                     <button id="btn-entrar" onclick="verificarLogin()">Entrar no Sistema</button>
