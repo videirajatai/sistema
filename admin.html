@@ -424,12 +424,12 @@
       }
 
       // Senha para excluir logs individualmente (altere aqui se quiser)
-        const SENHA_EXCLUSAO_LOG = '142569';
+        //const SENHA_EXCLUSAO_LOG = '142569';
         
         async function excluirLogIndividual(id) {
             if (!id) return;
             
-            // 1. Pedir a senha
+            /*// 1. Pedir a senha
             const senhaDigitada = prompt('Digite a senha para excluir este log:');
             if (senhaDigitada === null) return; // cancelou
             
@@ -437,7 +437,7 @@
             if (senhaDigitada !== SENHA_EXCLUSAO_LOG) {
                 alert('Senha incorreta. Ação cancelada.');
                 return;
-            }
+            }*/
             
             // 3. Confirmar exclusão
             if (!confirm('Tem certeza que deseja excluir este log individualmente?')) return;
@@ -461,7 +461,7 @@
                     .limit(100);
                 renderizarLogs(logs || []);
                 
-                alert('Log excluído com sucesso.');
+                showToast('Log excluído com sucesso.');
             } catch (e) {
                 console.error('Erro ao excluir log:', e);
                 alert('Erro ao excluir: ' + e.message);
