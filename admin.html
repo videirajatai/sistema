@@ -461,7 +461,7 @@
                     .limit(100);
                 renderizarLogs(logs || []);
                 
-                showToast('Log excluído com sucesso.');
+                alert('Log excluído com sucesso.');
             } catch (e) {
                 console.error('Erro ao excluir log:', e);
                 alert('Erro ao excluir: ' + e.message);
