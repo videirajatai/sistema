@@ -3,37 +3,29 @@
 <head>
 
     <script>
-      // Função que gera um timestamp único
       function getTimestamp() {
         return new Date().getTime();
       }
     
-      // Verifica se a URL já tem um parâmetro 't'
       if (!window.location.search.includes('t=')) {
-        // Redireciona para a mesma página, mas com '?t=timestamp'
         const url = window.location.pathname + '?t=' + getTimestamp();
         window.location.replace(url);
-        // O replace impede que o usuário volte com o botão "voltar" para a versão sem cache
       } else {
-        // Se já tem 't=', guardamos o valor para usar nos recursos
         const params = new URLSearchParams(window.location.search);
         const t = params.get('t');
-        // Vamos sobrescrever os links de CSS e JS com esse timestamp
-        // Para isso, vamos criar os elementos dinamicamente
         document.addEventListener('DOMContentLoaded', function() {
-          // Remove os links estáticos (se existirem) e adiciona com '?t=...'
-          // Ou você pode simplesmente adicionar os links via JS
-          // Como os links estão no HTML, vamos substituir seus atributos 'href' e 'src'
           const cssLink = document.querySelector('link[rel="stylesheet"]');
           if (cssLink) {
             cssLink.href = cssLink.href.split('?')[0] + '?t=' + t;
           }
-          // Para o script config.js
           const configScript = document.querySelector('script[src*="config.js"]');
           if (configScript) {
             configScript.src = configScript.src.split('?')[0] + '?t=' + t;
           }
-          // Se houver outros scripts ou imagens, faça o mesmo
+          const bioScript = document.querySelector('script[src*="biometria.js"]');
+          if (bioScript) {
+            bioScript.src = bioScript.src.split('?')[0] + '?t=' + t;
+          }
         });
       }
     </script>
@@ -120,7 +112,6 @@
 
         @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         
-        /* Oculta os blocos que não são o login inicialmente */
         .bloco { display: none; }
         .bloco.ativo { display: block; animation: fadeIn 0.4s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -129,7 +120,6 @@
 <body>
 
     <script>
-        // Se houver algum Service Worker antigo controlando a página, desregistra ele imediatamente
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) {
@@ -137,7 +127,6 @@
                 }
             });
         }
-        // Limpa os caches armazenados pelo PWA
         if ('caches' in window) {
             caches.keys().then(function(names) {
                 for (let name of names) caches.delete(name);
@@ -170,9 +159,11 @@
                     </div>
                     
                     <button id="btn-entrar" onclick="verificarLogin()">Entrar no Sistema</button>
+                    <button id="btn-biometria" class="btn-secondary" onclick="loginComBiometria()" style="display: none; margin-top: 12px;">Entrar com digital / Face ID</button>
                     <p id="mensagem-erro" class="mensagem-erro">⚠️ Usuário ou senha incorretos.</p>
                     
                     <button class="btn-link" onclick="mudarTela('bloco-recuperar')">Esqueci minha senha</button>
+                    <button id="btn-remover-bio" class="btn-link" onclick="desativarBiometria()" style="display: none;">Não usar mais digital neste aparelho</button>
                 </div>
 
                 <div id="area-escolha" style="display: none;">
@@ -197,18 +188,36 @@
                 <button class="btn-secondary" onclick="mudarTela('bloco-login')" style="margin-top: 15px; padding: 10px; font-size: 14px;">Voltar para o Login</button>
             </div>
 
+            <div id="bloco-biometria" class="bloco">
+                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo" style="width: 70px;">
+                <h2>Usar digital ou Face ID?</h2>
+                <p class="subtitulo" style="margin-bottom: 20px;">No próximo acesso neste aparelho, entre sem digitar a senha.</p>
+                <button id="btn-ativar-bio" onclick="ativarBiometria()">Ativar agora</button>
+                <p id="mensagem-erro-bio" class="mensagem-erro"></p>
+                <button class="btn-secondary" onclick="pularBiometria()" style="margin-top: 15px; padding: 10px; font-size: 14px;">Agora não</button>
+            </div>
+
         </div>
     </div>
 
     <div id="splash-screen">
         <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Carregando" class="splash-logo">
-         <p id="saudacao-lider" font-weight:500;></p>         
+         <p id="saudacao-lider" style="font-weight:500;"></p>         
         <p id="splash-texto">Autenticando e carregando painel...</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/biometria.js"></script>
     <script>
-        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+            auth: {
+                persistSession: true,
+                storage: localStorage,
+                autoRefreshToken: true
+            }
+        });
+
+        let loginPendente = null;
 
         function mudarTela(idBloco) {
             document.querySelectorAll('.bloco').forEach(b => b.classList.remove('ativo'));
@@ -220,8 +229,15 @@
             return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
+        function aplicarSaudacao(nomeReal) {
+            const saudacaoEl = document.getElementById('saudacao-lider');
+            if (saudacaoEl && nomeReal) {
+                const primeiroNome = nomeReal.split(' ')[0];
+                saudacaoEl.innerText = `Graça e Paz, ${primeiroNome}`;
+            }
+        }
 
-        async function verificarLogin() { /*Usuário admin não registra log*/
+        async function verificarLogin() {
             const entrada = document.getElementById('usuario-input').value.trim().toLowerCase();
             const senhaDigitada = document.getElementById('senha-input').value.trim();
             const erro = document.getElementById('mensagem-erro');
@@ -239,9 +255,6 @@
         
             let emailParaLogin = entrada;
         
-            // Se não digitou um e-mail, resolve o 'usuario' para o e-mail correspondente
-            // usando uma função RPC (SECURITY DEFINER), que funciona mesmo SEM sessão ativa
-            // — diferente de uma consulta direta na tabela, que é bloqueada por RLS antes do login.
             if (!entrada.includes('@')) {
                 const { data: emailEncontrado, error: rpcError } = await supabaseClient
                     .rpc('buscar_email_por_usuario', { usuario_busca: entrada });
@@ -270,7 +283,6 @@
                 return;
             }
         
-            // Agora sim, já autenticado, essa consulta é liberada pela RLS
             const { data: pessoa } = await supabaseClient
                 .from('pessoas')
                 .select('nome, categoria')
@@ -288,76 +300,192 @@
             const nomeReal = pessoa.nome;
             const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
         
-            // 🔹 Registrar log APENAS se NÃO for administrador
             if (categoriaNormalizada !== 'administrador') {
                 registrarLog(entrada, nomeReal, "Fez login no sistema");
             }
-        
-            // Salvar informações na sessão
-            sessionStorage.setItem('usuarioLogado', nomeReal);
-            sessionStorage.setItem('loginDigitado', emailParaLogin);
-            sessionStorage.setItem('urlApi', urlBackend);
-            sessionStorage.setItem('categoria', categoriaNormalizada);
 
-            const nomeUsuario = sessionStorage.getItem('usuarioLogado');
-            const saudacaoEl = document.getElementById('saudacao-lider');
-            if (saudacaoEl && nomeUsuario) {
-                const primeiroNome = nomeUsuario.split(' ')[0];
-                saudacaoEl.innerText = `Graça e Paz, ${primeiroNome}`;
+            const paginas = paginasPorCategoria(categoriaNormalizada);
+            gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
+            aplicarSaudacao(nomeReal);
+
+            const podeBio = await Biometria.plataformaDisponivel();
+            if (podeBio && !Biometria.cadastradaPara(emailParaLogin)) {
+                loginPendente = {
+                    nome: nomeReal,
+                    email: emailParaLogin,
+                    userId: loginData.user && loginData.user.id,
+                    paginas: paginas,
+                    categoria: categoriaNormalizada
+                };
+                mudarTela('bloco-biometria');
+                btn.innerText = "Entrar no Sistema";
+                btn.disabled = false;
+                return;
             }
-        
-            // Redirecionamento conforme categoria
-            let paginas = [];
+
+            seguirParaPaineis(nomeReal, paginas);
+        }
+
+        function paginasPorCategoria(categoriaNormalizada) {
             if (categoriaNormalizada === 'administrador') {
-                paginas = [
+                return [
                     { nome: "Painel Admin", url: "admin" },
                     { nome: "Painel Pastoral", url: "pastor" },
                     { nome: "Painel Discipulador", url: "discipulador" },
                     { nome: "Painel do Líder", url: "lider" }
-                    // { nome: "Financeiro PC", url: "financeiro" },
-                    // { nome: "Financeiro Mobile", url: "financeiromobile" },
-                    // { nome: "Área do Membro", url: "membro" }
                 ];
-            } else if (['pastor de governo', 'pastor de rede', 'pastor'].includes(categoriaNormalizada)) {
-                paginas = [{ nome: "Painel Pastoral", url: "pastor" }];
-            } else if (categoriaNormalizada === 'discipulador') {
-                paginas = [{ nome: "Painel Discipulador", url: "discipulador" }];
-            } else if (categoriaNormalizada === 'líder' || categoriaNormalizada === 'lider') {
-                paginas = [{ nome: "Painel do Líder", url: "lider" }];
-            } else if (categoriaNormalizada === 'tesoureiro') {
-                paginas = [
+            }
+            if (['pastor de governo', 'pastor de rede', 'pastor'].includes(categoriaNormalizada)) {
+                return [{ nome: "Painel Pastoral", url: "pastor" }];
+            }
+            if (categoriaNormalizada === 'discipulador') {
+                return [{ nome: "Painel Discipulador", url: "discipulador" }];
+            }
+            if (categoriaNormalizada === 'líder' || categoriaNormalizada === 'lider') {
+                return [{ nome: "Painel do Líder", url: "lider" }];
+            }
+            if (categoriaNormalizada === 'tesoureiro') {
+                return [
                     { nome: "Financeiro PC", url: "financeiro" },
                     { nome: "Financeiro Mobile", url: "financeiromobile" }
                 ];
-            } else if (categoriaNormalizada === 'membro') {
-                paginas = [{ nome: "Área do Membro", url: "membro" }];
-            } else {
-                paginas = [{ nome: "Área do Membro", url: "membro" }];
             }
-        
-            const urlsPermitidas = paginas.map(p => p.url);
-            sessionStorage.setItem('paginasPermitidas', JSON.stringify(urlsPermitidas));
-        
+            return [{ nome: "Área do Membro", url: "membro" }];
+        }
+
+        function gravarSessaoLocal(nomeReal, email, categoria, paginas) {
+            sessionStorage.setItem('usuarioLogado', nomeReal);
+            sessionStorage.setItem('loginDigitado', email);
+            sessionStorage.setItem('urlApi', urlBackend);
+            sessionStorage.setItem('categoria', categoria);
+            sessionStorage.setItem('paginasPermitidas', JSON.stringify(paginas.map(p => p.url)));
+        }
+
+        function seguirParaPaineis(nomeReal, paginas) {
             if (paginas.length === 1) {
                 entrarNoPainel(nomeReal, paginas[0].url);
-            } else {
-                document.getElementById('area-form').style.display = 'none';
-                document.getElementById('area-escolha').style.display = 'block';
-                document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
-                document.getElementById('subtitulo-login').innerText = "Escolha o painel:";
-        
-                const divBotoes = document.getElementById('botoes-painel');
-                divBotoes.innerHTML = '';
-                paginas.forEach(pag => {
-                    let b = document.createElement('button');
-                    b.innerText = pag.nome;
-                    b.onclick = () => entrarNoPainel(nomeReal, pag.url);
-                    divBotoes.appendChild(b);
+                return;
+            }
+
+            mudarTela('bloco-login');
+            document.getElementById('area-form').style.display = 'none';
+            document.getElementById('area-escolha').style.display = 'block';
+            document.getElementById('titulo-login').innerText = `Olá, ${nomeReal}`;
+            document.getElementById('subtitulo-login').innerText = "Escolha o painel:";
+
+            const divBotoes = document.getElementById('botoes-painel');
+            divBotoes.innerHTML = '';
+            paginas.forEach(pag => {
+                let b = document.createElement('button');
+                b.innerText = pag.nome;
+                b.onclick = () => entrarNoPainel(nomeReal, pag.url);
+                divBotoes.appendChild(b);
+            });
+        }
+
+        async function ativarBiometria() {
+            const erro = document.getElementById('mensagem-erro-bio');
+            const btn = document.getElementById('btn-ativar-bio');
+            if (!loginPendente) {
+                mudarTela('bloco-login');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Aguardando o aparelho...";
+            erro.style.display = 'none';
+
+            try {
+                await Biometria.registrar({
+                    userId: loginPendente.userId,
+                    email: loginPendente.email,
+                    nome: loginPendente.nome
                 });
+                const pendente = loginPendente;
+                loginPendente = null;
+                seguirParaPaineis(pendente.nome, pendente.paginas);
+            } catch (e) {
+                erro.innerText = e.name === 'NotAllowedError'
+                    ? "Registro cancelado. Você pode tentar de novo ou pular."
+                    : ("Não foi possível ativar: " + (e.message || e));
+                erro.style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = "Ativar agora";
             }
         }
 
-       
+        function pularBiometria() {
+            if (!loginPendente) {
+                mudarTela('bloco-login');
+                return;
+            }
+            const pendente = loginPendente;
+            loginPendente = null;
+            seguirParaPaineis(pendente.nome, pendente.paginas);
+        }
+
+        async function loginComBiometria() {
+            const erro = document.getElementById('mensagem-erro');
+            const btn = document.getElementById('btn-biometria');
+            erro.style.display = 'none';
+            btn.disabled = true;
+            btn.innerText = "Aguardando o aparelho...";
+
+            try {
+                const cadastro = await Biometria.autenticar();
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                if (!user || (user.email || '').toLowerCase() !== (cadastro.email || '').toLowerCase()) {
+                    Biometria.removerCadastro();
+                    throw new Error("Sessão expirada. Entre com usuário e senha e ative a digital de novo.");
+                }
+
+                const { data: pessoa } = await supabaseClient
+                    .from('pessoas')
+                    .select('nome, categoria')
+                    .eq('email', cadastro.email)
+                    .maybeSingle();
+
+                if (!pessoa) throw new Error("Registro não encontrado na base de dados.");
+
+                const nomeReal = pessoa.nome;
+                const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+                const paginas = paginasPorCategoria(categoriaNormalizada);
+
+                if (categoriaNormalizada !== 'administrador') {
+                    registrarLog(cadastro.email, nomeReal, "Fez login com biometria");
+                }
+                gravarSessaoLocal(nomeReal, cadastro.email, categoriaNormalizada, paginas);
+                aplicarSaudacao(nomeReal);
+                seguirParaPaineis(nomeReal, paginas);
+            } catch (e) {
+                erro.innerText = e.name === 'NotAllowedError'
+                    ? "Leitura cancelada. Tente de novo ou entre com a senha."
+                    : ("⚠️ " + (e.message || "Falha na biometria."));
+                erro.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Entrar com digital / Face ID";
+            }
+        }
+
+        function desativarBiometria() {
+            Biometria.removerCadastro();
+            atualizarBotoesBiometria();
+        }
+
+        async function atualizarBotoesBiometria() {
+            const btnBio = document.getElementById('btn-biometria');
+            const btnRemover = document.getElementById('btn-remover-bio');
+            const ok = await Biometria.plataformaDisponivel();
+            const tem = Biometria.temCadastro();
+            btnBio.style.display = (ok && tem) ? 'block' : 'none';
+            btnRemover.style.display = tem ? 'block' : 'none';
+        }
+
+        atualizarBotoesBiometria().then(function () {
+            if (Biometria.temCadastro()) loginComBiometria();
+        });
         
         function entrarNoPainel(nome, urlDestino) {
             const telaLogin = document.getElementById('tela-login');
@@ -370,16 +498,14 @@
                 splashScreen.style.display = 'flex';
                 setTimeout(() => splashScreen.style.opacity = '1', 10);
                 setTimeout(() => {
-                    //window.location.href = urlDestino + ".html";
                     window.location.href = urlDestino + ".html?t=" + Date.now();
                 }, 1000);
             }, 400);
         }
 
         async function registrarLog(usuarioDigitado, nomeReal, acaoRealizada) {
-            const dataHoraAtual = new Date().toISOString(); // <-- PADRÃO ISO (ordenável)
+            const dataHoraAtual = new Date().toISOString();
             try {
-                // Usa o cliente Supabase (já autenticado após o login)
                 await supabaseClient.from('logs').insert([{
                     datahora: dataHoraAtual,
                     usuario: usuarioDigitado,
@@ -401,6 +527,7 @@
             document.getElementById('senha-input').value = "";
             document.getElementById('btn-entrar').innerText = "Entrar no Sistema";
             document.getElementById('btn-entrar').disabled = false;
+            atualizarBotoesBiometria();
         }
 
         async function enviarRecuperacao() {
@@ -419,7 +546,7 @@
             erro.style.display = 'none';
 
             try {
-                const urlDestino = window.location.origin + "/sistema/nova-senha.html"; // ajuste se necessário
+                const urlDestino = window.location.origin + "/sistema/nova-senha.html";
                 const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                     redirectTo: urlDestino,
                 });
