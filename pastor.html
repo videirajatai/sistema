@@ -14,9 +14,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="shortcut icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <script src="js/push.js"></script>
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Sistema Videira">
@@ -241,6 +242,7 @@
         sessionStorage.setItem('pastorId', pessoa.id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
         sessionStorage.setItem('loginDigitado', user.email);
+        if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         await carregarTudo();
         inicializarEventos();
     })();
@@ -2183,6 +2185,7 @@
     <audio id="radioAudio" preload="none" style="display:none;">
         <source src="https://streaming.vinhafm.com.br/stream" type="audio/mpeg">
     </audio>
+    <script src="js/pwa.js"></script>
 
 </body>
 </html>

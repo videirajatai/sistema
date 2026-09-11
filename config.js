@@ -6,6 +6,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnystn3UqAKnfLUgw7tXS8CzrnpxTS0iax80rhMCRs-T47ibodGYvbRw2KRrtsnCzn/exec';
 
+const VAPID_PUBLIC_KEY = 'BAjU5rrZXkMzo8UroNbQVTgMi9ned0xxRLgjKbLArgCKR_AtezVW3YUBwFI486DBo-IQQ2IDg24wsRtDaRJfbiM';
+
 // Para manter compatibilidade com código existente, também exportamos com nomes antigos
 const SB_URL = SUPABASE_URL;
 const supabseUrl = SUPABASE_URL;

@@ -16,9 +16,10 @@
     <!-- Módulo centralizado da Bíblia -->
     <script src="js/biblia.js"></script>
     <script src="config.js"></script>
+    <script src="js/push.js"></script>
 
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Videira Jataí">
@@ -555,6 +556,7 @@
 
         // ================= CONFIGURAÇÕES =================
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
         let listaPalavras = [];
         let palavraAtual = null;  // guarda a palavra aberta para o PDF
@@ -867,5 +869,6 @@ async function baixarPalavraWord() {
             document.getElementById('navCapituloContainer').style.display = 'flex';
         });
     </script>
+    <script src="js/pwa.js"></script>
 </body>
 </html>

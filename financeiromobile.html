@@ -11,10 +11,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="js/push.js"></script>
 
-  <link rel="icon" type="image/png" href="logo.png">
-  <link rel="shortcut icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0f172a">
@@ -576,6 +577,7 @@
 
     sessionStorage.setItem('usuarioLogado', user.user_metadata?.nome || user.email);
     sessionStorage.setItem('loginDigitado', user.email);
+    if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
 
     // Inicializa a página
     const hoje = new Date();
@@ -1089,6 +1091,7 @@
     }
   });
 </script>
+<script src="js/pwa.js"></script>
 
 </body>
 </html>

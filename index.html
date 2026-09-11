@@ -52,9 +52,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="shortcut icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
 
     <!-- PWA -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -155,20 +155,6 @@
     </div>
 
     <script>
-        // --- Limpeza de cache e Service Workers (igual ao login) ---
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function(names) {
-                for (let name of names) caches.delete(name);
-            });
-        }
-
         // --- Redirecionamento com splash ---
         // Aguarda 2 segundos para o splash ser visto, depois redireciona
         setTimeout(function() {
@@ -177,6 +163,7 @@
             window.location.replace('login.html?t=' + timestamp);
         }, 1500);
     </script>
+    <script src="js/pwa.js"></script>
 
 </body>
 </html>

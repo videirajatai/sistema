@@ -41,9 +41,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="shortcut icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -119,21 +119,6 @@
 </head>
 <body>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function(names) {
-                for (let name of names) caches.delete(name);
-            });
-        }
-    </script>
-
     <div id="tela-login">
         <div class="card-login">
             
@@ -208,6 +193,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/biometria.js"></script>
+    <script src="js/push.js"></script>
     <script>
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
             auth: {
@@ -313,6 +299,7 @@
 
             const paginas = paginasPorCategoria(categoriaNormalizada);
             gravarSessaoLocal(nomeReal, emailParaLogin, categoriaNormalizada, paginas);
+            if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
             aplicarSaudacao(nomeReal);
 
             const podeBio = ehCelular() && await Biometria.plataformaDisponivel();
@@ -463,6 +450,7 @@
                     registrarLog(cadastro.email, nomeReal, "Fez login com biometria");
                 }
                 gravarSessaoLocal(nomeReal, cadastro.email, categoriaNormalizada, paginas);
+                if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
                 aplicarSaudacao(nomeReal);
                 seguirParaPaineis(nomeReal, paginas);
             } catch (e) {
@@ -553,7 +541,7 @@
             erro.style.display = 'none';
 
             try {
-                const urlDestino = window.location.origin + "/sistema/nova-senha.html";
+                const urlDestino = new URL('nova-senha.html', window.location.href).href;
                 const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                     redirectTo: urlDestino,
                 });
@@ -579,5 +567,6 @@
             } 
         }
     </script>
+    <script src="js/pwa.js"></script>
 </body>
 </html>
