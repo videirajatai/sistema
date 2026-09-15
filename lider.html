@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/push.js"></script>
     <!-- Módulo unificado da Bíblia -->
     <script src="js/biblia.js"></script>
@@ -387,16 +388,10 @@
             .select('id, nome, categoria, superior_id')
             .eq('email', user.email)
             .single();
-       /* if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
-            alert("Acesso restrito a líderes.");
-            window.location.href = "index.html";
-            return;
-        }*/
 
         const catPermitida = normalizarCategoria(pessoa.categoria);
             if (!pessoa || !['administrador', 'líder', 'lider'].includes(catPermitida)) {
-                alert("Acesso restrito.");
-                window.location.href = "index.html";
+                UI.restrito("Acesso restrito.", "index.html");
                 return;
             }
         sessionStorage.setItem('liderId', pessoa.id);
@@ -694,7 +689,7 @@
 
     // ========== GESTÃO DE MEMBROS ==========
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
         document.getElementById('cadastroModalCelulaHidden').value = celulaAtiva.id;
         document.getElementById('modalCadastroMembro').classList.remove('hidden');
     }
@@ -707,7 +702,7 @@
 
    async function abrirEditarMembro(id) {
     if (!id) {
-        alert("ID do membro não informado.");
+        UI.toast("ID do membro não informado.", { tipo: 'erro' });
         return;
     }
     const { data: p, error } = await supabaseClient
@@ -717,7 +712,7 @@
         .maybeSingle();          // não lança erro se não encontrar
 
     if (error || !p) {
-        alert("Membro não encontrado.");
+        UI.toast("Membro não encontrado.", { tipo: 'erro' });
         return;
     }
 
@@ -748,7 +743,7 @@
 }
 
     async function arquivarMembro(id) {
-        if (!confirm("Arquivar este membro?")) return;
+        if (!(await UI.confirmar("Arquivar este membro?", { titulo: 'Arquivar membro', textoOk: 'Arquivar' }))) return;
         await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id);
         registrarLogAcao(`Arquivou membro ID ${id}`);
         carregarTudo();
@@ -760,7 +755,7 @@
 
     // ========== RELATÓRIO ==========
     function abrirModalRelatorio() {
-        if (!celulaAtiva) { alert("Selecione uma célula."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula.", { tipo: 'aviso' }); return; }
         document.getElementById('relModalCelulaNome').innerText = celulaAtiva.nome;
         document.getElementById('relModalCelulaHidden').value = celulaAtiva.nome;
         document.getElementById('relModalData').valueAsDate = new Date();
@@ -822,11 +817,11 @@
             presente: presentesIds.includes(p.id)
         }));
         await supabaseClient.from('presencas').insert(presencas);
-        alert("Relatório salvo com sucesso!");
+        UI.toast("Relatório salvo com sucesso!", { tipo: 'sucesso' });
         await registrarLogAcao(`Lançou relatório da célula ${celulaAtiva.nome} (${dados.data})`);
         fecharModalRelatorio();
     } catch(err) {
-        alert("Erro ao salvar relatório: " + err.message);
+        UI.toast("Erro ao salvar relatório: " + err.message, { tipo: 'erro' });
     } finally {
         btn.disabled = false;
     }
@@ -1013,7 +1008,7 @@
         document.getElementById('modalCelulaForm').classList.add('hidden');
         carregarTudo();
     } catch(err) {
-        alert("Erro ao salvar célula: " + err.message);
+        UI.toast("Erro ao salvar célula: " + err.message, { tipo: 'erro' });
     }
 }
     
@@ -1021,7 +1016,7 @@
     async function abrirApascentar() {
         if (!celulaAtiva) return;
         const faltosos = await calcularFaltosos();
-        alert(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.");
+        UI.mensagem(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
     }
 
    async function calcularFaltosos() {
@@ -1123,7 +1118,7 @@
         const titulo = document.getElementById('anotacaoTitulo').value.trim();
         const conteudo = document.getElementById('anotacaoConteudo').value.trim();
         if (!titulo) {
-            alert("Informe um título para a anotação.");
+            UI.toast("Informe um título para a anotação.", { tipo: 'aviso' });
             btn.disabled = false;
             return;
         }
@@ -1145,7 +1140,7 @@
             fecharModalAnotacao();
             await carregarAnotacoes();
         } catch (err) {
-            alert("Erro ao salvar anotação: " + err.message);
+            UI.toast("Erro ao salvar anotação: " + err.message, { tipo: 'erro' });
         } finally {
             btn.disabled = false;
         }
@@ -1154,14 +1149,14 @@
     async function excluirAnotacao(id) {
         const a = listaAnotacoes.find(x => x.id === id);
         const titulo = a ? a.titulo : '';
-        if (!confirm(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`)) return;
+        if (!(await UI.confirmar(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`, { titulo: 'Excluir anotação', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error } = await supabaseClient.from('anotacoes').delete().eq('id', id);
             if (error) throw error;
             await registrarLogAcao(`Excluiu a anotação "${titulo}"`);
             await carregarAnotacoes();
         } catch (err) {
-            alert("Erro ao excluir anotação: " + err.message);
+            UI.toast("Erro ao excluir anotação: " + err.message, { tipo: 'erro' });
         }
     }
 
@@ -1176,9 +1171,8 @@
         if (s === 'anotacoes') carregarAnotacoes();
     }
 
-    //function fazerLogout() { if(confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
-    function fazerLogout() { 
-            if(confirm("Sair?")) { 
+    async function fazerLogout() { 
+            if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
                 sessionStorage.clear(); 
                 window.location.href = "index.html?t=" + Date.now(); 
             } 
@@ -1371,7 +1365,7 @@
             URL.revokeObjectURL(url);
             registrarLogAcao(`Baixou a palavra "${titulo}" (${dataFormatada})`);
         } catch (e) {
-            alert('Erro ao gerar arquivo TXT.');
+            UI.toast('Erro ao gerar arquivo TXT.', { tipo: 'erro' });
         } finally {
             icon.className = 'fas fa-download';
         }
@@ -1411,17 +1405,6 @@
     }
 
     // ========== COPIAR PIX ==========
-    /*function copiarPix() {
-        const input = document.getElementById('chavePix');
-        input.select(); input.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(input.value).then(() => {
-            const btn = document.getElementById('btnCopiarPix');
-            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-            btn.style.background = '#059669';
-            setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i> Copiar'; btn.style.background = '#10b981'; }, 2000);
-        }).catch(err => alert("Erro ao copiar. Copie manualmente!"));
-    }*/
-
     function copiarPix() {
             const input = document.getElementById('chavePix');
             input.select();
@@ -1441,7 +1424,7 @@
                     registrarLogAcao('Copiou a chave PIX');
                 })
                 .catch(err => {
-                    alert("Erro ao copiar. Copie manualmente!");
+                    UI.toast("Erro ao copiar. Copie manualmente!", { tipo: 'erro' });
                     console.error(err);
                 });
         }
@@ -1472,14 +1455,14 @@
                 try {
                     const { error } = await supabaseClient.from('pessoas').insert([dados]);
                     if (error) throw error;
-                    alert("Membro cadastrado!");
+                    UI.toast("Membro cadastrado!", { tipo: 'sucesso' });
                     await registrarLogAcao(`Cadastrou novo membro: ${dados.nome}`);
                     this.reset();
                     fecharModalCadastroMembro();
                     // Recarregar e renderizar automaticamente
                     await carregarMembrosDaCelula(celulaAtiva.id);
                     renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
-                } catch(err) { alert("Erro: " + err.message); }
+                } catch(err) { UI.toast("Erro: " + err.message, { tipo: 'erro' }); }
                 finally { btn.disabled = false; }
             };
         }
@@ -1492,7 +1475,7 @@ if (formEdit) {
         e.preventDefault();
         const id = document.getElementById('editMembroId').value;
         if (!id) {
-            alert("Erro: ID do membro não encontrado.");
+            UI.toast("Erro: ID do membro não encontrado.", { tipo: 'erro' });
             return;
         }
 
@@ -1517,7 +1500,7 @@ if (formEdit) {
                 .eq('id', id);
             if (error) throw error;
 
-            alert("Membro atualizado!");
+            UI.toast("Membro atualizado!", { tipo: 'sucesso' });
             await registrarLogAcao(`Editou membro: ${dados.nome}`);
             document.getElementById('modalEditarMembro').classList.add('hidden');
 
@@ -1527,7 +1510,7 @@ if (formEdit) {
                 renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
             }
         } catch (err) {
-            alert("Erro ao atualizar: " + err.message);
+            UI.toast("Erro ao atualizar: " + err.message, { tipo: 'erro' });
         }
     };
  }
@@ -1558,11 +1541,11 @@ if (formEdit) {
                         data: new Date().toISOString().slice(0,10)
                     }]);
                     if (error) throw error;
-                    alert("Pedido enviado com sucesso! Obrigado.");
+                    UI.toast("Pedido enviado com sucesso! Obrigado.", { tipo: 'sucesso' });
                     await registrarLogAcao(`Enviou pedido de oração/sugestão: ${this.mensagem.value.substring(0, 50)}...`);
                     this.reset();
                 } catch(err) {
-                    alert("Erro ao enviar: " + err.message);
+                    UI.toast("Erro ao enviar: " + err.message, { tipo: 'erro' });
                 } finally {
                     btn.disabled = false;
                     btn.innerText = "Enviar Mensagem";
@@ -1609,7 +1592,7 @@ if (formNovoLider) {
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
             console.error("Erro ao salvar novo líder:", error);
-            alert("Erro ao salvar. Detalhes: " + error.message);
+            UI.toast("Erro ao salvar. Detalhes: " + error.message, { tipo: 'erro' });
         } finally {
             btn.disabled = false;
             btn.innerText = "Salvar";
@@ -1630,13 +1613,13 @@ if (formPromoverMembro) {
         const usuario = document.getElementById('promoverMembroUsuario').value.trim().toLowerCase();
 
         if (!membroId) {
-            alert("Selecione um membro.");
+            UI.toast("Selecione um membro.", { tipo: 'aviso' });
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
         }
         if (!usuario) {
-            alert("Informe o nome de usuário (login) para o novo líder.");
+            UI.toast("Informe o nome de usuário (login) para o novo líder.", { tipo: 'aviso' });
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
@@ -1668,7 +1651,7 @@ if (formPromoverMembro) {
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
             console.error("Erro ao promover membro:", error);
-            alert("Erro ao promover. Detalhes: " + error.message);
+            UI.toast("Erro ao promover. Detalhes: " + error.message, { tipo: 'erro' });
         } finally {
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
@@ -1722,7 +1705,7 @@ async function carregarMembrosMultiplicacao() {
         .eq('arquivado', false)
         .order('nome');
 
-    if (error) { alert("Erro ao carregar membros."); return; }
+    if (error) { UI.toast("Erro ao carregar membros.", { tipo: 'erro' }); return; }
 
     const meuId = sessionStorage.getItem('liderId');
     listaOriginalMembros = (data || []).filter(p => p.id !== meuId);
@@ -1802,9 +1785,9 @@ async function concluirMultiplicacao() {
     const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
     const novoLiderId = document.getElementById('multNovoLider').value;
 
-    if (!novoNome) { alert("Dê um nome para a nova célula."); return; }
-    if (!novoLiderId) { alert("Selecione um líder."); return; }
-    if (membrosQueVao.length === 0) { alert("Escolha membros."); return; }
+    if (!novoNome) { UI.toast("Dê um nome para a nova célula.", { tipo: 'aviso' }); return; }
+    if (!novoLiderId) { UI.toast("Selecione um líder.", { tipo: 'aviso' }); return; }
+    if (membrosQueVao.length === 0) { UI.toast("Escolha membros.", { tipo: 'aviso' }); return; }
 
     try {
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
@@ -1826,10 +1809,10 @@ async function concluirMultiplicacao() {
             await supabaseClient.from('pessoas').update({ celula_id: novaCelulaId }).eq('id', novoLiderId);
         }
         await registrarLogAcao(`Multiplicou célula "${celulaOriginal.nome}" -> nova célula "${novoNome}" com ${membrosQueVao.length} membros`);
-        alert("Multiplicação concluída!");
+        UI.toast("Multiplicação concluída!", { tipo: 'sucesso' });
         fecharModalMultiplicar();
         carregarTudo();
-    } catch (err) { alert("Erro: " + err.message); }
+    } catch (err) { UI.toast("Erro: " + err.message, { tipo: 'erro' }); }
 }
 
     async function preencherSelectAnfitriao(anfitriaoAtualId = null) {
@@ -1892,7 +1875,7 @@ function copiarLinkConviteMultiplicacao() {
     const input = document.getElementById('inputLinkConvite');
     input.select();
     document.execCommand('copy');
-    alert('Link copiado! Cole no WhatsApp do novo líder.');    
+    UI.toast('Link copiado! Cole no WhatsApp do novo líder.', { tipo: 'sucesso' });    
     // registrarLogAcao(`Copiou Link de Novo Líder`);
 }
 
@@ -2046,7 +2029,7 @@ function copiarLinkConviteNovoLider() {
     const input = document.getElementById('linkConviteNovoLider');
     input.select();
     document.execCommand('copy');
-    alert('Link copiado! Envie para o novo líder via WhatsApp.');
+    UI.toast('Link copiado! Envie para o novo líder via WhatsApp.', { tipo: 'sucesso' });
     registrarLogAcao(`Copiou Link de Novo Líder`);
 }
 
@@ -2081,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch((err) => {
                     console.warn('Erro ao iniciar stream:', err);
-                    alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+                    UI.toast('Não foi possível conectar à Vinha FM. Tente novamente.', { tipo: 'erro' });
                 });
         } else {
             radioAudio.pause();
@@ -2106,7 +2089,7 @@ document.addEventListener('DOMContentLoaded', function() {
             radioPlaying = false;
             radioToggle.classList.remove('playing');
             radioIcon.className = 'fas fa-play';
-            alert('Stream indisponível no momento.');
+            UI.toast('Stream indisponível no momento.', { tipo: 'erro' });
         }
     });
 });

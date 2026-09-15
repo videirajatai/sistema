@@ -71,7 +71,9 @@
     <meta name="twitter:description" content="Sistema de Células - Jovens e Adultos">
     <meta name="twitter:image" content="https://videirajatai.com.br/sistema/og-image.png">
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
   
     <style>
         body, html { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f4f7f6 0%, #e2e8f0 100%); }
@@ -194,9 +196,9 @@
 
             <div id="bloco-biometria" class="bloco">
                 <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" alt="Logo Videira" class="logo" style="width: 70px;">
-                <h2>Usar digital ou Face ID?</h2>
+                <h2>Usar Biometria?</h2>
                 <p class="subtitulo" style="margin-bottom: 20px;">No próximo acesso neste aparelho, entre sem digitar a senha.</p>
-                <button id="btn-ativar-bio" onclick="ativarBiometria()">Ativar agora</button>
+                <button id="btn-ativar-bio" onclick="ativarBiometria()">Ativar Biometria</button>
                 <p id="mensagem-erro-bio" class="mensagem-erro"></p>
                 <button class="btn-secondary" onclick="pularBiometria()" style="margin-top: 15px; padding: 10px; font-size: 14px;">Agora não</button>
             </div>
@@ -450,7 +452,7 @@
 
                 if (!user || (user.email || '').toLowerCase() !== (cadastro.email || '').toLowerCase()) {
                     Biometria.removerCadastro();
-                    throw new Error("Sessão expirada. Entre com usuário e senha e ative a digital de novo.");
+                    throw new Error("Sessão expirada. Entre com usuário e senha e ative a biometria de novo.");
                 }
 
                 const { data: pessoa } = await supabaseClient
@@ -479,7 +481,7 @@
                 erro.style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Entrar com digital / Face ID";
+                btn.innerText = "Entrar com Biometria";
             }
         }
 
@@ -566,7 +568,7 @@
                 });
                 if (error) throw error;
 
-                alert("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+                UI.toast("E-mail de recuperação enviado! Verifique sua caixa de entrada.", { tipo: 'sucesso' });
                 registrarLog(email, "Solicitou Recuperação de Senha");
                 document.getElementById('rec-email').value = "";
                 mudarTela('bloco-login');

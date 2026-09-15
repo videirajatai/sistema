@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/push.js"></script>
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -238,8 +239,7 @@
         const cat = normalizarCategoria(pessoa.categoria);
         const permitidos = ["pastor de governo", "pastor de rede", "pastor", "administrador"];
         if (!permitidos.includes(cat)) {
-            alert("Acesso restrito.");
-            window.location.href = "index.html";
+            UI.restrito("Acesso restrito.", "index.html");
             return;
         }
         sessionStorage.setItem('pastorId', pessoa.id);
@@ -335,11 +335,11 @@
 
             if (falhas.length) {
                 console.warn('Atualização parcial. Falhou em: ' + falhas.join(', '));
-                alert('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.');
+                UI.toast('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.', { tipo: 'erro' });
             }
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            alert("Erro ao carregar dados. Verifique a conexão.");
+            UI.toast("Erro ao carregar dados. Verifique a conexão.", { tipo: 'erro' });
         } finally {
             if (icon) icon.classList.remove('fa-spin');
         }
@@ -711,25 +711,18 @@
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
 
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
+        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
         document.getElementById('selectCelulas').value = celulaAtiva[0];
         novoCadastro();
     }
 
-    /*async function abrirApascentar() {
-        if (!celulaAtiva) return;
-        alert("Funcionalidade de apascentar em breve.");
-    }*/
-
     async function abrirApascentar() {
-    if (!celulaAtiva) return;
-    const faltosos = await calcularFaltosos();
-    alert(
-        faltosos.length
+        if (!celulaAtiva) return;
+        const faltosos = await calcularFaltosos();
+    UI.mensagem(faltosos.length
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
-            : "Nenhum faltoso nos últimos 30 dias."       
-    );
+            : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
          registrarLogAcao(`Calculou lista de faltosos da célula: ${faltosos.length} registros`);
 }
 
@@ -884,7 +877,7 @@
                 .single();
             if (fetchError) throw fetchError;
             if (!pedido) {
-                alert("Pedido não encontrado.");
+                UI.toast("Pedido não encontrado.", { tipo: 'erro' });
                 return;
             }
     
@@ -905,7 +898,7 @@
             await carregarSugestoes();
         } catch (e) {
             console.error("Erro ao concluir pedido:", e);
-            alert("Erro ao concluir. Tente novamente.");
+            UI.toast("Erro ao concluir. Tente novamente.", { tipo: 'erro' });
         }
     }
 
@@ -1078,7 +1071,7 @@
         if (!ev) return;
         const novoEstado = ev.inscricoes_abertas === false;
         const acao = novoEstado ? 'Ativar' : 'Encerrar';
-        if (!confirm(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`)) return;
+        if (!(await UI.confirmar(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`, { titulo: `${acao} inscrições`, textoOk: acao }))) return;
         try {
             const { error } = await supabaseClient.from('eventos').update({ inscricoes_abertas: novoEstado }).eq('id', eventoId);
             if (error) throw error;
@@ -1086,7 +1079,7 @@
             await carregarEventos();
         } catch (err) {
             console.error(err);
-            alert(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''));
+            UI.toast(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1130,7 +1123,7 @@
         const id = document.getElementById('eventoId').value;
         const nome = document.getElementById('eventoNome').value.trim();
         const dataEvento = document.getElementById('eventoData').value;
-        if (!nome || !dataEvento) { alert("Preencha nome e data do evento."); return; }
+        if (!nome || !dataEvento) { UI.toast("Preencha nome e data do evento.", { tipo: 'aviso' }); return; }
         const btn = e.target.querySelector('button[type="submit"]');
         btn.disabled = true;
         try {
@@ -1181,7 +1174,7 @@
             gerarLinkEvento(eventoId, true);
         } catch (err) {
             console.error("Erro ao salvar evento:", err);
-            alert("Erro ao salvar evento: " + (err.message || ''));
+            UI.toast("Erro ao salvar evento: " + (err.message || ''), { tipo: 'erro' });
         } finally {
             btn.disabled = false;
         }
@@ -1200,9 +1193,9 @@
             document.getElementById('modalLinkGerado').classList.remove('hidden');
             document.getElementById('textoLinkGerado').innerText = link;
         } else if (copiado) {
-            alert("Link de inscrição copiado!");
+            UI.toast("Link de inscrição copiado!", { tipo: 'sucesso' });
         } else {
-            prompt("Copie o link abaixo:", link);
+            await UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: link, somenteLeitura: true });
         }
         registrarLogAcao(`Gerou link de inscrição do evento`);
     }
@@ -1217,13 +1210,13 @@
 
     function copiarTextoLink() {
         const txt = document.getElementById('textoLinkGerado').innerText;
-        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!")).catch(() => prompt("Copie o link abaixo:", txt));
+        navigator.clipboard.writeText(txt).then(() => UI.toast("Link copiado!", { tipo: 'sucesso' })).catch(() => UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: txt, somenteLeitura: true }));
     }
 
     async function excluirEvento(id) {
         const ev = listaEventos.find(e => e.id === id);
         const nome = ev ? ev.nome : '';
-        if (!confirm(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`)) return;
+        if (!(await UI.confirmar(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`, { titulo: 'Excluir evento', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error: insErr } = await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
             if (insErr) throw insErr;
@@ -1233,7 +1226,7 @@
             await carregarEventos();
         } catch (err) {
             console.error(err);
-            alert("Erro ao excluir evento: " + (err.message || ''));
+            UI.toast("Erro ao excluir evento: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1280,7 +1273,7 @@
         const ev = listaEventos.find(e => e.id === eventoId);
         if (!ev) return;
         const inscricoes = inscricoesPorEvento[eventoId] || [];
-        if (!inscricoes.length) { alert('Nenhuma inscrição para imprimir.'); return; }
+        if (!inscricoes.length) { UI.toast('Nenhuma inscrição para imprimir.', { tipo: 'aviso' }); return; }
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
@@ -1387,12 +1380,12 @@
             if (eventoId) abrirModalInscricoes(eventoId);
         } catch (err) {
             console.error(err);
-            alert("Erro ao alterar status: " + (err.message || ''));
+            UI.toast("Erro ao alterar status: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
     async function excluirInscricao(id) {
-        if (!confirm("Excluir esta inscrição?")) return;
+        if (!(await UI.confirmar("Excluir esta inscrição?", { titulo: 'Excluir inscrição', textoOk: 'Excluir', perigo: true }))) return;
         try {
             const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
             if (error) throw error;
@@ -1402,7 +1395,7 @@
             if (eventoId) abrirModalInscricoes(eventoId);
         } catch (err) {
             console.error(err);
-            alert("Erro ao excluir inscrição: " + (err.message || ''));
+            UI.toast("Erro ao excluir inscrição: " + (err.message || ''), { tipo: 'erro' });
         }
     }
 
@@ -1501,7 +1494,7 @@
             await carregarPalavrasDados();
         } catch (error) {
             console.error("Erro ao salvar palavra:", error);
-            alert("Erro ao salvar: " + error.message);
+            UI.toast("Erro ao salvar: " + error.message, { tipo: 'erro' });
         }
     }
 
@@ -1757,7 +1750,7 @@
     // Buscar dados atualizados
     const { data: celulas } = await supabaseClient.from('celulas').select('*');
     if (!celulas || celulas.length === 0) {
-        alert("Nenhuma célula cadastrada.");
+        UI.toast("Nenhuma célula cadastrada.", { tipo: 'aviso' });
         return;
     }
 
@@ -1972,7 +1965,7 @@
     // Abrir nova janela para impressão
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) {
-        alert('Por favor, permita pop-ups para esta funcionalidade.');
+        UI.toast('Por favor, permita pop-ups para esta funcionalidade.', { tipo: 'aviso' });
         return;
     }
     win.document.write(html);
@@ -2015,10 +2008,10 @@
     document.getElementById('selectCelulas').value = m[13] || '';
 }
     async function arquivarMembro(id, nome) {
-        if (confirm(`Arquivar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
+        if (await UI.confirmar(`Arquivar ${nome}?`, { titulo: 'Arquivar membro', textoOk: 'Arquivar' })) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
     }
     async function restaurarMembro(id, nome) {
-        if (confirm(`Restaurar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
+        if (await UI.confirmar(`Restaurar ${nome}?`, { titulo: 'Restaurar membro', textoOk: 'Restaurar' })) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
     }
 
     // ========== NAVEGAÇÃO ==========
@@ -2070,7 +2063,7 @@
 
     function exportarExcel() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return alert("Nenhum dado.");
+        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
         const ws = XLSX.utils.json_to_sheet(lista.map(m => ({ 
             Nome: m[1], 
             Categoria: m[2], 
@@ -2092,7 +2085,7 @@
     
     async function exportarPDF() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return alert("Nenhum dado.");
+        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
         try {
@@ -2156,9 +2149,8 @@
         return base;
     }
 
-    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
-    function fazerLogout() { 
-        if(confirm("Sair?")) { 
+    async function fazerLogout() { 
+        if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
             sessionStorage.clear(); 
            window.location.href = "index.html?t=" + Date.now(); 
         } 
@@ -2210,7 +2202,7 @@
                 await carregarTudo();
                 mudarSecao('lista');
             } catch (err) { 
-                alert("Erro ao salvar membro: " + err.message); 
+                UI.toast("Erro ao salvar membro: " + err.message, { tipo: 'erro' }); 
             }
         });
 
@@ -2230,7 +2222,7 @@
                 else await supabaseClient.from('celulas').insert([dados]);
                 fecharModal('modalEditarCelula');
                 await carregarTudo();
-            } catch (err) { alert("Erro ao salvar célula: " + err.message); }
+            } catch (err) { UI.toast("Erro ao salvar célula: " + err.message, { tipo: 'erro' }); }
         });
         
 
@@ -2383,7 +2375,7 @@
                         })
                         .catch((err) => {
                             console.warn('Erro ao iniciar stream:', err);
-                            alert('Não foi possível conectar à Vinha FM. Tente novamente.');
+                            UI.toast('Não foi possível conectar à Vinha FM. Tente novamente.', { tipo: 'erro' });
                         });
                 } else {
                     radioAudio.pause();
@@ -2407,7 +2399,7 @@
                     radioPlaying = false;
                     radioToggle.classList.remove('playing');
                     radioIcon.className = 'fas fa-play';
-                    alert('Stream indisponível no momento.');
+                    UI.toast('Stream indisponível no momento.', { tipo: 'erro' });
                 }
             });
         });
