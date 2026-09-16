@@ -3,21 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema de Células - Videira</title>
+    <title>Painel do Líder - Videira Jataí</title>
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
-    <script src="js/vendor/qrcode.min.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/push.js"></script>
     <!-- Módulo unificado da Bíblia -->
     <script src="js/biblia.js"></script>
 
-    <link rel="icon" type="image/png" href="icons/icon-192.png">
-    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Sistema Videira">
@@ -244,102 +241,7 @@
             .modal-close:hover { background: var(--primary); color: white; }
 
         .btn-copy-link { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-
-
         
-      
-        /* --- Player Vinha FM (discreto, abaixo do título) --- */
-        .header {
-            flex-wrap: wrap; /* permite quebra de linha */
-        }
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-        /*.header-bottom {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 8px;
-            width: 100%;
-            justify-content: flex-start;
-            border-top: 1px solid rgba(128, 0, 32, 0.1);
-            padding-top: 8px;
-        }*/
-        .header-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            border-top: 1px solid rgba(128, 0, 32, 0.1);
-            padding-top: 8px;
-        }
-        /* Estilo do botão Bíblia (semelhante ao player) */
-        .btn-biblia-header {
-            background: transparent;
-            border: 1px solid var(--primary);
-            border-radius: 20px;
-            padding: 4px 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--primary);
-            cursor: pointer;
-            transition: 0.2s;
-            font-family: 'Inter', sans-serif;
-            height: 32px;
-        }
-        .btn-biblia-header:hover {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-biblia-header i {
-            font-size: 0.9rem;
-        }
-        
-        .radio-player-mini {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .radio-btn {
-            background: transparent;
-            border: 1px solid var(--primary);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: var(--primary);
-            transition: 0.2s;
-            font-size: 0.9rem;
-        }
-        .radio-btn:hover {
-            background: var(--primary);
-            color: white;
-        }
-        .radio-btn.playing {
-            border-color: #1E88E5;
-            color: #1E88E5;
-            animation: pulse-radio 1.5s infinite;
-        }
-        @keyframes pulse-radio {
-            0% { box-shadow: 0 0 0 0 rgba(30, 136, 229, 0.3); }
-            70% { box-shadow: 0 0 0 6px rgba(30, 136, 229, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(30, 136, 229, 0); }
-        }
-        .radio-label {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            font-weight: 500;
-            user-select: none;
-        }
     </style>
 </head>
 <body>
@@ -354,16 +256,6 @@
         return (cat || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
-    function escaparHTML(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/'/g, '&#39;')
-            .replace(/"/g, '&quot;');
-    }
-
     let dadosCelulas = [];
     let celulasDoLider = [];
     let celulaAtiva = null;
@@ -373,46 +265,46 @@
     let palavraAtual = null;
     let dadosTodasCelulas = []; // para a aba "Células"
     let mapaNomes = {};
-    let listaAnotacoes = []; // anotações pessoais do usuário logado
-    let meuAuthId = null;    // uuid do usuário no auth.users (Supabase Auth)
 
     // ========== AUTENTICAÇÃO E CARREGAMENTO INICIAL ==========
     (async () => {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) { window.location.href = "index.html"; return; }
-
-        meuAuthId = user.id;
-        sessionStorage.setItem('authUserId', user.id);
-
         const { data: pessoa } = await supabaseClient
             .from('pessoas')
             .select('id, nome, categoria, superior_id')
             .eq('email', user.email)
             .single();
+       /* if (!pessoa || (normalizarCategoria(pessoa.categoria) !== 'líder' && normalizarCategoria(pessoa.categoria) !== 'lider')) {
+            alert("Acesso restrito a líderes.");
+            window.location.href = "index.html";
+            return;
+        }*/
 
         const catPermitida = normalizarCategoria(pessoa.categoria);
             if (!pessoa || !['administrador', 'líder', 'lider'].includes(catPermitida)) {
-                UI.restrito("Acesso restrito.", "index.html");
+                alert("Acesso restrito.");
+                window.location.href = "index.html";
                 return;
             }
         sessionStorage.setItem('liderId', pessoa.id);
         sessionStorage.setItem('liderSuperiorId', pessoa.superior_id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
         sessionStorage.setItem('loginDigitado', user.email);
-        if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         await carregarTudo();
         inicializarEventos();
-
-        // Atualiza a saudação com o nome do líder
-        const nomeUsuario = sessionStorage.getItem('usuarioLogado');
-        const saudacaoEl = document.getElementById('saudacao-lider');
-        if (saudacaoEl && nomeUsuario) {
-            // Extrai o primeiro nome (opcional)
-            const primeiroNome = nomeUsuario.split(' ')[0];
-            saudacaoEl.innerText = `Graça e Paz, ${primeiroNome}`;
-        }
     })();
 
+    /*async function registrarLogAcao(acao) {
+        try {
+            await supabaseClient.from('logs').insert([{
+                datahora: new Date().toLocaleString('pt-BR'),
+                usuario: sessionStorage.getItem('loginDigitado'),
+                nomelider: sessionStorage.getItem('usuarioLogado'),
+                acao: acao
+            }]);
+        } catch(e) { console.error("Erro no log:", e); }
+    }*/
 
     async function registrarLogAcao(acao) {
             try {
@@ -481,17 +373,8 @@
 
         // 5. Agenda
         try {
-            const igrejaId = await resolverIgrejaAtual(supabaseClient);
-            if (usaGoogleAgenda(igrejaId)) {
-                listaAgenda = await fetchGoogle('buscarAgenda') || [];
-            } else {
-                const { data, error } = await supabaseClient
-                    .from('agenda')
-                    .select('data, titulo, descricao')
-                    .order('data', { ascending: true });
-                if (error) throw error;
-                listaAgenda = agendaParaLinhas(data);
-            }
+            const agendaRes = await fetchGoogle('buscarAgenda');
+            listaAgenda = agendaRes || [];
             renderizarAgenda(listaAgenda);
         } catch(e) { renderizarAgenda([]); }
 
@@ -503,9 +386,6 @@
         if (palError) throw palError;
         listaPalavras = palavras || [];
         renderizarPalavras(listaPalavras);
-
-        // 7. Chave PIX da igreja (aba Oferta)
-        try { await carregarPixTela(); } catch(e) { console.warn('PIX:', e); }
 
     } catch(e) {
         console.error("Erro ao carregar dados:", e);
@@ -564,7 +444,7 @@
         atualizarColiderInfo();   // <-- adicione esta linha
     }
     
-        /*async function atualizarColiderInfo() {
+        async function atualizarColiderInfo() {
         const infoDiv = document.getElementById('coliderInfo');
         if (!celulaAtiva) return;
         
@@ -584,66 +464,14 @@
                 .single();
             if (pessoa) {
                 infoDiv.style.display = 'block';
-                infoDiv.innerHTML = `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;            
+                infoDiv.innerHTML = `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}`;
                 return;
             }
         }
         infoDiv.style.display = 'none';
-    }*/
-
-    async function atualizarColiderInfo() {
-    const infoDiv = document.getElementById('coliderInfo');
-    if (!celulaAtiva) return;
-
-    // Busca tanto o colider_user_id quanto o anfitriao_user_id
-    const { data: celula, error } = await supabaseClient
-        .from('celulas')
-        .select('colider_user_id, anfitriao_user_id')
-        .eq('id', celulaAtiva.id)
-        .single();
-
-    if (error || !celula) {
-        infoDiv.style.display = 'none';
-        return;
     }
-
-    let html = '';
-
-    // Se houver colíder, busca o nome
-    if (celula.colider_user_id) {
-        const { data: pessoa } = await supabaseClient
-            .from('pessoas')
-            .select('nome')
-            .eq('id', celula.colider_user_id)
-            .single();
-        if (pessoa) {
-            html += `<i class="fas fa-user-graduate"></i> <strong>Líder em Treinamento:</strong> ${pessoa.nome}<br>`;
-        }
-    }
-
-    // Se houver anfitrião, busca o nome
-    if (celula.anfitriao_user_id) {
-        const { data: pessoa } = await supabaseClient
-            .from('pessoas')
-            .select('nome')
-            .eq('id', celula.anfitriao_user_id)
-            .single();
-        if (pessoa) {
-            html += `<i class="fas fa-home"></i> <strong>Anfitrião:</strong> ${pessoa.nome}<br>`;
-        }
-    }
-
-    if (html) {
-        infoDiv.style.display = 'block';
-        infoDiv.innerHTML = html;
-    } else {
-        infoDiv.style.display = 'none';
-    }
-}
-    
 
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
-    
 
     async function carregarMembrosDaCelula(celulaId) {
     const meuId = sessionStorage.getItem('liderId');
@@ -702,7 +530,7 @@
 
     // ========== GESTÃO DE MEMBROS ==========
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
+        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
         document.getElementById('cadastroModalCelulaHidden').value = celulaAtiva.id;
         document.getElementById('modalCadastroMembro').classList.remove('hidden');
     }
@@ -715,7 +543,7 @@
 
    async function abrirEditarMembro(id) {
     if (!id) {
-        UI.toast("ID do membro não informado.", { tipo: 'erro' });
+        alert("ID do membro não informado.");
         return;
     }
     const { data: p, error } = await supabaseClient
@@ -725,7 +553,7 @@
         .maybeSingle();          // não lança erro se não encontrar
 
     if (error || !p) {
-        UI.toast("Membro não encontrado.", { tipo: 'erro' });
+        alert("Membro não encontrado.");
         return;
     }
 
@@ -756,7 +584,7 @@
 }
 
     async function arquivarMembro(id) {
-        if (!(await UI.confirmar("Arquivar este membro?", { titulo: 'Arquivar membro', textoOk: 'Arquivar' }))) return;
+        if (!confirm("Arquivar este membro?")) return;
         await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id);
         registrarLogAcao(`Arquivou membro ID ${id}`);
         carregarTudo();
@@ -768,7 +596,7 @@
 
     // ========== RELATÓRIO ==========
     function abrirModalRelatorio() {
-        if (!celulaAtiva) { UI.toast("Selecione uma célula.", { tipo: 'aviso' }); return; }
+        if (!celulaAtiva) { alert("Selecione uma célula."); return; }
         document.getElementById('relModalCelulaNome').innerText = celulaAtiva.nome;
         document.getElementById('relModalCelulaHidden').value = celulaAtiva.nome;
         document.getElementById('relModalData').valueAsDate = new Date();
@@ -830,40 +658,26 @@
             presente: presentesIds.includes(p.id)
         }));
         await supabaseClient.from('presencas').insert(presencas);
-        UI.toast("Relatório salvo com sucesso!", { tipo: 'sucesso' });
+        alert("Relatório salvo com sucesso!");
         await registrarLogAcao(`Lançou relatório da célula ${celulaAtiva.nome} (${dados.data})`);
         fecharModalRelatorio();
     } catch(err) {
-        UI.toast("Erro ao salvar relatório: " + err.message, { tipo: 'erro' });
+        alert("Erro ao salvar relatório: " + err.message);
     } finally {
         btn.disabled = false;
     }
 }
 
     // ========== GESTÃO DE CÉLULAS ==========
-    
-    
-    /*function abrirNovaCelula() {
+    function abrirNovaCelula() {
         document.getElementById('celulaId').value = '';
         document.getElementById('celulaNome').value = '';
         document.getElementById('celulaDia').value = '';
         document.getElementById('celulaEndereco').value = '';
         document.getElementById('modalCelulaForm').classList.remove('hidden');
-    }versão sem anfitrião*/
+    }
 
-    function abrirNovaCelula() {
-    document.getElementById('celulaId').value = '';
-    document.getElementById('celulaNome').value = '';
-    document.getElementById('celulaDia').value = '';
-    document.getElementById('celulaEndereco').value = '';
-    document.getElementById('celulaColider').innerHTML = '<option value="">Nenhum</option>';
-    document.getElementById('celulaAnfitriao').innerHTML = '<option value="">Nenhum</option>';
-    document.getElementById('modalCelulaForm').classList.remove('hidden');
-    // Opcional: preencher o anfitrião com membros de todas as células
-    preencherSelectAnfitriao();
-}
-
-   /* async function abrirEditarCelula(id) {
+    async function abrirEditarCelula(id) {
     const cel = dadosCelulas.find(c => c.id === id);
     if (!cel) return;
     document.getElementById('celulaId').value = cel.id;
@@ -903,37 +717,6 @@
         console.error("Erro ao carregar membros para colíder:", err);
         // Opcional: mostrar mensagem ao usuário
     }
-}versão sem anfitrião*/
-
-    async function abrirEditarCelula(id) {
-    const cel = dadosCelulas.find(c => c.id === id);
-    if (!cel) return;
-    document.getElementById('celulaId').value = cel.id;
-    document.getElementById('celulaNome').value = cel.nome;
-    document.getElementById('celulaDia').value = cel.dia_horario || '';
-    document.getElementById('celulaEndereco').value = cel.endereco || '';
-    document.getElementById('modalCelulaForm').classList.remove('hidden');
-
-    // Preencher select de colíder
-    const selectColider = document.getElementById('celulaColider');
-    selectColider.innerHTML = '<option value="">Nenhum</option>';
-    try {
-        const { data: membros } = await supabaseClient
-            .from('pessoas')
-            .select('id, nome')
-            .eq('celula_id', id)
-            .eq('arquivado', false)
-            .order('nome');
-        if (membros) {
-            membros.forEach(p => {
-                const selected = (p.id === cel.colider_user_id) ? 'selected' : '';
-                selectColider.innerHTML += `<option value="${p.id}" ${selected}>${p.nome}</option>`;
-            });
-        }
-    } catch (e) { console.error(e); }
-
-    // Preencher select de anfitrião
-    await preencherSelectAnfitriao(cel.anfitriao_user_id || null);
 }
 
   async function salvarCelula(e) {
@@ -947,8 +730,7 @@
         dia_horario: document.getElementById('celulaDia').value,
         endereco: document.getElementById('celulaEndereco').value,
         lider_user_id: meuId,
-        colider_user_id: document.getElementById('celulaColider').value || null,
-        anfitriao_user_id: document.getElementById('celulaAnfitriao').value || null
+        colider_user_id: document.getElementById('celulaColider').value || null
     };
 
     // Popular o select de colíder
@@ -1021,7 +803,7 @@
         document.getElementById('modalCelulaForm').classList.add('hidden');
         carregarTudo();
     } catch(err) {
-        UI.toast("Erro ao salvar célula: " + err.message, { tipo: 'erro' });
+        alert("Erro ao salvar célula: " + err.message);
     }
 }
     
@@ -1029,7 +811,7 @@
     async function abrirApascentar() {
         if (!celulaAtiva) return;
         const faltosos = await calcularFaltosos();
-        UI.mensagem(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
+        alert(faltosos.length ? "Faltosos nos últimos 30 dias:\n" + faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n') : "Nenhum faltoso nos últimos 30 dias.");
     }
 
    async function calcularFaltosos() {
@@ -1055,137 +837,19 @@
         .map(p => ({ ...p, faltas: faltasMap[p.id] }));
 }
 
-    // ========== ANOTAÇÕES (PESSOAIS) ==========
-    async function carregarAnotacoes() {
-        const div = document.getElementById('listaAnotacoes');
-        div.innerHTML = '<p style="text-align:center; color:#999;">Carregando...</p>';
-        // A RLS garante que só voltam as anotações do próprio usuário logado (auth.uid())
-        const { data, error } = await supabaseClient
-            .from('anotacoes')
-            .select('*')
-            .order('atualizado_em', { ascending: false });
-        if (error) {
-            div.innerHTML = `<p style="text-align:center; color:#991b1b;">Erro ao carregar anotações: ${error.message}</p>`;
-            return;
-        }
-        listaAnotacoes = data || [];
-        renderizarAnotacoes();
-    }
-
-    function renderizarAnotacoes() {
-        const div = document.getElementById('listaAnotacoes');
-        div.innerHTML = '';
-        if (!listaAnotacoes.length) {
-            div.innerHTML = '<p style="text-align:center; color:#999;">Nenhuma anotação cadastrada.</p>';
-            return;
-        }
-        listaAnotacoes.forEach(a => {
-            const dataF = a.atualizado_em ? new Date(a.atualizado_em).toLocaleString('pt-BR') : '';
-            const preview = (a.conteudo || '').length > 140 ? a.conteudo.substring(0, 140) + '...' : (a.conteudo || '');
-            div.innerHTML += `
-                <div class="member-card">
-                    <div class="card-header">
-                        <h4 class="card-name">${escaparHTML(a.titulo)}</h4>
-                    </div>
-                    <div class="card-info" style="white-space:pre-wrap; display:block;">${escaparHTML(preview)}</div>
-                    <div class="card-info"><i class="far fa-clock"></i> Atualizado em ${dataF}</div>
-                    <div class="card-actions">
-                        <button onclick="abrirEditarAnotacao('${a.id}')" class="btn-action btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                        <button onclick="excluirAnotacao('${a.id}')" class="btn-action btn-archive"><i class="fas fa-trash"></i> Excluir</button>
-                    </div>
-                </div>`;
-        });
-    }
-
-    function abrirNovaAnotacao() {
-        document.getElementById('anotacaoId').value = '';
-        document.getElementById('anotacaoTitulo').value = '';
-        document.getElementById('anotacaoConteudo').value = '';
-        document.getElementById('tituloModalAnotacao').innerText = 'Nova Anotação';
-        document.getElementById('modalAnotacao').classList.remove('hidden');
-    }
-
-    function abrirEditarAnotacao(id) {
-        const a = listaAnotacoes.find(x => x.id === id);
-        if (!a) return;
-        document.getElementById('anotacaoId').value = a.id;
-        document.getElementById('anotacaoTitulo').value = a.titulo || '';
-        document.getElementById('anotacaoConteudo').value = a.conteudo || '';
-        document.getElementById('tituloModalAnotacao').innerText = 'Editar Anotação';
-        document.getElementById('modalAnotacao').classList.remove('hidden');
-    }
-
-    function fecharModalAnotacao() {
-        document.getElementById('modalAnotacao').classList.add('hidden');
-    }
-
-    function fecharModalAnotacaoClique(e) {
-        if (e.target.classList.contains('modal-overlay')) fecharModalAnotacao();
-    }
-
-    async function salvarAnotacao(e) {
-        e.preventDefault();
-        const btn = document.getElementById('btnSalvarAnotacao');
-        btn.disabled = true;
-        const id = document.getElementById('anotacaoId').value;
-        const titulo = document.getElementById('anotacaoTitulo').value.trim();
-        const conteudo = document.getElementById('anotacaoConteudo').value.trim();
-        if (!titulo) {
-            UI.toast("Informe um título para a anotação.", { tipo: 'aviso' });
-            btn.disabled = false;
-            return;
-        }
-        try {
-            if (id) {
-                const { error } = await supabaseClient
-                    .from('anotacoes')
-                    .update({ titulo, conteudo })
-                    .eq('id', id);
-                if (error) throw error;
-                await registrarLogAcao(`Editou a anotação "${titulo}"`);
-            } else {
-                const { error } = await supabaseClient
-                    .from('anotacoes')
-                    .insert([{ titulo, conteudo, usuario_id: meuAuthId }]);
-                if (error) throw error;
-                await registrarLogAcao(`Criou a anotação "${titulo}"`);
-            }
-            fecharModalAnotacao();
-            await carregarAnotacoes();
-        } catch (err) {
-            UI.toast("Erro ao salvar anotação: " + err.message, { tipo: 'erro' });
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function excluirAnotacao(id) {
-        const a = listaAnotacoes.find(x => x.id === id);
-        const titulo = a ? a.titulo : '';
-        if (!(await UI.confirmar(`Excluir a anotação "${titulo}"? Essa ação não pode ser desfeita.`, { titulo: 'Excluir anotação', textoOk: 'Excluir', perigo: true }))) return;
-        try {
-            const { error } = await supabaseClient.from('anotacoes').delete().eq('id', id);
-            if (error) throw error;
-            await registrarLogAcao(`Excluiu a anotação "${titulo}"`);
-            await carregarAnotacoes();
-        } catch (err) {
-            UI.toast("Erro ao excluir anotação: " + err.message, { tipo: 'erro' });
-        }
-    }
-
     // ========== ABAS E NAVEGAÇÃO ==========
     function mudarSecao(s) {
-        const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao','anotacoes'];
+        const secoes = ['minha-celula','celulas','biblia','agenda','palavras','sugestao'];
         secoes.forEach(id => { const el = document.getElementById('secao-'+id); if(el) el.classList.add('hidden'); });
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         const secao = document.getElementById('secao-'+s); if(secao) secao.classList.remove('hidden');
         const btn = document.getElementById('btn-'+s); if(btn) btn.classList.add('active');
         if (s === 'biblia') abrirBiblia();
-        if (s === 'anotacoes') carregarAnotacoes();
     }
 
-    async function fazerLogout() { 
-            if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
+    //function fazerLogout() { if(confirm("Sair?")) { sessionStorage.clear(); window.location.href="index.html"; } }
+    function fazerLogout() { 
+            if(confirm("Sair?")) { 
                 sessionStorage.clear(); 
                 window.location.href = "index.html?t=" + Date.now(); 
             } 
@@ -1202,7 +866,6 @@
         setTimeout(() => document.getElementById('biblia-overlay').style.opacity = '1', 10);
         if (typeof Biblia !== 'undefined') {
             if (!Biblia.bibliaCarregada) await Biblia.inicializar();
-            registrarLogAcao(`Abriu a bíblia`);
             versaoSelecionada = Biblia.getVersaoAtiva();
             document.getElementById('versaoSiglaAtual').innerText = siglasVersoes[versaoSelecionada] || versaoSelecionada;
         }
@@ -1376,13 +1039,11 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            registrarLogAcao(`Baixou a palavra "${titulo}" (${dataFormatada})`);
         } catch (e) {
-            UI.toast('Erro ao gerar arquivo TXT.', { tipo: 'erro' });
+            alert('Erro ao gerar arquivo TXT.');
         } finally {
             icon.className = 'fas fa-download';
         }
-        
     }
 
     // ========== AGENDA ==========
@@ -1417,23 +1078,18 @@
         });
     }
 
-    // ========== PIX (aba Oferta) ==========
-    // Le a chave PIX da igreja e gera o QR a partir dela. Se a igreja ainda
-    // nao cadastrou, mantem o HTML estatico (chave/QR antigos) como fallback.
-    async function carregarPixTela() {
-        const container = document.getElementById('pixQr');
-        const input = document.getElementById('chavePix');
-        const pix = await resolverPixIgreja(supabaseClient);
-        if (!pix) return;
-        if (input) input.value = pix.chave;
-        if (container) {
-            container.innerHTML = '';
-            const ok = gerarQRCode(pixBrCode(pix), container);
-            if (!ok) container.innerHTML = '<img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">';
-        }
-    }
-
     // ========== COPIAR PIX ==========
+    /*function copiarPix() {
+        const input = document.getElementById('chavePix');
+        input.select(); input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value).then(() => {
+            const btn = document.getElementById('btnCopiarPix');
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+            btn.style.background = '#059669';
+            setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i> Copiar'; btn.style.background = '#10b981'; }, 2000);
+        }).catch(err => alert("Erro ao copiar. Copie manualmente!"));
+    }*/
+
     function copiarPix() {
             const input = document.getElementById('chavePix');
             input.select();
@@ -1453,7 +1109,7 @@
                     registrarLogAcao('Copiou a chave PIX');
                 })
                 .catch(err => {
-                    UI.toast("Erro ao copiar. Copie manualmente!", { tipo: 'erro' });
+                    alert("Erro ao copiar. Copie manualmente!");
                     console.error(err);
                 });
         }
@@ -1484,14 +1140,14 @@
                 try {
                     const { error } = await supabaseClient.from('pessoas').insert([dados]);
                     if (error) throw error;
-                    UI.toast("Membro cadastrado!", { tipo: 'sucesso' });
+                    alert("Membro cadastrado!");
                     await registrarLogAcao(`Cadastrou novo membro: ${dados.nome}`);
                     this.reset();
                     fecharModalCadastroMembro();
                     // Recarregar e renderizar automaticamente
                     await carregarMembrosDaCelula(celulaAtiva.id);
                     renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
-                } catch(err) { UI.toast("Erro: " + err.message, { tipo: 'erro' }); }
+                } catch(err) { alert("Erro: " + err.message); }
                 finally { btn.disabled = false; }
             };
         }
@@ -1504,7 +1160,7 @@ if (formEdit) {
         e.preventDefault();
         const id = document.getElementById('editMembroId').value;
         if (!id) {
-            UI.toast("Erro: ID do membro não encontrado.", { tipo: 'erro' });
+            alert("Erro: ID do membro não encontrado.");
             return;
         }
 
@@ -1529,7 +1185,7 @@ if (formEdit) {
                 .eq('id', id);
             if (error) throw error;
 
-            UI.toast("Membro atualizado!", { tipo: 'sucesso' });
+            alert("Membro atualizado!");
             await registrarLogAcao(`Editou membro: ${dados.nome}`);
             document.getElementById('modalEditarMembro').classList.add('hidden');
 
@@ -1539,7 +1195,7 @@ if (formEdit) {
                 renderizarMembrosCelulaModal(membrosDaCelulaAtiva);
             }
         } catch (err) {
-            UI.toast("Erro ao atualizar: " + err.message, { tipo: 'erro' });
+            alert("Erro ao atualizar: " + err.message);
         }
     };
  }
@@ -1550,10 +1206,6 @@ if (formEdit) {
         // Célula
         const formCel = document.getElementById('formCelula');
         if (formCel) formCel.onsubmit = salvarCelula;
-
-        // Anotações (aba pessoal)
-        const formAnot = document.getElementById('formAnotacao');
-        if (formAnot) formAnot.onsubmit = salvarAnotacao;
 
         // Sugestão / pedido de oração
         const formSug = document.getElementById('formSugestao');
@@ -1570,11 +1222,11 @@ if (formEdit) {
                         data: new Date().toISOString().slice(0,10)
                     }]);
                     if (error) throw error;
-                    UI.toast("Pedido enviado com sucesso! Obrigado.", { tipo: 'sucesso' });
+                    alert("Pedido enviado com sucesso! Obrigado.");
                     await registrarLogAcao(`Enviou pedido de oração/sugestão: ${this.mensagem.value.substring(0, 50)}...`);
                     this.reset();
                 } catch(err) {
-                    UI.toast("Erro ao enviar: " + err.message, { tipo: 'erro' });
+                    alert("Erro ao enviar: " + err.message);
                 } finally {
                     btn.disabled = false;
                     btn.innerText = "Enviar Mensagem";
@@ -1621,7 +1273,7 @@ if (formNovoLider) {
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
             console.error("Erro ao salvar novo líder:", error);
-            UI.toast("Erro ao salvar. Detalhes: " + error.message, { tipo: 'erro' });
+            alert("Erro ao salvar. Detalhes: " + error.message);
         } finally {
             btn.disabled = false;
             btn.innerText = "Salvar";
@@ -1642,13 +1294,13 @@ if (formPromoverMembro) {
         const usuario = document.getElementById('promoverMembroUsuario').value.trim().toLowerCase();
 
         if (!membroId) {
-            UI.toast("Selecione um membro.", { tipo: 'aviso' });
+            alert("Selecione um membro.");
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
         }
         if (!usuario) {
-            UI.toast("Informe o nome de usuário (login) para o novo líder.", { tipo: 'aviso' });
+            alert("Informe o nome de usuário (login) para o novo líder.");
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
             return;
@@ -1680,7 +1332,7 @@ if (formPromoverMembro) {
             document.getElementById('conviteNovoLiderBox').classList.remove('hidden');
         } catch(error) {
             console.error("Erro ao promover membro:", error);
-            UI.toast("Erro ao promover. Detalhes: " + error.message, { tipo: 'erro' });
+            alert("Erro ao promover. Detalhes: " + error.message);
         } finally {
             btn.disabled = false;
             btn.innerText = "Promover e Gerar Link";
@@ -1734,7 +1386,7 @@ async function carregarMembrosMultiplicacao() {
         .eq('arquivado', false)
         .order('nome');
 
-    if (error) { UI.toast("Erro ao carregar membros.", { tipo: 'erro' }); return; }
+    if (error) { alert("Erro ao carregar membros."); return; }
 
     const meuId = sessionStorage.getItem('liderId');
     listaOriginalMembros = (data || []).filter(p => p.id !== meuId);
@@ -1814,9 +1466,9 @@ async function concluirMultiplicacao() {
     const novoNome = document.getElementById('multNomeNovaCelula').value.trim();
     const novoLiderId = document.getElementById('multNovoLider').value;
 
-    if (!novoNome) { UI.toast("Dê um nome para a nova célula.", { tipo: 'aviso' }); return; }
-    if (!novoLiderId) { UI.toast("Selecione um líder.", { tipo: 'aviso' }); return; }
-    if (membrosQueVao.length === 0) { UI.toast("Escolha membros.", { tipo: 'aviso' }); return; }
+    if (!novoNome) { alert("Dê um nome para a nova célula."); return; }
+    if (!novoLiderId) { alert("Selecione um líder."); return; }
+    if (membrosQueVao.length === 0) { alert("Escolha membros."); return; }
 
     try {
         const celulaOriginal = dadosCelulas.find(c => c.id === celulaOrigemId);
@@ -1838,33 +1490,11 @@ async function concluirMultiplicacao() {
             await supabaseClient.from('pessoas').update({ celula_id: novaCelulaId }).eq('id', novoLiderId);
         }
         await registrarLogAcao(`Multiplicou célula "${celulaOriginal.nome}" -> nova célula "${novoNome}" com ${membrosQueVao.length} membros`);
-        UI.toast("Multiplicação concluída!", { tipo: 'sucesso' });
+        alert("Multiplicação concluída!");
         fecharModalMultiplicar();
         carregarTudo();
-    } catch (err) { UI.toast("Erro: " + err.message, { tipo: 'erro' }); }
+    } catch (err) { alert("Erro: " + err.message); }
 }
-
-    async function preencherSelectAnfitriao(anfitriaoAtualId = null) {
-        const select = document.getElementById('celulaAnfitriao');
-        select.innerHTML = '<option value="">Nenhum</option>';
-        const meuId = sessionStorage.getItem('liderId');
-        const idsCelulas = dadosCelulas.map(c => c.id);
-        if (idsCelulas.length === 0) return;
-    
-        const { data: membros, error } = await supabaseClient
-            .from('pessoas')
-            .select('id, nome')
-            .in('celula_id', idsCelulas)
-            .eq('arquivado', false)
-            .order('nome');
-    
-        if (!error && membros) {
-            membros.forEach(p => {
-                const selected = (p.id === anfitriaoAtualId) ? 'selected' : '';
-                select.innerHTML += `<option value="${p.id}" ${selected}>${p.nome}</option>`;
-            });
-        }
-    }
 
     async function preencherSelectNovoLider() {
     const select = document.getElementById('multNovoLider');
@@ -1893,7 +1523,6 @@ async function concluirMultiplicacao() {
     function mostrarLinkConvite(link) {
     document.getElementById('inputLinkConvite').value = link;
     document.getElementById('notificacaoLink').classList.remove('hidden');
-    registrarLogAcao(`Criou Link de Novo Líder`);
 }
 
 function fecharNotificacaoLink() {
@@ -1904,8 +1533,7 @@ function copiarLinkConviteMultiplicacao() {
     const input = document.getElementById('inputLinkConvite');
     input.select();
     document.execCommand('copy');
-    UI.toast('Link copiado! Cole no WhatsApp do novo líder.', { tipo: 'sucesso' });    
-    // registrarLogAcao(`Copiou Link de Novo Líder`);
+    alert('Link copiado! Cole no WhatsApp do novo líder.');
 }
 
 // ========== SELEÇÃO DE LÍDER PARA MULTIPLICAÇÃO ==========
@@ -2058,113 +1686,31 @@ function copiarLinkConviteNovoLider() {
     const input = document.getElementById('linkConviteNovoLider');
     input.select();
     document.execCommand('copy');
-    UI.toast('Link copiado! Envie para o novo líder via WhatsApp.', { tipo: 'sucesso' });
-    registrarLogAcao(`Copiou Link de Novo Líder`);
+    alert('Link copiado! Envie para o novo líder via WhatsApp.');
 }
-
-
-    
-window.abrirBiblia = abrirBiblia;
-
-
- 
-// ----- Player Vinha FM (simples e seguro) -----
-document.addEventListener('DOMContentLoaded', function() {
-    const radioAudio = document.getElementById('radioAudio');
-    const radioToggle = document.getElementById('radioToggle');
-    const radioIcon = document.getElementById('radioIcon');
-
-    // Se algum elemento não existir, não prossegue
-    if (!radioAudio || !radioToggle || !radioIcon) {
-        console.warn('Player Vinha FM: elementos não encontrados.');
-        return;
-    }
-
-    let radioPlaying = false;
-
-    window.toggleRadio = function() {
-        if (!radioPlaying) {
-            radioAudio.play()
-                .then(() => {
-                    radioPlaying = true;
-                    radioToggle.classList.add('playing');
-                    radioIcon.className = 'fas fa-pause';
-                    registrarLogAcao('Iniciou o player Vinha FM');
-                })
-                .catch((err) => {
-                    console.warn('Erro ao iniciar stream:', err);
-                    UI.toast('Não foi possível conectar à Vinha FM. Tente novamente.', { tipo: 'erro' });
-                });
-        } else {
-            radioAudio.pause();
-            radioPlaying = false;
-            radioToggle.classList.remove('playing');
-            radioIcon.className = 'fas fa-play';
-            registrarLogAcao('Pausou o player Vinha FM');
-        }
-    };
-
-    // Tratamento para quando a música é pausada ou erro
-    radioAudio.addEventListener('pause', () => {
-        if (radioPlaying) {
-            radioPlaying = false;
-            radioToggle.classList.remove('playing');
-            radioIcon.className = 'fas fa-play';
-        }
-    });
-
-    radioAudio.addEventListener('error', () => {
-        if (radioPlaying) {
-            radioPlaying = false;
-            radioToggle.classList.remove('playing');
-            radioIcon.className = 'fas fa-play';
-            UI.toast('Stream indisponível no momento.', { tipo: 'erro' });
-        }
-    });
-});
     
 </script>
 
 <!-- HTML COMPLETO COM MODAIS -->
 <div class="container">
-       <div class="header">
-        <!-- Linha superior: logo, título e botões -->
-        <div class="header-top">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
-                <h3>Painel do Líder</h3>
-            </div>
-            <div style="display:flex; align-items:center; gap: 15px;">
-                <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
-                <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </div>    
-    
-        <div class="header-bottom">
-            <!-- Lado esquerdo: player da rádio -->
-            <div class="radio-player-mini">
-                <button id="radioToggle" class="radio-btn" onclick="toggleRadio()" title="Vinha FM">
-                    <i id="radioIcon" class="fas fa-play"></i>
-                </button>
-                <span class="radio-label">Vinha FM</span>
-            </div>
-        
-            <!-- Lado direito: botão da Bíblia -->
-            <button class="btn-biblia-header" onclick="abrirBiblia()" title="Abrir Bíblia">
-                <i class="fas fa-bible"></i> Bíblia
-            </button>
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <img src="https://img.linkme.bio/img/2021/05/10141826/logo-videira-circulo-1.png" style="width: 110px;">
+            <h3>Painel do Líder</h3>
+        </div>
+        <div style="display:flex; align-items:center; gap: 15px;">
+            <button onclick="carregarTudo()" class="btn-refresh" title="Atualizar Dados"><i id="iconRefresh" class="fas fa-sync-alt"></i></button>
+            <button onclick="fazerLogout()" class="btn-refresh" style="color: #991b1b;" title="Sair do Sistema"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </div>
-    
 
     <div class="nav-menu">
         <button onclick="mudarSecao('minha-celula')" class="nav-btn active" id="btn-minha-celula"><i class="fas fa-users"></i> Minha Célula</button>
         <button onclick="mudarSecao('celulas')" class="nav-btn" id="btn-celulas"><i class="fas fa-network-wired"></i> Células</button>
+        <button onclick="mudarSecao('biblia')" class="nav-btn" id="btn-biblia"><i class="fas fa-bible"></i> Bíblia</button>
+        <button onclick="mudarSecao('agenda')" class="nav-btn" id="btn-agenda"><i class="far fa-calendar-alt"></i> Agenda</button>
         <button onclick="mudarSecao('palavras')" class="nav-btn" id="btn-palavras"><i class="fas fa-book-open"></i> Palavras</button>
-        <button onclick="mudarSecao('agenda')" class="nav-btn" id="btn-agenda"><i class="far fa-calendar-alt"></i> Agenda</button>        
         <button onclick="mudarSecao('sugestao')" class="nav-btn" id="btn-sugestao"><i class="fas fa-hand-holding-heart"></i> Oferta</button>
-        <button onclick="mudarSecao('anotacoes')" class="nav-btn" id="btn-anotacoes"><i class="fas fa-pen"></i> Anotações</button>
-        <!--<button onclick="mudarSecao('biblia')" class="nav-btn" id="btn-biblia"><i class="fas fa-bible"></i> Bíblia</button>-->
     </div>
 
     <!-- MINHA CÉLULA -->
@@ -2191,7 +1737,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     <!-- CÉLULAS (TABELA) -->
     <div id="secao-celulas" class="hidden">
-        <h4 style="color: var(--primary); margin-top:0; margin-bottom: 15px;">Todas as Células Ativas</h4>
+        <h4 style="color: var(--primary); margin-top:0; margin-bottom: 15px;">Quadro de Células</h4>
         <div style="overflow-x:auto;">
             <table class="table-clean" id="tabelaCelulas">
                 <thead><tr><th>Célula</th><th>Líder</th><th>Dia</th></tr></thead>
@@ -2247,39 +1793,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- PALAVRAS -->
     <div id="secao-palavras" class="hidden">
-        <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras dos Cultos</h4>
+        <h4 style="color: var(--accent); margin-top:0; margin-bottom: 15px;">Palavras & Estudos</h4>
         <div id="listaPalavras"></div>
-    </div>
-
-    <!-- ANOTAÇÕES (PESSOAIS, PRIVADAS DE CADA USUÁRIO) -->
-    <div id="secao-anotacoes" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h4 style="margin:0; color: var(--primary);"><i class="fas fa-note-sticky"></i> Anotações Pessoais</h4>
-            <button onclick="abrirNovaAnotacao()" class="btn-action" style="background:var(--success-text); color:white;">
-                <i class="fas fa-plus"></i> Nova
-            </button>
-        </div>
-        <p style="font-size:0.8rem; color:var(--text-light); margin-bottom:15px;"><i class="fas fa-lock"></i>  Suas anotações são privadas e visíveis apenas para você.</p>
-        <div id="listaAnotacoes" class="member-grid"></div>
     </div>
 
     <!-- OFERTAS (sugestao) -->
     <div id="secao-sugestao" class="hidden">
-        <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos, Ofertas e Pedidos de Oração</h4>
+        <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-hand-holding-heart"></i> Dízimos e Ofertas</h4>
         <div class="member-card" style="text-align: center; border-top: 4px solid #10b981; margin-bottom: 15px;">
-            <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Transferência via PIX</h3>
+            <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h3>
             <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
-            <div id="pixQr" style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
+            <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
                 <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
             </div>
-            <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX:</p>
+            <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
             <div class="pix-copy-box">
-                <input type="text" id="chavePix" value="27105498000103" readonly>
+                <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
                 <button onclick="copiarPix()" id="btnCopiarPix"><i class="far fa-copy"></i> Copiar</button>
             </div>
         </div>
+        <!--<div class="member-card" style="text-align: center; margin-bottom: 25px; border-top: 4px solid #009ee3; opacity: 0.8;">
+            <h3 style="margin-top:0; color:#009ee3;"><i class="fas fa-credit-card"></i> Cartão / Mercado Pago</h3>
+            <p style="font-size: 0.9rem; color:var(--text-light);">Em breve você poderá ofertar usando seu cartão de crédito de forma segura.</p>
+            <button disabled style="background:#cbd5e1; color:#64748b; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; cursor:not-allowed; margin-top:10px; width: 100%;"><i class="fas fa-lock"></i> Disponível em Breve</button>
+        </div>-->
         <div class="form-box">
-            <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos</h3>
+            <h3 style="color:var(--accent); margin-top:0;"><i class="fa-solid fa-hands-praying"></i> Pedidos e Sugestões</h3>
             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Envie seu pedido de oração, sugestão ou feedback.</p>
             <form id="formSugestao">
                 <label>Mensagem</label>
@@ -2402,8 +1941,8 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- modalCelulaForm (nova/editar célula) SEM ANFITRIÃO-->
-<!--<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
+<!-- modalCelulaForm (nova/editar célula) -->
+<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
     <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
         <button class="btn-close-modal" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')">&times;</button>
         <h3 style="color:var(--primary); margin-top:0;">Célula</h3>
@@ -2420,32 +1959,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="submit" class="btn-save">Salvar</button>
         </form>
     </div>
-</div>-->
-
-
-<!-- modalCelulaForm (nova/editar célula) -->
-<div id="modalCelulaForm" class="modal-overlay hidden" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')" style="align-items: center;">
-    <div class="modal-content" style="max-width:500px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="document.getElementById('modalCelulaForm').classList.add('hidden')">&times;</button>
-        <h3 style="color:var(--primary); margin-top:0;">Célula</h3>
-        <form id="formCelula">
-            <input type="hidden" id="celulaId">
-            <label>Nome da Célula</label><input type="text" id="celulaNome" required>
-            <label>Dia da Semana</label>
-            <select id="celulaDia">
-                <option value="">Selecione</option>
-                <option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
-            </select>
-            <label>Endereço</label><input type="text" id="celulaEndereco">
-            <label>Líder em Treinamento</label>
-            <select id="celulaColider"><option value="">Nenhum</option></select>
-            <label>Anfitrião</label>
-            <select id="celulaAnfitriao"><option value="">Nenhum</option></select>
-            <button type="submit" class="btn-save">Salvar</button>
-        </form>
-    </div>
-</div>    
-    
+</div>
 
 <!-- Modal Palavra (existente) -->
 <div id="modalPalavra" class="modal-overlay hidden" onclick="fecharModal(event)">
@@ -2458,22 +1972,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <small id="modalDataPalavra" style="color:#777; display:block; margin-bottom:15px;"></small>
         <a id="btnLinkYoutube" href="#" target="_blank" class="btn-youtube hidden" style="display:inline-flex; align-items:center; gap:8px; background:#ff0000; color:white; text-decoration:none; padding:10px 20px; border-radius:8px; font-weight:bold; margin-bottom:20px; margin-top:15px;"><i class="fab fa-youtube"></i> Assistir Palavra Completa</a>
         <div id="modalTexto" style="white-space:pre-wrap; line-height:1.6;"></div>
-    </div>
-</div>
-
-<!-- modalAnotacao (nova/editar anotação pessoal) -->
-<div id="modalAnotacao" class="modal-overlay hidden" onclick="fecharModalAnotacaoClique(event)" style="align-items: center;">
-    <div class="modal-content" style="max-width:600px; height:auto; max-height:90vh; border-radius:20px;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModalAnotacao()">&times;</button>
-        <h3 id="tituloModalAnotacao" style="color:var(--primary); margin-top:0;">Nova Anotação</h3>
-        <form id="formAnotacao">
-            <input type="hidden" id="anotacaoId">
-            <label>Título</label>
-            <input type="text" id="anotacaoTitulo" required placeholder="Ex: Conversa com fulano">
-            <label>Anotação</label>
-            <textarea id="anotacaoConteudo" rows="8" placeholder="Escreva aqui sua anotação pessoal..."></textarea>
-            <button type="submit" class="btn-save" id="btnSalvarAnotacao">Salvar</button>
-        </form>
     </div>
 </div>
 
@@ -2635,12 +2133,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <button onclick="fecharModalSelecionarLider()" class="btn-save" style="background:#555; margin-top:15px;">Cancelar</button>
     </div>
 </div>
-
-    <!-- Player de áudio (Vinha FM) -->
-    <audio id="radioAudio" preload="none" style="display:none;">
-        <source src="https://streaming.vinhafm.com.br/stream" type="audio/mpeg">
-    </audio>
-    <script src="js/pwa.js"></script>
     
 </body>
 </html>

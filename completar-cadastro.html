@@ -78,7 +78,9 @@
     </div>
 
     <script>
-        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+            global: { headers: { 'x-igreja-id': (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '') } }
+        });
         
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -87,6 +89,7 @@
         let pessoaId = null;
         let categoriaPessoa = '';
         let superiorOriginalId = null;
+        let igrejaPessoaId = null;
 
        async function carregarDados() {
     if (!token) {
@@ -95,9 +98,7 @@
     }
 
     const { data: pessoa, error } = await supabaseClient
-        .from('pessoas')
-        .select('id, usuario, categoria, superior_id')
-        .eq('token_convite', token)
+        .rpc('buscar_convite', { p_token: token })
         .maybeSingle();
 
     if (error || !pessoa) {
@@ -108,6 +109,7 @@
     // Guarda o ID da pessoa e o superior original definido pelo admin
     pessoaId = pessoa.id;
     superiorOriginalId = pessoa.superior_id;   // ← preserva o superior do admin
+    igrejaPessoaId = pessoa.igreja_id;         // ← escopo: mesma igreja
 
     // Normaliza a categoria para uso interno
     categoriaPessoa = (pessoa.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -118,10 +120,10 @@
     document.getElementById('subtitulo-cadastro').innerText = 'Preencha os campos para criar seu acesso.';
     document.getElementById('area-form').style.display = 'block';
 
-    // Carrega o select de superiores baseado na categoria da pessoa
-    await carregarSuperiores(pessoa.categoria, pessoa.superior_id);
+    // Carrega o select de superiores baseado na categoria da pessoa (mesma igreja)
+    await carregarSuperiores(pessoa.categoria, pessoa.superior_id, igrejaPessoaId);
 }
-        async function carregarSuperiores(categoria, superiorIdAtual) {
+        async function carregarSuperiores(categoria, superiorIdAtual, igrejaId) {
             const select = document.getElementById('superior_id');
             const grupo = document.getElementById('grupo-superior');
             
@@ -136,6 +138,7 @@
                 .from('pessoas')
                 .select('id, nome, categoria')
                 .in('categoria', categoriasSuperiores)
+                .eq('igreja_id', igrejaId)
                 .order('nome');
 
             if (error || !superiores || superiores.length === 0) {
@@ -212,16 +215,14 @@
                     return;
                 }
         
-                // 2. Atualizar a tabela pessoas com o e‑mail, superior (preservado) e limpar token
+                // 2. Concluir o cadastro no banco (via RPC com token secreto)
                 const { error: updateError } = await supabaseClient
-                    .from('pessoas')
-                    .update({
-                        nome: nomeCompleto,
-                        email: email,
-                        superior_id: superiorId,
-                        token_convite: null
-                    })
-                    .eq('id', pessoaId);
+                    .rpc('concluir_cadastro_convite', {
+                        p_token: token,
+                        p_nome: nomeCompleto,
+                        p_email: email,
+                        p_superior_id: superiorId
+                    });
                 if (updateError) throw updateError;
         
                 // 3. Registrar log de conclusão de cadastro (usuário já está autenticado)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema de Células - Videira</title>
+    <title>Painel Pastoral • Videira Jataí</title>
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -14,12 +14,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script src="config.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/upload.js"></script>
-    <script src="js/push.js"></script>
-    <link rel="icon" type="image/png" href="icons/icon-192.png">
-    <link rel="shortcut icon" type="image/png" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Sistema Videira">
@@ -94,10 +91,8 @@
         .table-clean th { background: var(--primary); color: white; padding: 10px; font-size: 0.8rem; }
         .table-clean td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3100; display: flex; justify-content: center; align-items: flex-end; overscroll-behavior: contain; /*backdrop-filter: blur(2px);*/ }
-        .modal-content { background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-        /* Fundo travado enquanto houver modal aberto (evita rolar a pagina por tras) */
-        body.modal-aberto { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3100; display: flex; justify-content: center; align-items: flex-end; /*backdrop-filter: blur(2px);*/ }
+        .modal-content { background: white; width: 100%; max-width: 800px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px 20px; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .btn-close-modal { position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #555; display: flex; align-items: center; justify-content: center; }
         .hidden { display: none !important; }
@@ -211,8 +206,6 @@
     let dadosRelatorios = [];
     let listaPalavras = [];
     let listaAgenda = [];
-    let agendaManual = [];
-    let modoAgendaManual = false;
     let celulaAtiva = null;
     let membrosDaCelulaAtiva = [];
     let mapaNomes = {}; // id -> nome
@@ -241,13 +234,13 @@
         const cat = normalizarCategoria(pessoa.categoria);
         const permitidos = ["pastor de governo", "pastor de rede", "pastor", "administrador"];
         if (!permitidos.includes(cat)) {
-            UI.restrito("Acesso restrito.", "index.html");
+            alert("Acesso restrito.");
+            window.location.href = "index.html";
             return;
         }
         sessionStorage.setItem('pastorId', pessoa.id);
         sessionStorage.setItem('usuarioLogado', pessoa.nome || user.email);
         sessionStorage.setItem('loginDigitado', user.email);
-        if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         await carregarTudo();
         inicializarEventos();
     })();
@@ -275,43 +268,28 @@
     }
 
     // ========== CARREGAMENTO ==========
-    // Recarrega TODOS os dados do sistema e re-renderiza o que já estiver na tela.
-    // Nao faz bind de eventos nem troca de secao (isso fica em inicializarEventos()).
     async function carregarTudo() {
         const icon = document.getElementById('iconRefresh');
         if (icon) icon.classList.add('fa-spin');
-        const falhas = [];
-        const passo = async (rotulo, fn) => {
-            try { await fn(); } catch (err) {
-                console.error(`Falha ao atualizar ${rotulo}:`, err);
-                falhas.push(rotulo);
-            }
-        };
-
         try {
-            await passo('membros', async () => {
-                const { data: memData, error } = await supabaseClient.from('pessoas').select('*');
-                if (error) throw error;
-                dadosMembros = memData ? memData.map(m => {
-                    let tipo = normalizarCategoria(m.tipo || m.categoria);
-                    let categoriaStr = 'Membro';
-                    if (tipo === 'lider' || tipo === 'líder') categoriaStr = 'Líder';
-                    else if (tipo === 'pastor' || tipo === 'pastor de governo' || tipo === 'pastor de rede') categoriaStr = 'Pastor';
-                    else if (tipo === 'discipulador') categoriaStr = 'Discipulador';
-                    else if (tipo === 'frequentador') categoriaStr = 'Frequentador';
-                    else if (tipo === 'tesoureiro') categoriaStr = 'Tesoureiro';
-                    else if (tipo === 'administrador') categoriaStr = 'Administrador';
-                    return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
-                }) : [];
-            });
+            const { data: memData } = await supabaseClient.from('pessoas').select('*');
+            dadosMembros = memData ? memData.map(m => {
+                let tipo = normalizarCategoria(m.tipo || m.categoria);
+                let categoriaStr = 'Membro';
+                if (tipo === 'lider' || tipo === 'líder') categoriaStr = 'Líder';
+                else if (tipo === 'pastor' || tipo === 'pastor de governo' || tipo === 'pastor de rede') categoriaStr = 'Pastor';
+                else if (tipo === 'discipulador') categoriaStr = 'Discipulador';
+                else if (tipo === 'frequentador') categoriaStr = 'Frequentador';
+                else if (tipo === 'tesoureiro') categoriaStr = 'Tesoureiro';
+                else if (tipo === 'administrador') categoriaStr = 'Administrador';
+                return [m.id, m.nome || 'Sem Nome', categoriaStr, '', m.telefone || '', '', m.batizado || 'Não', m.cursao || 'Não', m.ctl || 'Não', m.encontro || 'Não', m.nascimento || '', m.seminario || 'Não', m.dizimista || 'Não', m.celula_id || null, m.arquivado === true || m.arquivado === 'Sim' ? 'Sim' : 'Não'];
+            }) : [];
 
-            await passo('células', async () => {
-                const { data: celData, error } = await supabaseClient.from('celulas').select('*');
-                if (error) throw error;
-                // dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
-                dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '', c.anfitriao_user_id || '']) : [];
-            });
-
+            
+            const { data: celData } = await supabaseClient.from('celulas').select('*');
+           // dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '']) : [];
+            dadosCelulas = celData ? celData.map(c => [c.id, c.nome, c.lider_user_id || c.lider || '', c.dia_horario || '-', c.endereco || '', c.supervisor_user_id || '', c.colider_user_id || '', c.anfitriao_user_id || '']) : [];
+            
             window.celulaMap = {};
             dadosCelulas.forEach(c => { window.celulaMap[c[0]] = c[1]; });
             dadosMembros.forEach(m => { if (m[13]) m[3] = window.celulaMap[m[13]] || 'Sem Célula'; });
@@ -325,38 +303,13 @@
             renderizarCelulasRede(dadosCelulas);
             window.celulasRedeCompleta = dadosCelulas;
 
-            await passo('relatórios', carregarRelatorios);
-            await passo('agenda', async () => {
-                const igrejaId = await resolverIgrejaAtual(supabaseClient);
-                modoAgendaManual = !usaGoogleAgenda(igrejaId);
-                if (modoAgendaManual) {
-                    const { data, error } = await supabaseClient
-                        .from('agenda')
-                        .select('id, data, titulo, descricao')
-                        .order('data', { ascending: true });
-                    if (error) throw error;
-                    agendaManual = data || [];
-                    // Só a igreja dona do Google Agenda usa o GAS; as demais usam a tabela 'agenda'.
-                    renderizarAgendaManual();
-                } else {
-                    listaAgenda = await fetchGoogle('buscarAgenda') || [];
-                    renderizarAgenda(listaAgenda);
-                }
-                const btnNova = document.getElementById('btnNovaAgenda');
-                if (btnNova) btnNova.style.display = modoAgendaManual ? '' : 'none';
-            });
-            await passo('palavras', carregarPalavrasDados);
-            await passo('pedidos de oração', carregarSugestoes);
-            await passo('eventos e inscrições', carregarEventos);
-            await passo('estatísticas', async () => carregarEstatisticas());
-
-            if (falhas.length) {
-                console.warn('Atualização parcial. Falhou em: ' + falhas.join(', '));
-                UI.toast('Alguns dados não puderam ser atualizados: ' + falhas.join(', ') + '. Verifique a conexão.', { tipo: 'erro' });
-            }
+            await carregarRelatorios();
+            try { listaAgenda = await fetchGoogle('buscarAgenda') || []; renderizarAgenda(listaAgenda); } catch (e) {}
+            await carregarPalavrasDados();
+            if (!document.getElementById('secao-minha-igreja').classList.contains('hidden')) carregarEstatisticas();
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            UI.toast("Erro ao carregar dados. Verifique a conexão.", { tipo: 'erro' });
+            alert("Erro ao carregar dados. Verifique a conexão.");
         } finally {
             if (icon) icon.classList.remove('fa-spin');
         }
@@ -628,7 +581,7 @@
     function exportarListaCelulasPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Células - Videira", 14, 20);
+            doc.text("Células - Videira Jataí", 14, 20);
         
             // Pega a lista de células ativas (filtradas ou todas)
             const celulas = window.celulasRedeCompleta || dadosCelulas;
@@ -728,18 +681,25 @@
     function fecharModalCelula() { document.getElementById('modalCelula').classList.add('hidden'); }
 
     function abrirModalCadastroMembro() {
-        if (!celulaAtiva) { UI.toast("Selecione uma célula primeiro.", { tipo: 'aviso' }); return; }
+        if (!celulaAtiva) { alert("Selecione uma célula primeiro."); return; }
         document.getElementById('selectCelulas').value = celulaAtiva[0];
         novoCadastro();
     }
 
-    async function abrirApascentar() {
+    /*async function abrirApascentar() {
         if (!celulaAtiva) return;
-        const faltosos = await calcularFaltosos();
-    UI.mensagem(faltosos.length
+        alert("Funcionalidade de apascentar em breve.");
+    }*/
+
+    async function abrirApascentar() {
+    if (!celulaAtiva) return;
+    const faltosos = await calcularFaltosos();
+    alert(
+        faltosos.length
             ? "Faltosos nos últimos 30 dias:\n" +
               faltosos.map(m => `${m.nome} - ${m.faltas} falta(s)`).join('\n')
-            : "Nenhum faltoso nos últimos 30 dias.", { titulo: 'Aviso' });
+            : "Nenhum faltoso nos últimos 30 dias."       
+    );
          registrarLogAcao(`Calculou lista de faltosos da célula: ${faltosos.length} registros`);
 }
 
@@ -894,7 +854,7 @@
                 .single();
             if (fetchError) throw fetchError;
             if (!pedido) {
-                UI.toast("Pedido não encontrado.", { tipo: 'erro' });
+                alert("Pedido não encontrado.");
                 return;
             }
     
@@ -915,7 +875,7 @@
             await carregarSugestoes();
         } catch (e) {
             console.error("Erro ao concluir pedido:", e);
-            UI.toast("Erro ao concluir. Tente novamente.", { tipo: 'erro' });
+            alert("Erro ao concluir. Tente novamente.");
         }
     }
 
@@ -942,666 +902,6 @@
                 <div style="margin-top:10px;"><span style="color:${corTipo};">${a[3] || ''}</span></div>
             </div>`;
         });
-    }
-
-    // ===== Agenda manual (igrejas sem Google Agenda) =====
-    function atualizarAgenda() {
-        if (modoAgendaManual) renderizarAgendaManual();
-        else renderizarAgenda(listaAgenda);
-    }
-
-    function renderizarAgendaManual() {
-        const div = document.getElementById('listaAgenda');
-        if (!div) return;
-        div.innerHTML = '';
-        const mesFiltro = document.getElementById('filtroMesAgenda')?.value;
-        let itens = agendaManual.slice();
-        if (mesFiltro && mesFiltro !== 'todos') {
-            itens = itens.filter(a => {
-                const p = String(a.data || '').split('-');
-                return p.length === 3 && parseInt(p[1]) === parseInt(mesFiltro);
-            });
-        }
-        itens.sort((a, b) => String(a.data).localeCompare(String(b.data)));
-        if (!itens.length) {
-            div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Nenhum evento na agenda.</p>';
-            return;
-        }
-        itens.forEach(a => {
-            const dataF = formatarDataBR(a.data);
-            div.innerHTML += `
-            <div class="member-card">
-                <div class="card-header">
-                    <h4 class="card-name"><i class="far fa-calendar-alt"></i> ${dataF}</h4>
-                    <span class="cat-badge" style="background:#0f172a; color:white;">AGENDA</span>
-                </div>
-                <div style="font-weight:700;">${escaparHTML(a.titulo || '')}</div>
-                <div style="color:#666;">${escaparHTML(a.descricao || '')}</div>
-                <div style="margin-top:10px; display:flex; gap:8px;">
-                    <button onclick="abrirModalAgenda('${a.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button onclick="excluirAgenda('${a.id}')" class="btn-card" title="Excluir" style="color:var(--danger-text);"><i class="fas fa-trash-alt"></i></button>
-                </div>
-            </div>`;
-        });
-    }
-
-    function abrirModalAgenda(id) {
-        document.getElementById('formAgenda').reset();
-        document.getElementById('agendaId').value = id || '';
-        if (id) {
-            const a = agendaManual.find(x => x.id === id);
-            if (!a) return;
-            document.getElementById('agendaData').value = a.data || '';
-            document.getElementById('agendaTitulo').value = a.titulo || '';
-            document.getElementById('agendaDescricao').value = a.descricao || '';
-            document.getElementById('tituloModalAgenda').innerText = 'Editar Evento da Agenda';
-        } else {
-            document.getElementById('tituloModalAgenda').innerText = 'Novo Evento da Agenda';
-        }
-        document.getElementById('modalAgenda').classList.remove('hidden');
-    }
-
-    async function salvarAgenda(e) {
-        e.preventDefault();
-        const id = document.getElementById('agendaId').value;
-        const data = document.getElementById('agendaData').value;
-        const titulo = document.getElementById('agendaTitulo').value.trim();
-        const descricao = document.getElementById('agendaDescricao').value.trim();
-        if (!data || !titulo) { UI.toast("Preencha a data e o título.", { tipo: 'aviso' }); return; }
-        const btn = e.target.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        try {
-            const dados = { data, titulo, descricao: descricao || null };
-            if (id) {
-                const { error } = await supabaseClient.from('agenda').update(dados).eq('id', id);
-                if (error) throw error;
-                registrarLogAcao(`Editou a agenda: "${titulo}"`);
-            } else {
-                const { error } = await supabaseClient.from('agenda').insert([dados]);
-                if (error) throw error;
-                registrarLogAcao(`Cadastrou na agenda: "${titulo}"`);
-            }
-            fecharModal('modalAgenda');
-            await recarregarAgenda();
-        } catch (err) {
-            console.error('Erro ao salvar agenda:', err);
-            UI.toast("Erro ao salvar: " + (err.message || ''), { tipo: 'erro' });
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function recarregarAgenda() {
-        try {
-            const { data, error } = await supabaseClient
-                .from('agenda')
-                .select('id, data, titulo, descricao')
-                .order('data', { ascending: true });
-            if (error) throw error;
-            agendaManual = data || [];
-            renderizarAgendaManual();
-        } catch (err) {
-            console.error('Erro ao recarregar agenda:', err);
-        }
-    }
-
-    async function excluirAgenda(id) {
-        const a = agendaManual.find(x => x.id === id);
-        const titulo = a ? a.titulo : '';
-        if (!(await UI.confirmar(`Excluir "${titulo}" da agenda?`, { titulo: 'Excluir da agenda', textoOk: 'Excluir', perigo: true }))) return;
-        try {
-            const { error } = await supabaseClient.from('agenda').delete().eq('id', id);
-            if (error) throw error;
-            registrarLogAcao(`Excluiu da agenda: "${titulo}"`);
-            await recarregarAgenda();
-        } catch (err) {
-            console.error('Erro ao excluir agenda:', err);
-            UI.toast("Erro ao excluir: " + (err.message || ''), { tipo: 'erro' });
-        }
-    }
-
-    // ========== EVENTOS / ENCONTROS (INSCRIÇÕES) ==========
-    let listaEventos = [];
-    let inscricoesPorEvento = {};
-
-    function hojeISO() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    function formatarDataBR(d) {
-        if (!d) return '';
-        const p = String(d).split('-');
-        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
-    }
-    function formatarValorBR(v) {
-        const n = parseFloat(v || 0);
-        return n > 0 ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Gratuito';
-    }
-    function linkWhatsApp(tel) {
-        const digitos = String(tel || '').replace(/\D/g, '');
-        return digitos.length >= 10 ? `https://wa.me/55${digitos}` : '';
-    }
-    function linkArquivoSeguro(url) {
-        const u = String(url || '').trim();
-        return /^https?:\/\//i.test(u) ? escaparHTML(u) : '';
-    }
-
-    // Extrai o caminho interno de um arquivo do Storage a partir da URL publica.
-    function caminhoStorage(url, bucket) {
-        const u = String(url || '');
-        let p = '';
-        try { p = new URL(u).pathname; } catch (e) { p = u; }
-        const marca = `/storage/v1/object/public/${bucket}/`;
-        const i = p.indexOf(marca);
-        if (i < 0) return null;
-        return decodeURIComponent(p.slice(i + marca.length));
-    }
-
-    // Remove do Storage os arquivos informados (best-effort). Ignora URLs
-    // externas e caminhos legados (sem pasta de igreja), que a policy nao apaga.
-    async function apagarArquivosStorage(bucket, urls) {
-        const caminhos = (urls || []).map(u => caminhoStorage(u, bucket)).filter(Boolean);
-        if (!caminhos.length) return;
-        try {
-            const { error } = await supabaseClient.storage.from(bucket).remove(caminhos);
-            if (error) console.error('Falha ao remover arquivos do Storage:', error);
-        } catch (e) {
-            console.error('Falha ao remover arquivos do Storage:', e);
-        }
-    }
-
-    // Envia backup por e-mail (via GAS) antes de apagar. Best-effort: nunca
-    // impede a exclusao caso falhe.
-    async function enviarBackupArquivos(assunto, urls) {
-        const lista = (urls || []).filter(u => /^https?:\/\//i.test(u));
-        if (!lista.length) return;
-        try {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            const email = user && user.email;
-            const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) || API_URL || '';
-            if (!email || !url) return;
-            await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'backupArquivos', payload: { email, assunto, urls: lista } })
-            });
-        } catch (e) {
-            console.error('Backup por e-mail falhou (segue com a exclusao):', e);
-        }
-    }
-    function chamarGAS(action, payload) {
-        try {
-            const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL)
-                || (typeof urlBackend !== 'undefined' && urlBackend) || '';
-            if (!url || !action) return;
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action, payload })
-            }).catch(() => {});
-        } catch (e) {
-            console.error('Falha ao chamar GAS:', e);
-        }
-    }
-    function acharInscricao(id) {
-        for (const evId in inscricoesPorEvento) {
-            const inscricao = inscricoesPorEvento[evId].find(i => i.id === id);
-            if (inscricao) return { inscricao, evento: listaEventos.find(e => e.id === evId) || {} };
-        }
-        return null;
-    }
-    function notificarPagamentoConfirmado(id) {
-        const achado = acharInscricao(id);
-        if (!achado || !achado.inscricao.email) return;
-        const ev = achado.evento;
-        chamarGAS('enviarEmailPagamentoConfirmado', {
-            evento: ev.nome,
-            data_evento: ev.data_evento,
-            hora_evento: ev.hora_evento,
-            local: ev.local,
-            valor: ev.valor,
-            nome: achado.inscricao.nome,
-            email: achado.inscricao.email,
-            comprovante_url: achado.inscricao.comprovante_url
-        });
-    }
-    function linkInscricao(eventoId) {
-        const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-        const ev = (typeof listaEventos !== 'undefined' ? listaEventos : []).find(e => e.id === eventoId);
-        const igreja = (ev && ev.igreja_id) ? `&igreja=${encodeURIComponent(ev.igreja_id)}` : '';
-        return `${base}inscricao-evento.html?evento=${encodeURIComponent(eventoId)}${igreja}`;
-    }
-
-    async function carregarEventos() {
-        const grid = document.getElementById('listaEventos');
-        if (grid) grid.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Carregando...</p>';
-        try {
-            const { data: ev, error: evErr } = await supabaseClient
-                .from('eventos')
-                .select('*')
-                .order('data_evento', { ascending: false });
-            if (evErr) throw evErr;
-            listaEventos = ev || [];
-
-            const { data: ins, error: insErr } = await supabaseClient
-                .from('inscricoes_eventos')
-                .select('id, evento_id, nome, email, telefone, celula, observacoes, comprovante_url, status, criado_em')
-                .order('criado_em', { ascending: false });
-            if (insErr) throw insErr;
-            inscricoesPorEvento = {};
-            (ins || []).forEach(i => {
-                if (!inscricoesPorEvento[i.evento_id]) inscricoesPorEvento[i.evento_id] = [];
-                inscricoesPorEvento[i.evento_id].push(i);
-            });
-            renderizarEventos();
-        } catch (err) {
-            console.error("Erro ao carregar eventos:", err);
-            if (grid) grid.innerHTML = '<p style="text-align:center; color:var(--danger-text); margin-top:20px; grid-column:1/-1;">Erro ao carregar eventos. Verifique a conexão.</p>';
-        }
-    }
-
-    function renderizarEventos() {
-        const grid = document.getElementById('listaEventos');
-        if (!grid) return;
-        const cont = document.getElementById('totalEventos');
-        grid.innerHTML = '';
-        if (cont) cont.innerText = listaEventos.length;
-        if (!listaEventos.length) {
-            grid.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Nenhum evento criado ainda.</p>';
-            return;
-        }
-        const hoje = hojeISO();
-        listaEventos.forEach(ev => {
-            const inscricoes = inscricoesPorEvento[ev.id] || [];
-            const abertas = inscricoes.filter(i => i.status !== 'cancelada').length;
-            const manualFechado = ev.inscricoes_abertas === false;
-            const porData = ev.data_fim_inscricoes && ev.data_fim_inscricoes < hoje;
-            const encerrado = manualFechado || porData;
-            const statusHtml = encerrado
-                ? `<span class="status-pill" style="background:#fde8e8; color:#991b1b;">Inscrições encerradas${manualFechado ? ' (manual)' : ''}</span>`
-                : '<span class="status-pill active">Inscrições abertas</span>';
-            grid.innerHTML += `
-                <div class="member-card">
-                    ${ev.foto_url ? `<img src="${escaparHTML(ev.foto_url)}" style="width:100%; height:160px; object-fit:cover; border-radius:12px; margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
-                    <div class="card-header">
-                        <h4 class="card-name">${escaparHTML(ev.nome)}</h4>
-                        <span class="cat-badge" style="background:rgba(212,175,55,0.15); color:#b58900; border-color:#D4AF37; text-transform:uppercase;">${escaparHTML(ev.tipo || 'Evento')}</span>
-                    </div>
-                    <div class="card-info"><i class="fas fa-calendar-day"></i> ${formatarDataBR(ev.data_evento)} ${ev.hora_evento ? '• ' + escaparHTML(ev.hora_evento) : ''}</div>
-                    ${ev.local ? `<div class="card-info"><i class="fas fa-map-marker-alt"></i> ${escaparHTML(ev.local)}</div>` : ''}
-                    <div class="card-info"><i class="fas fa-tag"></i> Valor: ${formatarValorBR(ev.valor)}</div>
-                    ${ev.pix_chave ? `<div class="card-info"><i class="fas fa-qrcode"></i> PIX: ${escaparHTML(ev.pix_chave)}</div>` : ''}
-                    ${ev.data_fim_inscricoes ? `<div class="card-info"><i class="fas fa-hourglass-end"></i> Inscrições até ${formatarDataBR(ev.data_fim_inscricoes)}</div>` : ''}
-                    <div class="status-row">${statusHtml}<span class="status-pill">${abertas} inscrições</span></div>
-                    <div class="card-actions">
-                        <button onclick="copiarLinkEvento('${ev.id}')" class="btn-card" style="background:var(--success-bg); color:var(--success-text); border-color:#c3e6cb;" title="Copiar link de inscrição"><i class="fas fa-link"></i></button>
-                        <button onclick="abrirModalInscricoes('${ev.id}')" class="btn-card" title="Ver inscrições"><i class="fas fa-list-ul"></i></button>
-                        <button onclick="imprimirInscritos('${ev.id}')" class="btn-card" title="Gerar PDF dos inscritos"><i class="fas fa-file-pdf"></i></button>
-                        <button onclick="toggleInscricoes('${ev.id}')" class="btn-card" style="color:${manualFechado ? 'var(--success-text)' : 'var(--danger-text)'};" title="${manualFechado ? 'Ativar inscrições' : 'Encerrar inscrições'}"><i class="fas fa-${manualFechado ? 'lock-open' : 'lock'}"></i></button>
-                        <button onclick="abrirModalEvento('${ev.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
-                        <button onclick="excluirEvento('${ev.id}')" class="btn-card" style="color:var(--danger-text);" title="Excluir"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>`;
-        });
-    }
-
-    async function toggleInscricoes(eventoId) {
-        const ev = listaEventos.find(e => e.id === eventoId);
-        if (!ev) return;
-        const novoEstado = ev.inscricoes_abertas === false;
-        const acao = novoEstado ? 'Ativar' : 'Encerrar';
-        if (!(await UI.confirmar(`Deseja ${acao.toLowerCase()} as inscrições do evento "${ev.nome}"?`, { titulo: `${acao} inscrições`, textoOk: acao }))) return;
-        try {
-            const { error } = await supabaseClient.from('eventos').update({ inscricoes_abertas: novoEstado }).eq('id', eventoId);
-            if (error) throw error;
-            registrarLogAcao(`${acao}ou as inscrições do evento "${ev.nome}"`);
-            await carregarEventos();
-        } catch (err) {
-            console.error(err);
-            UI.toast(`Erro ao ${acao.toLowerCase()} inscrições: ` + (err.message || ''), { tipo: 'erro' });
-        }
-    }
-
-    function abrirModalEvento(id) {
-        document.getElementById('formEvento').reset();
-        document.getElementById('eventoId').value = id || '';
-        const prev = document.getElementById('eventoFotoPreview');
-        prev.removeAttribute('src');
-        prev.style.display = 'none';
-        prev.dataset.savedUrl = '';
-        if (id) {
-            const ev = listaEventos.find(e => e.id === id);
-            if (!ev) return;
-            document.getElementById('eventoNome').value = ev.nome || '';
-            document.getElementById('eventoTipo').value = ev.tipo || 'encontro';
-            document.getElementById('eventoData').value = ev.data_evento || '';
-            document.getElementById('eventoHora').value = ev.hora_evento || '';
-            document.getElementById('eventoLocal').value = ev.local || '';
-            document.getElementById('eventoValor').value = ev.valor || '';
-            document.getElementById('eventoFimInscricoes').value = ev.data_fim_inscricoes || '';
-            document.getElementById('eventoPixChave').value = ev.pix_chave || '';
-            document.getElementById('eventoDescricao').value = ev.descricao || '';
-            if (ev.foto_url) {
-                prev.dataset.savedUrl = ev.foto_url;
-                prev.src = ev.foto_url;
-                prev.style.display = 'block';
-            }
-            document.getElementById('tituloModalEvento').innerText = 'Editar Evento';
-        } else {
-            document.getElementById('tituloModalEvento').innerText = 'Novo Evento';
-            const hoje = new Date();
-            const dias = d => { const x = new Date(hoje); x.setDate(x.getDate() + d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
-            document.getElementById('eventoData').value = dias(15);
-            document.getElementById('eventoFimInscricoes').value = dias(10);
-        }
-        document.getElementById('modalEvento').classList.remove('hidden');
-    }
-
-    async function salvarEvento(e) {
-        e.preventDefault();
-        const id = document.getElementById('eventoId').value;
-        const nome = document.getElementById('eventoNome').value.trim();
-        const dataEvento = document.getElementById('eventoData').value;
-        if (!nome || !dataEvento) { UI.toast("Preencha nome e data do evento.", { tipo: 'aviso' }); return; }
-        const btn = e.target.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        try {
-            const prev = document.getElementById('eventoFotoPreview');
-            let foto_url = prev.dataset.savedUrl || '';
-            const fileInput = document.getElementById('eventoFoto');
-            if (fileInput.files && fileInput.files[0]) {
-                let file = fileInput.files[0];
-                if (window.VideiraUpload) {
-                    file = await VideiraUpload.prepararArquivo(file, {
-                        maxImagemOrigemMB: 15,
-                        maxImagemFinalMB: 3
-                    });
-                }
-                const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-                const igrejaId = await resolverIgrejaAtual(supabaseClient);
-                const path = `${igrejaId}/eventos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-                const { error: upErr } = await supabaseClient.storage.from('eventos').upload(path, file, { upsert: false, contentType: file.type });
-                if (upErr) throw upErr;
-                foto_url = supabaseClient.storage.from('eventos').getPublicUrl(path).data.publicUrl;
-            }
-            const dados = {
-                nome,
-                tipo: document.getElementById('eventoTipo').value,
-                data_evento: dataEvento,
-                hora_evento: document.getElementById('eventoHora').value || null,
-                local: document.getElementById('eventoLocal').value.trim() || null,
-                valor: parseFloat(document.getElementById('eventoValor').value || 0),
-                data_fim_inscricoes: document.getElementById('eventoFimInscricoes').value || null,
-                pix_chave: document.getElementById('eventoPixChave').value.trim() || null,
-                descricao: document.getElementById('eventoDescricao').value.trim() || null,
-                foto_url: foto_url || null
-            };
-            let eventoId = id;
-            if (id) {
-                const { error } = await supabaseClient.from('eventos').update(dados).eq('id', id);
-                if (error) throw error;
-                registrarLogAcao(`Editou o evento "${nome}"`);
-            } else {
-                dados.criado_por = sessionStorage.getItem('pastorId');
-                dados.inscricoes_abertas = true;
-                const { data: novo, error } = await supabaseClient.from('eventos').insert([dados]).select('id').single();
-                if (error) throw error;
-                eventoId = novo.id;
-                registrarLogAcao(`Criou o evento "${nome}"`);
-            }
-            document.getElementById('modalEvento').classList.add('hidden');
-            await carregarEventos();
-            gerarLinkEvento(eventoId, true);
-        } catch (err) {
-            console.error("Erro ao salvar evento:", err);
-            UI.toast("Erro ao salvar evento: " + (err.message || ''), { tipo: 'erro' });
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function gerarLinkEvento(eventoId, abrirModal) {
-        const link = linkInscricao(eventoId);
-        let copiado = false;
-        try {
-            await navigator.clipboard.writeText(link);
-            copiado = true;
-        } catch (err) {
-            copiado = false;
-        }
-        if (abrirModal) {
-            document.getElementById('modalLinkGerado').classList.remove('hidden');
-            document.getElementById('textoLinkGerado').innerText = link;
-        } else if (copiado) {
-            UI.toast("Link de inscrição copiado!", { tipo: 'sucesso' });
-        } else {
-            await UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: link, somenteLeitura: true });
-        }
-        registrarLogAcao(`Gerou link de inscrição do evento`);
-    }
-
-    async function copiarLinkEvento(eventoId) {
-        await gerarLinkEvento(eventoId, false);
-    }
-
-    function fecharModalLinkGerado() {
-        document.getElementById('modalLinkGerado').classList.add('hidden');
-    }
-
-    function copiarTextoLink() {
-        const txt = document.getElementById('textoLinkGerado').innerText;
-        navigator.clipboard.writeText(txt).then(() => UI.toast("Link copiado!", { tipo: 'sucesso' })).catch(() => UI.prompt("Copie o link abaixo:", { titulo: 'Copiar link', valor: txt, somenteLeitura: true }));
-    }
-
-    async function excluirEvento(id) {
-        const ev = listaEventos.find(e => e.id === id);
-        const nome = ev ? ev.nome : '';
-        if (!(await UI.confirmar(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`, { titulo: 'Excluir evento', textoOk: 'Excluir', perigo: true }))) return;
-        try {
-            const inscricoes = inscricoesPorEvento[id] || [];
-            const urlsComprovantes = inscricoes.map(i => i.comprovante_url).filter(Boolean);
-            const urlsFotos = (ev && ev.foto_url) ? [ev.foto_url] : [];
-
-            await enviarBackupArquivos(`Backup do evento "${nome}" (excluído) - Sistema Videira`, urlsFotos.concat(urlsComprovantes));
-
-            const { error: insErr } = await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
-            if (insErr) throw insErr;
-            const { error } = await supabaseClient.from('eventos').delete().eq('id', id);
-            if (error) throw error;
-            await apagarArquivosStorage('comprovantes', urlsComprovantes);
-            await apagarArquivosStorage('eventos', urlsFotos);
-            registrarLogAcao(`Excluiu o evento "${nome}"`);
-            await carregarEventos();
-        } catch (err) {
-            console.error(err);
-            UI.toast("Erro ao excluir evento: " + (err.message || ''), { tipo: 'erro' });
-        }
-    }
-
-    async function abrirModalInscricoes(eventoId) {
-        const ev = listaEventos.find(e => e.id === eventoId);
-        const inscricoes = inscricoesPorEvento[eventoId] || [];
-        document.getElementById('tituloInscricoes').innerText = `Inscrições • ${ev ? ev.nome : ''}`;
-        document.getElementById('totalInscricoes').innerText = `${inscricoes.length} inscrição(ões)`;
-        const div = document.getElementById('listaInscricoes');
-        div.innerHTML = '';
-        if (!inscricoes.length) {
-            div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma inscrição ainda.</p>';
-        } else {
-            inscricoes.forEach(i => {
-                const wa = linkWhatsApp(i.telefone);
-                const comprovante = linkArquivoSeguro(i.comprovante_url);
-                const confirmada = (i.status || '').toLowerCase() === 'confirmada';
-                const estiloCard = confirmada
-                    ? ' style="background:#eef8f0; border-color:#bfe3c9; border-left:4px solid var(--success-text);"'
-                    : '';
-                div.innerHTML += `
-                    <div class="member-card"${estiloCard}>
-                        <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill${confirmada ? ' active' : ''}">${escaparHTML(i.status || 'pendente')}</span></div>
-                        ${i.email ? `<div class="card-info"><i class="fas fa-envelope"></i> ${escaparHTML(i.email)}</div>` : ''}
-                        ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)} ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="btn-card" style="flex:0 0 auto; padding:2px 8px; font-size:0.65rem; color:#1e8e3e; margin-left:4px;" title="Conversar no WhatsApp"><i class="fab fa-whatsapp"></i> Chamar</a>` : ''}</div>` : ''}
-                        ${i.celula ? `<div class="card-info"><i class="fas fa-users"></i> ${escaparHTML(i.celula)}</div>` : ''}
-                        ${i.observacoes ? `<div class="card-info"><i class="fas fa-circle-info"></i> ${escaparHTML(i.observacoes)}</div>` : ''}
-                        ${comprovante ? `<div class="card-info"><i class="fas fa-receipt"></i> <a href="${comprovante}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:600;">Ver comprovante</a></div>` : ''}
-                        <div class="card-actions">
-                            <button class="btn-card" style="color:var(--success-text);" onclick="alterarStatusInscricao('${i.id}','confirmada')">Confirmar</button>
-                            <button class="btn-card" style="color:#b58900;" onclick="alterarStatusInscricao('${i.id}','pendente')">Pendente</button>
-                            <button class="btn-card" style="color:var(--danger-text);" onclick="alterarStatusInscricao('${i.id}','cancelada')">Cancelar</button>
-                            <button class="btn-card" style="color:var(--danger-text);" onclick="excluirInscricao('${i.id}')"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>`;
-            });
-        }
-        const modal = document.getElementById('modalInscricoes');
-        modal.classList.remove('hidden');
-        modal.dataset.eventoId = eventoId;
-    }
-
-    async function imprimirInscritos(eventoId) {
-        const ev = listaEventos.find(e => e.id === eventoId);
-        if (!ev) return;
-        const inscricoes = inscricoesPorEvento[eventoId] || [];
-        if (!inscricoes.length) { UI.toast('Nenhuma inscrição para imprimir.', { tipo: 'aviso' }); return; }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const largura = doc.internal.pageSize.getWidth();
-        const altura = doc.internal.pageSize.getHeight();
-        const PRIMARIA = [128, 0, 32];
-        const OURO = [212, 175, 55];
-
-        try {
-            const resp = await fetch('logo.png');
-            const blob = await resp.blob();
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            await new Promise(r => { reader.onload = r; });
-            doc.addImage(reader.result, 'PNG', 14, 10, 18, 18);
-        } catch (e) {}
-
-        doc.setFillColor(...PRIMARIA);
-        doc.rect(0, 0, largura, 32, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text('LISTA DE INSCRITOS', 40, 18);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.text(ev.nome || '', 40, 25);
-        doc.setFillColor(...OURO);
-        doc.rect(0, 32, largura, 1.6, 'F');
-
-        doc.setTextColor(70, 70, 70);
-        doc.setFontSize(9);
-        const confirmadas = inscricoes.filter(i => (i.status || '').toLowerCase() === 'confirmada').length;
-        const pendentes = inscricoes.filter(i => (i.status || 'pendente').toLowerCase() === 'pendente').length;
-        const canceladas = inscricoes.filter(i => (i.status || '').toLowerCase() === 'cancelada').length;
-        const info = [
-            `Data: ${formatarDataBR(ev.data_evento)}${ev.hora_evento ? ' às ' + ev.hora_evento : ''}`,
-            `Local: ${ev.local || '-'}`,
-            `Valor: ${formatarValorBR(ev.valor)}${ev.pix_chave ? '  |  PIX: ' + ev.pix_chave : ''}`,
-            `Inscrições: ${ev.inscricoes_abertas === false ? 'Encerradas (manual)' : 'Abertas'}${ev.data_fim_inscricoes ? ' até ' + formatarDataBR(ev.data_fim_inscricoes) : ''}`,
-            `Total: ${inscricoes.length}  |  Confirmadas: ${confirmadas}  |  Pendentes: ${pendentes}  |  Canceladas: ${canceladas}`,
-            `Gerado em ${new Date().toLocaleString('pt-BR')}`
-        ];
-        let y = 40;
-        info.forEach(t => { doc.text(t, 14, y); y += 5; });
-
-        const body = inscricoes.map((i, idx) => [
-            idx + 1,
-            i.nome || '',
-            i.telefone || '',
-            i.email || '',
-            i.celula || '',
-            (i.status || 'pendente'),
-            i.comprovante_url ? 'Sim' : 'Não',
-            i.observacoes || ''
-        ]);
-
-        doc.autoTable({
-            startY: y + 2,
-            head: [['#', 'Nome', 'Telefone', 'E-mail', 'Célula', 'Status', 'Compr.', 'Observações']],
-            body,
-            theme: 'grid',
-            styles: { fontSize: 7.5, cellPadding: 1.6, valign: 'middle', textColor: [50, 50, 50], overflow: 'linebreak' },
-            headStyles: { fillColor: PRIMARIA, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-            alternateRowStyles: { fillColor: [250, 244, 246] },
-            columnStyles: {
-                0: { cellWidth: 8, halign: 'center' },
-                1: { cellWidth: 33 },
-                2: { cellWidth: 22 },
-                3: { cellWidth: 33 },
-                4: { cellWidth: 22 },
-                5: { cellWidth: 17, halign: 'center' },
-                6: { cellWidth: 13, halign: 'center' },
-                7: { cellWidth: 'auto' }
-            },
-            didParseCell: (data) => {
-                if (data.section === 'body' && data.column.index === 5) {
-                    const v = String(data.cell.raw || '').toLowerCase();
-                    if (v === 'confirmada') data.cell.styles.textColor = [21, 128, 61];
-                    else if (v === 'cancelada') data.cell.styles.textColor = [185, 28, 28];
-                    else data.cell.styles.textColor = [181, 137, 0];
-                }
-            },
-            didDrawPage: () => {
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text('Igreja Videira • Sistema de Células', 14, altura - 8);
-                doc.text(`Página ${doc.internal.getNumberOfPages()}`, largura - 14, altura - 8, { align: 'right' });
-            }
-        });
-
-        const nomeArquivo = (ev.nome || 'evento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\-]+/g, '_');
-        doc.save(`Inscritos_${nomeArquivo}.pdf`);
-        registrarLogAcao(`Gerou PDF dos inscritos do evento "${ev.nome}" (${inscricoes.length})`);
-    }
-
-    async function alterarStatusInscricao(id, status) {
-        try {
-            const { error } = await supabaseClient.from('inscricoes_eventos').update({ status }).eq('id', id);
-            if (error) throw error;
-            registrarLogAcao(`Alterou status de inscrição para "${status}"`);
-            if (status === 'confirmada') notificarPagamentoConfirmado(id);
-            const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
-            await carregarEventos();
-            if (eventoId) abrirModalInscricoes(eventoId);
-        } catch (err) {
-            console.error(err);
-            UI.toast("Erro ao alterar status: " + (err.message || ''), { tipo: 'erro' });
-        }
-    }
-
-    async function excluirInscricao(id) {
-        if (!(await UI.confirmar("Excluir esta inscrição?", { titulo: 'Excluir inscrição', textoOk: 'Excluir', perigo: true }))) return;
-        const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
-        const inscricao = (inscricoesPorEvento[eventoId] || []).find(i => i.id === id);
-        try {
-            const { error } = await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
-            if (error) throw error;
-            if (inscricao && inscricao.comprovante_url) {
-                await enviarBackupArquivos(`Backup do comprovante (inscrição excluída) - Sistema Videira`, [inscricao.comprovante_url]);
-                await apagarArquivosStorage('comprovantes', [inscricao.comprovante_url]);
-            }
-            registrarLogAcao(`Excluiu uma inscrição`);
-            await carregarEventos();
-            if (eventoId) abrirModalInscricoes(eventoId);
-        } catch (err) {
-            console.error(err);
-            UI.toast("Erro ao excluir inscrição: " + (err.message || ''), { tipo: 'erro' });
-        }
-    }
-
-    function fecharModalInscricoes() {
-        document.getElementById('modalInscricoes').classList.add('hidden');
-    }
-
-    function previewFotoEvento(input) {
-        const prev = document.getElementById('eventoFotoPreview');
-        if (input.files && input.files[0]) {
-            prev.src = URL.createObjectURL(input.files[0]);
-            prev.style.display = 'block';
-        }
     }
 
     // ========== PALAVRAS ==========
@@ -1636,6 +936,8 @@
             btn.classList.add('hidden');
         }
         document.getElementById('modalPalavra').classList.remove('hidden');
+        // TRAVAR SCROLL DO FUNDO
+        document.body.style.overflow = 'hidden';
     
         // 🔹 REGISTRA LOG DA AÇÃO
         const titulo = p.tema || 'Sem título';
@@ -1687,14 +989,272 @@
             await carregarPalavrasDados();
         } catch (error) {
             console.error("Erro ao salvar palavra:", error);
-            UI.toast("Erro ao salvar: " + error.message, { tipo: 'erro' });
+            alert("Erro ao salvar: " + error.message);
         }
     }
 
+    // ========== EVENTOS / ENCONTROS ==========
+    let listaEventos = [];
+    let inscricoesPorEvento = {};
 
+    async function carregarEventos() {
+        const { data: ev } = await supabaseClient
+            .from('eventos')
+            .select('*')
+            .order('data_evento', { ascending: false });
+        listaEventos = ev || [];
+        const { data: ins } = await supabaseClient
+            .from('inscricoes_eventos')
+            .select('id, evento_id, nome, email, telefone, celula, status, criado_em')
+            .order('criado_em', { ascending: false });
+        inscricoesPorEvento = {};
+        (ins || []).forEach(i => {
+            if (!inscricoesPorEvento[i.evento_id]) inscricoesPorEvento[i.evento_id] = [];
+            inscricoesPorEvento[i.evento_id].push(i);
+        });
+        renderizarEventos();
+    }
 
+    function formatarDataBR(d) {
+        if (!d) return '';
+        const p = String(d).split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+    }
+    function formatarValorBR(v) {
+        const n = parseFloat(v || 0);
+        return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
 
-    
+    function renderizarEventos() {
+        const grid = document.getElementById('listaEventos');
+        const cont = document.getElementById('totalEventos');
+        grid.innerHTML = '';
+        cont.innerText = listaEventos.length;
+        if (!listaEventos.length) {
+            grid.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px; grid-column:1/-1;">Nenhum evento criado ainda.</p>';
+            return;
+        }
+        listaEventos.forEach(ev => {
+            const inscricoes = inscricoesPorEvento[ev.id] || [];
+            const abertas = inscricoes.filter(i => i.status !== 'cancelada').length;
+            const encerrado = ev.data_fim_inscricoes && ev.data_fim_inscricoes < new Date().toISOString().split('T')[0];
+            const statusHtml = encerrado
+                ? `<span class="status-pill" style="background:#fde8e8; color:#991b1b;">Inscrições encerradas</span>`
+                : `<span class="status-pill active">Inscrições abertas</span>`;
+            grid.innerHTML += `
+                <div class="member-card">
+                    ${ev.foto_url ? `<img src="${ev.foto_url}" style="width:100%; height:160px; object-fit:cover; border-radius:12px; margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
+                    <div class="card-header">
+                        <h4 class="card-name">${escaparHTML(ev.nome)}</h4>
+                        <span class="cat-badge" style="background:rgba(212,175,55,0.15); color:#b58900; border-color:#D4AF37; text-transform:uppercase;">${escaparHTML(ev.tipo || 'Evento')}</span>
+                    </div>
+                    <div class="card-info"><i class="fas fa-calendar-day"></i> ${formatarDataBR(ev.data_evento)} ${ev.hora_evento ? '• ' + ev.hora_evento : ''}</div>
+                    ${ev.local ? `<div class="card-info"><i class="fas fa-map-marker-alt"></i> ${escaparHTML(ev.local)}</div>` : ''}
+                    <div class="card-info"><i class="fas fa-tag"></i> Valor: ${formatarValorBR(ev.valor)}</div>
+                    ${ev.data_fim_inscricoes ? `<div class="card-info"><i class="fas fa-hourglass-end"></i> Inscrições até ${formatarDataBR(ev.data_fim_inscricoes)}</div>` : ''}
+                    <div class="status-row">${statusHtml}<span class="status-pill">${abertas} inscrições</span></div>
+                    <div class="card-actions">
+                        <button onclick="copiarLinkEvento('${ev.id}')" class="btn-card" style="background:var(--success-bg); color:var(--success-text); border-color:#c3e6cb;" title="Copiar link de inscrição"><i class="fas fa-link"></i></button>
+                        <button onclick="abrirModalInscricoes('${ev.id}')" class="btn-card" title="Ver inscrições"><i class="fas fa-list-ul"></i></button>
+                        <button onclick="abrirModalEvento('${ev.id}')" class="btn-card" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="excluirEvento('${ev.id}','${escaparHTML(ev.nome)}')" class="btn-card" style="color:var(--danger-text);" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function abrirModalEvento(id) {
+        document.getElementById('formEvento').reset();
+        document.getElementById('eventoId').value = id || '';
+        document.getElementById('eventoFotoPreview').style.display = 'none';
+        document.getElementById('eventoFotoPreview').src = '';
+        if (id) {
+            const ev = listaEventos.find(e => e.id === id);
+            if (!ev) return;
+            document.getElementById('eventoNome').value = ev.nome || '';
+            document.getElementById('eventoTipo').value = ev.tipo || 'encontro';
+            document.getElementById('eventoData').value = ev.data_evento || '';
+            document.getElementById('eventoHora').value = ev.hora_evento || '';
+            document.getElementById('eventoLocal').value = ev.local || '';
+            document.getElementById('eventoValor').value = ev.valor || '';
+            document.getElementById('eventoFimInscricoes').value = ev.data_fim_inscricoes || '';
+            document.getElementById('eventoDescricao').value = ev.descricao || '';
+            if (ev.foto_url) {
+                const prev = document.getElementById('eventoFotoPreview');
+                prev.src = ev.foto_url;
+                prev.style.display = 'block';
+            }
+            document.getElementById('tituloModalEvento').innerText = 'Editar Evento';
+        } else {
+            document.getElementById('tituloModalEvento').innerText = 'Novo Evento';
+            const hoje = new Date();
+            const dias = d => { const x = new Date(hoje); x.setDate(x.getDate() + d); return x.toISOString().split('T')[0]; };
+            document.getElementById('eventoData').value = dias(15);
+            document.getElementById('eventoFimInscricoes').value = dias(10);
+        }
+        document.getElementById('modalEvento').classList.remove('hidden');
+    }
+
+    async function salvarEvento(e) {
+        e.preventDefault();
+        const id = document.getElementById('eventoId').value;
+        const nome = document.getElementById('eventoNome').value.trim();
+        const dataEvento = document.getElementById('eventoData').value;
+        if (!nome || !dataEvento) { alert("Preencha nome e data do evento."); return; }
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        try {
+            let foto_url = '';
+            const fileInput = document.getElementById('eventoFoto');
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+                const path = `eventos/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+                const { error: upErr } = await supabaseClient.storage.from('eventos').upload(path, file, { upsert: false, contentType: file.type });
+                if (upErr) throw upErr;
+                foto_url = supabaseClient.storage.from('eventos').getPublicUrl(path).data.publicUrl;
+            } else {
+                foto_url = document.getElementById('eventoFotoPreview').src || '';
+            }
+            const dados = {
+                nome,
+                tipo: document.getElementById('eventoTipo').value,
+                data_evento: dataEvento,
+                hora_evento: document.getElementById('eventoHora').value || null,
+                local: document.getElementById('eventoLocal').value.trim() || null,
+                valor: parseFloat(document.getElementById('eventoValor').value || 0),
+                data_fim_inscricoes: document.getElementById('eventoFimInscricoes').value || null,
+                descricao: document.getElementById('eventoDescricao').value.trim() || null,
+                foto_url: foto_url || null
+            };
+            let eventoId = id;
+            if (id) {
+                await supabaseClient.from('eventos').update(dados).eq('id', id);
+                registrarLogAcao(`Editou o evento "${nome}"`);
+            } else {
+                dados.criado_por = sessionStorage.getItem('pastorId');
+                const { data: novo } = await supabaseClient.from('eventos').insert([dados]).select('id').single();
+                eventoId = novo.id;
+                registrarLogAcao(`Criou o evento "${nome}"`);
+            }
+            document.getElementById('modalEvento').classList.add('hidden');
+            await carregarEventos();
+            gerarLinkEvento(eventoId, true);
+        } catch (err) {
+            console.error("Erro ao salvar evento:", err);
+            alert("Erro ao salvar evento: " + (err.message || ''));
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function gerarLinkEvento(eventoId, abrirModal) {
+        const base = window.location.href.split('/').slice(0, -1).join('/');
+        const link = `${base}/inscricao-evento.html?evento=${eventoId}`;
+        try {
+            await navigator.clipboard.writeText(link);
+            if (abrirModal) {
+                document.getElementById('modalLinkGerado').classList.remove('hidden');
+                document.getElementById('textoLinkGerado').innerText = link;
+            } else {
+                alert("Link de inscrição copiado!");
+            }
+        } catch (err) {
+            if (abrirModal) {
+                document.getElementById('modalLinkGerado').classList.remove('hidden');
+                document.getElementById('textoLinkGerado').innerText = link;
+            } else {
+                prompt("Copie o link abaixo:", link);
+            }
+        }
+        registrarLogAcao(`Gerou link de inscrição do evento`);
+    }
+
+    async function copiarLinkEvento(eventoId) {
+        await gerarLinkEvento(eventoId, false);
+    }
+
+    function fecharModalLinkGerado() {
+        document.getElementById('modalLinkGerado').classList.add('hidden');
+    }
+
+    function copiarTextoLink() {
+        const txt = document.getElementById('textoLinkGerado').innerText;
+        navigator.clipboard.writeText(txt).then(() => alert("Link copiado!"));
+    }
+
+    async function excluirEvento(id, nome) {
+        if (!confirm(`Excluir o evento "${nome}"? As inscrições vinculadas também serão removidas.`)) return;
+        try {
+            await supabaseClient.from('inscricoes_eventos').delete().eq('evento_id', id);
+            await supabaseClient.from('eventos').delete().eq('id', id);
+            registrarLogAcao(`Excluiu o evento "${nome}"`);
+            await carregarEventos();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao excluir evento.");
+        }
+    }
+
+    async function abrirModalInscricoes(eventoId) {
+        const ev = listaEventos.find(e => e.id === eventoId);
+        const inscricoes = inscricoesPorEvento[eventoId] || [];
+        document.getElementById('tituloInscricoes').innerText = `Inscrições • ${ev ? ev.nome : ''}`;
+        document.getElementById('totalInscricoes').innerText = `${inscricoes.length} inscrição(ões)`;
+        const div = document.getElementById('listaInscricoes');
+        div.innerHTML = '';
+        if (!inscricoes.length) {
+            div.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhuma inscrição ainda.</p>';
+        } else {
+            inscricoes.forEach(i => {
+                div.innerHTML += `
+                    <div class="member-card">
+                        <div class="card-header"><h4 class="card-name">${escaparHTML(i.nome)}</h4><span class="status-pill">${escaparHTML(i.status || 'pendente')}</span></div>
+                        ${i.email ? `<div class="card-info"><i class="fas fa-envelope"></i> ${escaparHTML(i.email)}</div>` : ''}
+                        ${i.telefone ? `<div class="card-info"><i class="fab fa-whatsapp"></i> ${escaparHTML(i.telefone)}</div>` : ''}
+                        ${i.celula ? `<div class="card-info"><i class="fas fa-users"></i> ${escaparHTML(i.celula)}</div>` : ''}
+                        <div class="card-actions">
+                            <button class="btn-card" style="color:var(--success-text);" onclick="alterarStatusInscricao('${i.id}','confirmada')">Confirmar</button>
+                            <button class="btn-card" style="color:#b58900;" onclick="alterarStatusInscricao('${i.id}','pendente')">Pendente</button>
+                            <button class="btn-card" style="color:var(--danger-text);" onclick="alterarStatusInscricao('${i.id}','cancelada')">Cancelar</button>
+                            <button class="btn-card" style="color:var(--danger-text);" onclick="excluirInscricao('${i.id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`;
+            });
+        }
+        document.getElementById('modalInscricoes').classList.remove('hidden');
+        document.getElementById('modalInscricoes').dataset.eventoId = eventoId;
+    }
+
+    async function alterarStatusInscricao(id, status) {
+        await supabaseClient.from('inscricoes_eventos').update({ status }).eq('id', id);
+        registrarLogAcao(`Alterou status de inscrição para "${status}"`);
+        const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
+        await carregarEventos();
+        if (eventoId) abrirModalInscricoes(eventoId);
+    }
+
+    async function excluirInscricao(id) {
+        if (!confirm("Excluir esta inscrição?")) return;
+        await supabaseClient.from('inscricoes_eventos').delete().eq('id', id);
+        registrarLogAcao(`Excluiu uma inscrição`);
+        const eventoId = document.getElementById('modalInscricoes').dataset.eventoId;
+        await carregarEventos();
+        if (eventoId) abrirModalInscricoes(eventoId);
+    }
+
+    function fecharModalInscricoes() {
+        document.getElementById('modalInscricoes').classList.add('hidden');
+    }
+
+    function previewFotoEvento(input) {
+        const prev = document.getElementById('eventoFotoPreview');
+        if (input.files && input.files[0]) {
+            prev.src = URL.createObjectURL(input.files[0]);
+            prev.style.display = 'block';
+        }
+    }
+
     // ========== MINHA IGREJA (REMODELADA) ==========
     function carregarEstatisticas() {
         const ativos = obterAtivos();
@@ -1943,7 +1503,7 @@
     // Buscar dados atualizados
     const { data: celulas } = await supabaseClient.from('celulas').select('*');
     if (!celulas || celulas.length === 0) {
-        UI.toast("Nenhuma célula cadastrada.", { tipo: 'aviso' });
+        alert("Nenhuma célula cadastrada.");
         return;
     }
 
@@ -2158,7 +1718,7 @@
     // Abrir nova janela para impressão
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) {
-        UI.toast('Por favor, permita pop-ups para esta funcionalidade.', { tipo: 'aviso' });
+        alert('Por favor, permita pop-ups para esta funcionalidade.');
         return;
     }
     win.document.write(html);
@@ -2201,10 +1761,10 @@
     document.getElementById('selectCelulas').value = m[13] || '';
 }
     async function arquivarMembro(id, nome) {
-        if (await UI.confirmar(`Arquivar ${nome}?`, { titulo: 'Arquivar membro', textoOk: 'Arquivar' })) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
+        if (confirm(`Arquivar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: true }).eq('id', id); carregarTudo(); registrarLogAcao(`Arquivou Membro: ${nome}`); }
     }
     async function restaurarMembro(id, nome) {
-        if (await UI.confirmar(`Restaurar ${nome}?`, { titulo: 'Restaurar membro', textoOk: 'Restaurar' })) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
+        if (confirm(`Restaurar ${nome}?`)) { await supabaseClient.from('pessoas').update({ arquivado: false }).eq('id', id); carregarTudo(); registrarLogAcao(`Restaurou Membro Arquivado: ${nome}`); }
     }
 
     // ========== NAVEGAÇÃO ==========
@@ -2219,44 +1779,18 @@
         if (s === 'biblia') abrirBiblia()
         if (s === 'eventos') carregarEventos();
     }
-    // ========== TRAVAMENTO DE SCROLL DOS MODAIS ==========
-    // Mantem o fundo imovel enquanto qualquer modal-overlay estiver aberto.
-    let _scrollAntesDoModal = 0;
-    function travarScrollFundo() {
-        if (document.body.classList.contains('modal-aberto')) return;
-        _scrollAntesDoModal = window.scrollY || document.documentElement.scrollTop || 0;
-        document.body.style.top = '-' + _scrollAntesDoModal + 'px';
-        document.body.classList.add('modal-aberto');
-    }
-    function destravarScrollFundo() {
-        if (!document.body.classList.contains('modal-aberto')) return;
-        document.body.classList.remove('modal-aberto');
-        document.body.style.top = '';
-        window.scrollTo(0, _scrollAntesDoModal);
-    }
-    // Observa todos os modais: abre/fecha de qualquer jeito (funcao, clique no
-    // fundo, ESC etc.) e trava/destrava o scroll automaticamente.
-    function iniciarTravamentoModais() {
-        const modais = Array.from(document.querySelectorAll('.modal-overlay'));
-        if (!modais.length || !window.MutationObserver) return;
-        const atualizar = () => {
-            const algumAberto = modais.some(m => !m.classList.contains('hidden'));
-            if (algumAberto) travarScrollFundo();
-            else destravarScrollFundo();
-        };
-        const observer = new MutationObserver(atualizar);
-        modais.forEach(m => observer.observe(m, { attributes: true, attributeFilter: ['class'] }));
-        atualizar();
-    }
-
     function fecharModal(id) {
         document.getElementById(id).classList.add('hidden');
+        // Restaurar o scroll se o modal fechado for o de palavras
+        if (id === 'modalPalavra') {
+            document.body.style.overflow = '';
+        }
     }
     function fecharModalClique(e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden'); }
 
     function exportarExcel() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
+        if (!lista.length) return alert("Nenhum dado.");
         const ws = XLSX.utils.json_to_sheet(lista.map(m => ({ 
             Nome: m[1], 
             Categoria: m[2], 
@@ -2278,7 +1812,7 @@
     
     async function exportarPDF() {
         const lista = obterMembrosFiltrados();
-        if (!lista.length) return UI.toast("Nenhum dado.", { tipo: 'aviso' });
+        if (!lista.length) return alert("Nenhum dado.");
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
         try {
@@ -2290,7 +1824,7 @@
             doc.addImage(reader.result, 'PNG', 14, 10, 16, 16);
         } catch (e) {}
         doc.setFontSize(16); 
-        doc.text("Membros - Videira", 34, 16);
+        doc.text("Membros - Videira Jataí", 34, 16);
         doc.setFontSize(9); 
         doc.text(`Gerado em ${new Date().toLocaleString()} | Total: ${lista.length}`, 34, 22);
         doc.autoTable({
@@ -2342,8 +1876,9 @@
         return base;
     }
 
-    async function fazerLogout() { 
-        if(await UI.confirmar("Deseja sair do sistema?", { titulo: 'Sair', textoOk: 'Sair', perigo: true })) { 
+    //function fazerLogout() { if (confirm("Sair?")) { sessionStorage.clear(); window.location.href = "index.html"; } }
+    function fazerLogout() { 
+        if(confirm("Sair?")) { 
             sessionStorage.clear(); 
            window.location.href = "index.html?t=" + Date.now(); 
         } 
@@ -2354,7 +1889,7 @@
         document.getElementById('filtroStatusGeral').addEventListener('change', aplicarFiltros);
         document.getElementById('inputBusca').addEventListener('keyup', aplicarFiltros);
         document.getElementById('filtroCelula').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroMesAgenda').addEventListener('change', () => atualizarAgenda());
+        document.getElementById('filtroMesAgenda').addEventListener('change', () => renderizarAgenda(listaAgenda));
         document.getElementById('filtroLiderRede').addEventListener('change', filtrarCelulasRede);
         document.getElementById('filtroSupervisorRede').addEventListener('change', filtrarCelulasRede);
         
@@ -2395,7 +1930,7 @@
                 await carregarTudo();
                 mudarSecao('lista');
             } catch (err) { 
-                UI.toast("Erro ao salvar membro: " + err.message, { tipo: 'erro' }); 
+                alert("Erro ao salvar membro: " + err.message); 
             }
         });
 
@@ -2415,21 +1950,18 @@
                 else await supabaseClient.from('celulas').insert([dados]);
                 fecharModal('modalEditarCelula');
                 await carregarTudo();
-            } catch (err) { UI.toast("Erro ao salvar célula: " + err.message, { tipo: 'erro' }); }
+            } catch (err) { alert("Erro ao salvar célula: " + err.message); }
         });
         
 
         document.getElementById('formPalavra').addEventListener('submit', salvarPalavra);
         document.getElementById('formEvento').addEventListener('submit', salvarEvento);
-        document.getElementById('formAgenda').addEventListener('submit', salvarAgenda);
         setupMultiselects();
 
         const observer = new MutationObserver(() => {
             if (!document.getElementById('modalEditarCelula').classList.contains('hidden')) preencherSelectLideres();
         });
         observer.observe(document.getElementById('modalEditarCelula'), { attributes: true, attributeFilter: ['class'] });
-
-        iniciarTravamentoModais();
     }
 
     window.onload = () => {
@@ -2569,7 +2101,7 @@
                         })
                         .catch((err) => {
                             console.warn('Erro ao iniciar stream:', err);
-                            UI.toast('Não foi possível conectar à Vinha FM. Tente novamente.', { tipo: 'erro' });
+                            alert('Não foi possível conectar à Vinha FM. Tente novamente.');
                         });
                 } else {
                     radioAudio.pause();
@@ -2593,7 +2125,7 @@
                     radioPlaying = false;
                     radioToggle.classList.remove('playing');
                     radioIcon.className = 'fas fa-play';
-                    UI.toast('Stream indisponível no momento.', { tipo: 'erro' });
+                    alert('Stream indisponível no momento.');
                 }
             });
         });
@@ -2707,14 +2239,11 @@
     </div>
 
     <div id="secao-agenda" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
             <h4>Próximos Eventos</h4>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <button id="btnNovaAgenda" onclick="abrirModalAgenda()" class="btn-card" style="display:none; background:var(--primary); color:white; padding:7px 14px; font-size:0.72rem; border:none;"><i class="fas fa-plus"></i> Novo</button>
-                <select id="filtroMesAgenda" style="height:38px; width:auto; border-radius:8px; border:1px solid var(--border-color); padding:8px;">
-                    <option value="todos">Todos os meses</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-                </select>
-            </div>
+            <select id="filtroMesAgenda" style="height:38px; width:auto; border-radius:8px; border:1px solid var(--border-color); padding:8px;">
+                <option value="todos">Todos os meses</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+            </select>
         </div>
         <div id="listaAgenda" class="member-grid"></div>
     </div>
@@ -2953,28 +2482,12 @@
                 <div class="form-group" style="flex:1;"><label>Data Limite de Inscrição</label><input type="date" id="eventoFimInscricoes" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
                 <div class="form-group" style="flex:1;"><label>Local</label><input type="text" id="eventoLocal" placeholder="Endereço do evento" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
             </div>
-            <div class="form-group"><label>Chave PIX (opcional)</label><input type="text" id="eventoPixChave" placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
             <div class="form-group"><label>Foto do Evento</label>
                 <input type="file" id="eventoFoto" accept="image/*" onchange="previewFotoEvento(this)" style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:white;">
                 <img id="eventoFotoPreview" style="display:none; width:100%; max-height:180px; object-fit:cover; border-radius:10px; margin-top:8px;">
             </div>
             <div class="form-group"><label>Descrição</label><textarea id="eventoDescricao" rows="3" placeholder="Informações adicionais para os inscritos" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:vertical;"></textarea></div>
             <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;"><i class="fas fa-save"></i> Salvar Evento</button>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL AGENDA (manual) -->
-<div id="modalAgenda" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width:520px; max-height:90vh;" onclick="event.stopPropagation()">
-        <button class="btn-close-modal" onclick="fecharModal('modalAgenda')">&times;</button>
-        <h2 id="tituloModalAgenda" style="margin-top:0; margin-bottom:20px; color:var(--primary);">Novo Evento da Agenda</h2>
-        <form id="formAgenda">
-            <input type="hidden" id="agendaId">
-            <div class="form-group"><label>Data</label><input type="date" id="agendaData" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
-            <div class="form-group"><label>Título</label><input type="text" id="agendaTitulo" placeholder="Ex.: Culto de Celebração" required style="height:38px; width:100%; padding:8px; border:1px solid var(--border-color); border-radius:8px;"></div>
-            <div class="form-group"><label>Descrição (opcional)</label><textarea id="agendaDescricao" rows="3" placeholder="Detalhes do evento" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:vertical;"></textarea></div>
-            <button type="submit" style="background:var(--primary); color:white; width:100%; padding:12px; font-weight:600; border:none; border-radius:8px; margin-top:10px; cursor:pointer;"><i class="fas fa-save"></i> Salvar na Agenda</button>
         </form>
     </div>
 </div>
@@ -3003,8 +2516,6 @@
         </div>
     </div>
 </div>
-
-    <script src="js/pwa.js"></script>
 
 </body>
 </html>

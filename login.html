@@ -32,7 +32,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema - Videira Jataí</title>
+    <title>Sistema de Células - Videira</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -299,10 +299,10 @@
         
             const { data: pessoa } = await supabaseClient
                 .from('pessoas')
-                .select('nome, categoria')
+                .select('nome, categoria, super_admin')
                 .eq('email', emailParaLogin)
                 .maybeSingle();
-        
+
             if (!pessoa) {
                 erro.innerText = "⚠️ Registro não encontrado na base de dados.";
                 erro.style.display = 'block';
@@ -310,10 +310,17 @@
                 btn.disabled = false;
                 return;
             }
-        
+
             const nomeReal = pessoa.nome;
             const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
-        
+
+            if (pessoa.super_admin === true) {
+                registrarLog(entrada, nomeReal, "Fez login (super admin)");
+                gravarSessaoLocal(nomeReal, emailParaLogin, 'superadmin', ['superadmin']);
+                window.location.href = 'superadmin.html';
+                return;
+            }
+
             if (categoriaNormalizada !== 'administrador') {
                 registrarLog(entrada, nomeReal, "Fez login no sistema");
             }
@@ -457,7 +464,7 @@
 
                 const { data: pessoa } = await supabaseClient
                     .from('pessoas')
-                    .select('nome, categoria')
+                    .select('nome, categoria, super_admin')
                     .eq('email', cadastro.email)
                     .maybeSingle();
 
@@ -465,6 +472,14 @@
 
                 const nomeReal = pessoa.nome;
                 const categoriaNormalizada = normalizarCategoria(pessoa.categoria);
+
+                if (pessoa.super_admin === true) {
+                    registrarLog(cadastro.email, nomeReal, "Fez login (super admin)");
+                    gravarSessaoLocal(nomeReal, cadastro.email, 'superadmin', ['superadmin']);
+                    window.location.href = 'superadmin.html';
+                    return;
+                }
+
                 const paginas = paginasPorCategoria(categoriaNormalizada);
 
                 if (categoriaNormalizada !== 'administrador') {

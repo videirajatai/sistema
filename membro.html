@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Área do Membro - Videira Jataí</title>
+    <title>Sistema de Células - Videira</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,13 +16,14 @@
     <!-- Módulo centralizado da Bíblia -->
     <script src="js/biblia.js"></script>
     <script src="config.js"></script>
+    <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/push.js"></script>
 
     <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Videira Jataí">
+    <meta name="apple-mobile-web-app-title" content="Sistema de Células - Videira">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="manifest.json">
 
@@ -393,7 +394,7 @@
     <header>
         <div class="logo-area">
             <img src="logo.png" alt="Logo" class="logo">
-            <h1>Videira Jataí</h1>
+            <h1>Videira</h1>
         </div>
         <div>
             <button class="btn-refresh" onclick="carregarDados(this.querySelector('i'))" title="Atualizar Dados">
@@ -458,13 +459,13 @@
                 <h3 style="margin-top:0; color:#10b981;"><i class="fa-brands fa-pix"></i> Pagamento via PIX</h3>
                 <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px;">Escaneie o QR Code com o app do seu banco:</p>
                 
-                <div style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
+                <div id="pixQr" style="background:#f8fafc; padding:15px; border-radius:12px; display:inline-block; margin: 10px 0; border: 1px dashed #cbd5e1;">
                    <img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">
                 </div>
                 
-                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX (CNPJ):</p>
+                <p style="font-size: 0.9rem; color:var(--text-light); margin-bottom: 5px; margin-top: 10px;">Ou copie a chave PIX:</p>
                 <div class="pix-copy-box">
-                    <input type="text" id="chavePix" value="27.105.498/0001-03" readonly>
+                    <input type="text" id="chavePix" value="27105498000103" readonly>
                     <button onclick="copiarPix()" id="btnCopiarPix">
                         <i class="far fa-copy"></i> Copiar
                     </button>
@@ -555,7 +556,9 @@
         }
 
         // ================= CONFIGURAÇÕES =================
-        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+            global: { headers: { 'x-igreja-id': (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '') } }
+        });
         if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
         let listaPalavras = [];
@@ -571,6 +574,22 @@
 
             const navContainer = document.getElementById('navCapituloContainer');
             navContainer.style.display = (idAba === 'aba-biblia') ? 'flex' : 'none';
+        }
+
+        // ================= PIX (aba Ofertas) =================
+        // Le a chave PIX da igreja e gera o QR a partir dela. Se a igreja ainda
+        // nao cadastrou, mantem o HTML estatico (chave/QR antigos) como fallback.
+        async function carregarPixTela() {
+            const container = document.getElementById('pixQr');
+            const input = document.getElementById('chavePix');
+            const pix = await resolverPixIgreja(supabaseClient);
+            if (!pix) return;
+            if (input) input.value = pix.chave;
+            if (container) {
+                container.innerHTML = '';
+                const ok = gerarQRCode(pixBrCode(pix), container);
+                if (!ok) container.innerHTML = '<img src="pix.png" alt="QR Code PIX" style="width:150px; height:150px; border-radius:8px;">';
+            }
         }
 
         // ================= COPIAR PIX =================
@@ -615,11 +634,22 @@
             }
 
             try {
-                const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "buscarAgenda" }) });
-                const responseData = await respostaAgenda.json();
-                if (responseData.status === "sucesso") renderizarAgenda(responseData.dados);
-                else renderizarAgenda([]);
+                const igrejaId = await resolverIgrejaAtual(supabaseClient);
+                if (usaGoogleAgenda(igrejaId)) {
+                    const respostaAgenda = await fetch(URL_GOOGLE_SCRIPT, { method: 'POST', body: JSON.stringify({ action: "buscarAgenda" }) });
+                    const responseData = await respostaAgenda.json();
+                    renderizarAgenda(responseData.status === "sucesso" ? responseData.dados : []);
+                } else {
+                    const { data, error } = await supabaseClient
+                        .from('agenda')
+                        .select('data, titulo, descricao')
+                        .order('data', { ascending: true });
+                    if (error) throw error;
+                    renderizarAgenda(agendaParaLinhas(data));
+                }
             } catch(e) { console.error(e); renderizarAgenda([]); }
+
+            try { await carregarPixTela(); } catch(e) { console.warn('PIX:', e); }
 
             if(icon) icon.classList.remove('fa-spin');
         }
