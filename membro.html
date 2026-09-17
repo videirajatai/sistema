@@ -18,6 +18,7 @@
     <script src="config.js"></script>
     <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/push.js"></script>
+    <script src="js/acesso.js"></script>
 
     <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -557,7 +558,7 @@
 
         // ================= CONFIGURAÇÕES =================
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
-            global: { headers: { 'x-igreja-id': (typeof IGREJA_ID !== 'undefined' ? IGREJA_ID : '') } }
+            global: { headers: { 'x-igreja-id': igrejaDaUrl() } }
         });
         if (window.VideiraPush) VideiraPush.ativar(supabaseClient);
         const URL_GOOGLE_SCRIPT = sessionStorage.getItem('urlApi') || "SUA_URL_DO_GOOGLE_AQUI";
@@ -897,6 +898,7 @@ async function baixarPalavraWord() {
             }
             carregarDados(null);
             document.getElementById('navCapituloContainer').style.display = 'flex';
+            if (window.Acesso && await Acesso.proteger(supabaseClient)) return;
         });
     </script>
     <script src="js/pwa.js"></script>

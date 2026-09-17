@@ -89,6 +89,11 @@
       .log-text strong { color: var(--primary); }
 
       .form-box { background: #fff; padding: 18px; border-radius: 12px; box-shadow: var(--shadow); }
+      .cfg-title { margin: 18px 0 10px; color: #000; font-size: 0.95rem; }
+      .cfg-title:first-child { margin-top: 0; }
+      .cfg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+      .pi-ig-status { font-size: 0.85rem; margin-top: 10px; }
+      @media (max-width: 560px) { .cfg-row { grid-template-columns: 1fr; } }
       .pi-panel label { display: block; margin-bottom: 5px; color: var(--text-light); font-weight: 600; font-size: 0.84rem; }
       .pi-panel input, .pi-panel select { width: 100%; padding: 12px; background: var(--input-bg); margin-bottom: 14px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; box-sizing: border-box; }
       .btn-save { padding: 14px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
@@ -155,7 +160,10 @@
 
         <div class="secao-titulo">
           <h4>Igrejas</h4>
-          <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="abrirFinanceiro()" class="btn-add" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;"><i class="fas fa-coins"></i> Financeiro</button>
+            <button onclick="novaIgreja()" class="btn-add"><i class="fas fa-plus"></i> Nova Igreja</button>
+          </div>
         </div>
         <div id="listaIgrejas"><p class="carregando">Carregando...</p></div>
 
@@ -175,6 +183,8 @@
 
         <div class="pi-tabs">
           <button id="pi-tab-usuarios" class="pi-tab active" onclick="piMudarAba('usuarios')"><i class="fas fa-users-cog"></i><span> Usuários</span></button>
+          <button id="pi-tab-igreja" class="pi-tab" onclick="piMudarAba('igreja')"><i class="fas fa-church"></i><span> Igreja</span></button>
+          <button id="pi-tab-plano" class="pi-tab" onclick="piMudarAba('plano')"><i class="fas fa-file-invoice-dollar"></i><span> Plano</span></button>
           <button id="pi-tab-logs" class="pi-tab" onclick="piMudarAba('logs')"><i class="fas fa-history"></i><span> Logs</span></button>
           <button id="pi-tab-notificacoes" class="pi-tab" onclick="piMudarAba('notificacoes')"><i class="fas fa-bell"></i><span> Notificações</span></button>
         </div>
@@ -244,6 +254,188 @@
             </div>
           </div>
 
+          <div id="pi-secao-igreja" class="hidden">
+            <div class="pi-sec-head">
+              <h4>Dados da Igreja</h4>
+            </div>
+            <div class="form-box">
+              <h4 class="cfg-title">Identificação</h4>
+              <label>Razão Social</label>
+              <input type="text" id="igRazaoSocial" maxlength="200" placeholder="Ex: Igreja Videira em Jatai" autocomplete="off">
+
+              <div class="cfg-row">
+                <div>
+                  <label>CNPJ</label>
+                  <input type="text" id="igCnpj" maxlength="20" placeholder="00.000.000/0000-00" autocomplete="off" oninput="this.value = piMascaraCnpj(this.value)">
+                </div>
+                <div>
+                  <label>Telefone do Pastor</label>
+                  <input type="tel" id="igTelefonePastor" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off" oninput="this.value = piMascaraTelefone(this.value)">
+                </div>
+              </div>
+
+              <div class="cfg-row">
+                <div>
+                  <label>E-mail da Secretaria</label>
+                  <input type="email" id="igEmailSecretaria" maxlength="200" placeholder="secretaria@igreja.com" autocomplete="off">
+                </div>
+                <div>
+                  <label>Horários de culto</label>
+                  <input type="text" id="igHorariosCulto" maxlength="300" placeholder="Dom 19h · Qua 20h" autocomplete="off">
+                </div>
+              </div>
+
+              <h4 class="cfg-title">Endereço</h4>
+              <div class="cfg-row">
+                <div>
+                  <label>CEP</label>
+                  <input type="text" id="igCep" maxlength="9" placeholder="00000-000" autocomplete="off" oninput="this.value = piMascaraCep(this.value); if (this.value.length === 9) piBuscarCep()">
+                </div>
+                <div>
+                  <label>Endereço</label>
+                  <input type="text" id="igLogradouro" maxlength="200" placeholder="Rua / Avenida" autocomplete="off">
+                </div>
+              </div>
+              <div class="cfg-row">
+                <div>
+                  <label>Número</label>
+                  <input type="text" id="igNumero" maxlength="20" placeholder="123" autocomplete="off">
+                </div>
+                <div>
+                  <label>Bairro</label>
+                  <input type="text" id="igBairro" maxlength="120" placeholder="Centro" autocomplete="off">
+                </div>
+              </div>
+              <div class="cfg-row">
+                <div>
+                  <label>Cidade</label>
+                  <input type="text" id="igCidade" maxlength="120" placeholder="Jatai" autocomplete="off">
+                </div>
+                <div>
+                  <label>UF</label>
+                  <input type="text" id="igUf" maxlength="2" placeholder="GO" autocomplete="off" style="text-transform: uppercase;">
+                </div>
+              </div>
+              <label>Complemento</label>
+              <input type="text" id="igComplemento" maxlength="120" placeholder="Sala, bloco..." autocomplete="off">
+
+              <h4 class="cfg-title">Pastores</h4>
+              <div class="cfg-row">
+                <div>
+                  <label>Pastor de Governo</label>
+                  <input type="text" id="igPastorGoverno" maxlength="120" placeholder="Nome" autocomplete="off">
+                </div>
+                <div>
+                  <label>Pastor da Supervisão</label>
+                  <input type="text" id="igPastorSupervisao" maxlength="120" placeholder="Nome" autocomplete="off">
+                </div>
+              </div>
+
+              <h4 class="cfg-title">Redes sociais</h4>
+              <div class="cfg-row">
+                <div>
+                  <label>Instagram</label>
+                  <input type="text" id="igInstagram" maxlength="120" placeholder="@igreja" autocomplete="off">
+                </div>
+                <div>
+                  <label>Facebook</label>
+                  <input type="text" id="igFacebook" maxlength="120" placeholder="facebook.com/..." autocomplete="off">
+                </div>
+              </div>
+              <div class="cfg-row">
+                <div>
+                  <label>Site</label>
+                  <input type="text" id="igSite" maxlength="200" placeholder="https://..." autocomplete="off">
+                </div>
+                <div>
+                  <label>WhatsApp da Secretaria</label>
+                  <input type="tel" id="igWhatsappSecretaria" maxlength="30" placeholder="(64) 99999-9999" autocomplete="off" oninput="this.value = piMascaraTelefone(this.value)">
+                </div>
+              </div>
+
+              <h4 class="cfg-title">Dados bancários</h4>
+              <div class="cfg-row">
+                <div>
+                  <label>Banco</label>
+                  <input type="text" id="igBanco" maxlength="120" placeholder="Ex: Banco do Brasil" autocomplete="off">
+                </div>
+                <div>
+                  <label>Agência</label>
+                  <input type="text" id="igAgencia" maxlength="30" placeholder="0000-0" autocomplete="off">
+                </div>
+              </div>
+              <div class="cfg-row">
+                <div>
+                  <label>Conta</label>
+                  <input type="text" id="igConta" maxlength="40" placeholder="00000-0" autocomplete="off">
+                </div>
+                <div>
+                  <label>Tipo de conta</label>
+                  <input type="text" id="igTipoConta" maxlength="40" placeholder="Corrente / Poupança" autocomplete="off">
+                </div>
+              </div>
+              <label>Favorecido</label>
+              <input type="text" id="igFavorecido" maxlength="200" placeholder="Nome do titular da conta" autocomplete="off">
+
+              <button type="button" id="piBtnSalvarIgreja" class="btn-save" onclick="piSalvarIgrejaInfo()" style="width:100%; margin-top:5px;">Salvar dados da igreja</button>
+              <div id="piIgStatus" class="pi-ig-status"></div>
+            </div>
+          </div>
+
+          <div id="pi-secao-plano" class="hidden">
+            <div class="pi-sec-head">
+              <h4>Plano da Igreja</h4>
+            </div>
+            <div class="form-box">
+              <p style="font-size:0.85rem; color:#777; margin-top:0;">Defina o plano desta igreja. O valor e a situação aparecem no painel do administrador dela.</p>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Plano</label>
+                  <input type="text" id="piPlanoNome" maxlength="60" placeholder="Ex: Essencial" autocomplete="off">
+                </div>
+                <div>
+                  <label>Valor mensal (R$)</label>
+                  <input type="number" id="piPlanoValor" min="0" step="0.01" placeholder="199.90" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Situação</label>
+                  <select id="piPlanoStatus">
+                    <option value="trial">Em teste (trial)</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="isento">Isento</option>
+                    <option value="inadimplente">Inadimplente</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Dia do vencimento</label>
+                  <input type="number" id="piPlanoDia" min="1" max="31" placeholder="10" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="cfg-row">
+                <div>
+                  <label>Início</label>
+                  <input type="date" id="piPlanoInicio">
+                </div>
+                <div>
+                  <label>Fim do teste (trial)</label>
+                  <input type="date" id="piPlanoTrial">
+                </div>
+              </div>
+
+              <label>Observação</label>
+              <input type="text" id="piPlanoObs" maxlength="200" placeholder="Opcional" autocomplete="off">
+
+              <button type="button" id="piBtnSalvarPlano" class="btn-save" onclick="piSalvarPlano()" style="width:100%; margin-top:5px;">Salvar plano</button>
+              <div id="piPlanoStatusMsg" class="pi-ig-status"></div>
+            </div>
+          </div>
+
           <div id="pi-secao-logs" class="hidden">
             <div class="pi-sec-head">
               <h4>Últimas Ações</h4>
@@ -280,6 +472,37 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <div id="painelFinanceiro" class="pi-overlay hidden">
+      <div class="pi-panel" style="max-width:520px;">
+        <div class="pi-head">
+          <div style="min-width:0;">
+            <h3>Financeiro</h3>
+            <span class="pi-sub">Valores padronizados do sistema</span>
+          </div>
+          <button class="pi-close" onclick="fecharFinanceiro()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="pi-body">
+          <div class="form-box">
+            <p style="font-size:0.85rem; color:#777; margin-top:0;">Estes são os valores padrão oferecidos às igrejas. Cada igreja pode ter um valor próprio definido na aba <strong>Plano</strong> (que tem prioridade).</p>
+            <div class="cfg-row">
+              <div>
+                <label>Valor mensal padrão (R$)</label>
+                <input type="number" id="finMensal" min="0" step="0.01" placeholder="Ex: 199.90" autocomplete="off">
+              </div>
+              <div>
+                <label>Valor anual padrão (R$)</label>
+                <input type="number" id="finAnual" min="0" step="0.01" placeholder="Ex: 1999.00" autocomplete="off">
+              </div>
+            </div>
+            <label>Dias de teste (trial)</label>
+            <input type="number" id="finTrial" min="0" max="365" placeholder="Ex: 7" autocomplete="off">
+            <button type="button" id="finBtnSalvar" class="btn-save" onclick="salvarFinanceiro()" style="width:100%; margin-top:5px;">Salvar valores</button>
+            <div id="finStatus" class="pi-ig-status"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -392,9 +615,6 @@
               <button class="btn-acao principal" onclick="abrirPainelIgreja('${ig.id}')">
                 <i class="fas fa-folder-open"></i> Gerenciar
               </button>
-              <button class="btn-acao" onclick="gerarConvite('${ig.id}')">
-                <i class="fas fa-user-plus"></i> Convite
-              </button>
             </div>
           </div>`).join('');
       }
@@ -426,44 +646,145 @@
         carregarIgrejas();
       }
 
-      async function gerarConvite(igrejaId) {
-        const ig = IGREJAS.find(x => x.id === igrejaId);
-        const igrejaNome = ig ? ig.nome : 'Igreja';
+      /* ================= Plano (config -> plano) ================= */
+      const PI_PLANO_STATUS = ['trial', 'ativo', 'isento', 'inadimplente', 'cancelado'];
+      let piPlanoOriginal = {};
 
-        const usuario = await UI.prompt('Usuário de login (sem espaços):', {
-          titulo: 'Convite - ' + igrejaNome, placeholder: 'ex.: secretaria', textoOk: 'Continuar'
-        });
-        if (usuario === null) return;
+      function piDataIso(v) {
+        return /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 10) : '';
+      }
 
-        const u = usuario.trim().toLowerCase();
-        if (!u || /\s/.test(u)) { UI.toast('Usuário inválido (use um login sem espaços).', { tipo: 'aviso' }); return; }
+      async function piCarregarPlano() {
+        if (!igrejaAtual) return;
+        const status = document.getElementById('piPlanoStatusMsg');
+        if (status) status.innerHTML = '<span style="color:#999;">Carregando...</span>';
+        try {
+          const { data, error } = await sb.rpc('igreja_plano', { p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          const p = data || {};
+          piPlanoOriginal = Object.assign({}, p);
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+          set('piPlanoNome', p.plano || '');
+          set('piPlanoValor', (p.valor === null || p.valor === undefined) ? '' : p.valor);
+          set('piPlanoStatus', PI_PLANO_STATUS.indexOf(p.status) !== -1 ? p.status : 'ativo');
+          set('piPlanoDia', (p.dia_vencimento === null || p.dia_vencimento === undefined) ? '' : p.dia_vencimento);
+          set('piPlanoInicio', piDataIso(p.inicio));
+          set('piPlanoTrial', piDataIso(p.trial_fim));
+          set('piPlanoObs', p.observacao || '');
+          if (status) status.innerHTML = '';
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar o plano.</span>';
+          console.error(e);
+        }
+      }
 
-        const cat = await UI.prompt('Categoria do usuário:', {
-          titulo: 'Categoria', valor: 'Administrador', placeholder: 'Administrador', textoOk: 'Gerar convite'
-        });
-        if (cat === null) return;
-        const categoria = (cat || '').trim() || 'Administrador';
+      async function piSalvarPlano() {
+        if (!igrejaAtual) return;
+        const btn = document.getElementById('piBtnSalvarPlano');
+        const status = document.getElementById('piPlanoStatusMsg');
+        const valorRaw = (document.getElementById('piPlanoValor').value || '').trim();
+        const diaRaw = (document.getElementById('piPlanoDia').value || '').trim();
 
-        if (!(await piUsuarioDisponivel(u))) return;
+        if (diaRaw) {
+          const d = parseInt(diaRaw, 10);
+          if (isNaN(d) || d < 1 || d > 31) { UI.toast('Dia do vencimento deve estar entre 1 e 31.', { tipo: 'aviso' }); return; }
+        }
+        if (valorRaw !== '') {
+          const n = Number(valorRaw);
+          if (isNaN(n) || n < 0) { UI.toast('Valor invalido.', { tipo: 'aviso' }); return; }
+        }
 
-        const token = crypto.randomUUID();
-        const { error } = await sb.from('pessoas').insert([{
-          nome: u,
-          usuario: u,
-          categoria: categoria,
-          igreja_id: igrejaId,
-          is_user: true,
-          super_admin: false,
-          token_convite: token
-        }]);
+        const cabecalho = {};
+        cabecalho.plano = (document.getElementById('piPlanoNome').value || '').trim();
+        cabecalho.valor = valorRaw;
+        cabecalho.dia_vencimento = diaRaw;
+        cabecalho.status = document.getElementById('piPlanoStatus').value || 'ativo';
+        cabecalho.observacao = (document.getElementById('piPlanoObs').value || '').trim();
+        cabecalho.inicio = (document.getElementById('piPlanoInicio').value || '').trim() || (piPlanoOriginal.inicio || '');
+        cabecalho.trial_fim = (document.getElementById('piPlanoTrial').value || '').trim() || (piPlanoOriginal.trial_fim || '');
 
-        if (error) { UI.toast('Falha ao gerar convite: ' + error.message, { tipo: 'erro' }); console.error(error); return; }
+        if (btn) btn.disabled = true;
+        if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
+        try {
+          const { error } = await sb.rpc('definir_igreja_plano', { p_plano: cabecalho, p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          piPlanoOriginal = Object.assign({}, cabecalho);
+          if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Plano salvo com sucesso.</span>';
+          UI.toast('Plano atualizado!', { tipo: 'sucesso' });
+          piRegistrarLogAcao('Atualizou o plano: ' + (cabecalho.plano || 'sem nome') + ' (' + cabecalho.status + ')');
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar o plano.</span>';
+          UI.toast('Falha ao salvar o plano.', { tipo: 'erro' });
+          console.error(e);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
 
-        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        const link = base + 'completar-cadastro.html?token=' + token;
-        UI.prompt('Envie este link para a pessoa concluir o cadastro:', {
-          titulo: 'Link de convite', valor: link, somenteLeitura: true, textoOk: 'Fechar'
-        });
+      /* ================= Financeiro (valores padrao) ================= */
+      function abrirFinanceiro() {
+        document.getElementById('painelFinanceiro').classList.remove('hidden');
+        carregarFinanceiro();
+      }
+
+      function fecharFinanceiro() {
+        document.getElementById('painelFinanceiro').classList.add('hidden');
+      }
+
+      function finValor(id) {
+        const el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+      }
+
+      async function carregarFinanceiro() {
+        const status = document.getElementById('finStatus');
+        if (status) status.innerHTML = '<span style="color:#999;">Carregando...</span>';
+        try {
+          const { data, error } = await sb.rpc('config_financeiro');
+          if (error) throw error;
+          const c = data || {};
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === null || v === undefined) ? '' : v; };
+          set('finMensal', c.valor_mensal);
+          set('finAnual', c.valor_anual);
+          set('finTrial', c.trial_dias);
+          if (status) status.innerHTML = '';
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar os valores.</span>';
+          console.error(e);
+        }
+      }
+
+      async function salvarFinanceiro() {
+        const btn = document.getElementById('finBtnSalvar');
+        const status = document.getElementById('finStatus');
+        const mensal = finValor('finMensal');
+        const anual = finValor('finAnual');
+        const trial = finValor('finTrial');
+
+        for (const [rotulo, v] of [['mensal', mensal], ['anual', anual]]) {
+          if (v !== '' && (isNaN(Number(v)) || Number(v) < 0)) { UI.toast('Valor ' + rotulo + ' invalido.', { tipo: 'aviso' }); return; }
+        }
+        if (trial !== '' && (isNaN(parseInt(trial, 10)) || parseInt(trial, 10) < 0 || parseInt(trial, 10) > 365)) {
+          UI.toast('Dias de trial devem estar entre 0 e 365.', { tipo: 'aviso' }); return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
+        try {
+          const { error } = await sb.rpc('definir_config_financeiro', {
+            p_config: { valor_mensal: mensal, valor_anual: anual, trial_dias: trial }
+          });
+          if (error) throw error;
+          if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Valores salvos.</span>';
+          UI.toast('Valores padrao atualizados!', { tipo: 'sucesso' });
+          piRegistrarLogAcao('Atualizou os valores padrao (mensal=' + (mensal || '-') + ', anual=' + (anual || '-') + ')');
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar os valores.</span>';
+          UI.toast('Falha ao salvar os valores.', { tipo: 'erro' });
+          console.error(e);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       }
 
       async function piUsuarioDisponivel(usuario) {
@@ -473,8 +794,118 @@
         return true;
       }
 
+      /* ================= Dados da igreja (config -> info) ================= */
+      const PI_IGREJA_CAMPOS = {
+        razao_social: 'igRazaoSocial', cnpj: 'igCnpj',
+        cep: 'igCep', logradouro: 'igLogradouro', numero: 'igNumero', bairro: 'igBairro',
+        cidade: 'igCidade', uf: 'igUf', complemento: 'igComplemento',
+        email_secretaria: 'igEmailSecretaria', horarios_culto: 'igHorariosCulto',
+        telefone_pastor: 'igTelefonePastor', pastor_governo: 'igPastorGoverno',
+        pastor_supervisao: 'igPastorSupervisao', instagram: 'igInstagram',
+        facebook: 'igFacebook', site: 'igSite', whatsapp_secretaria: 'igWhatsappSecretaria',
+        banco: 'igBanco', agencia: 'igAgencia', conta: 'igConta',
+        tipo_conta: 'igTipoConta', favorecido: 'igFavorecido'
+      };
+      const PI_IGREJA_LABELS = {
+        razao_social: 'Razão Social', cnpj: 'CNPJ', cep: 'CEP', logradouro: 'Endereço',
+        numero: 'Número', bairro: 'Bairro', cidade: 'Cidade', uf: 'UF', complemento: 'Complemento',
+        email_secretaria: 'E-mail da secretaria', horarios_culto: 'Horários de culto',
+        telefone_pastor: 'Telefone do pastor', pastor_governo: 'Pastor de governo',
+        pastor_supervisao: 'Pastor da supervisão', instagram: 'Instagram', facebook: 'Facebook',
+        site: 'Site', whatsapp_secretaria: 'WhatsApp da secretaria', banco: 'Banco',
+        agencia: 'Agência', conta: 'Conta', tipo_conta: 'Tipo de conta', favorecido: 'Favorecido'
+      };
+      let piIgrejaInfoOriginal = {};
+
+      function piSoDigitos(v) { return String(v || '').replace(/\D/g, ''); }
+      function piMascaraCnpj(v) {
+        const n = piSoDigitos(v).slice(0, 14);
+        return n
+          .replace(/^(\d{2})(\d)/, '$1.$2')
+          .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+          .replace(/\.(\d{3})(\d)/, '.$1/$2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+      }
+      function piMascaraCep(v) {
+        const n = piSoDigitos(v).slice(0, 8);
+        return n.replace(/^(\d{5})(\d)/, '$1-$2');
+      }
+      function piMascaraTelefone(v) {
+        const n = piSoDigitos(v).slice(0, 11);
+        if (n.length <= 10) return n.replace(/^(\d{2})(\d{4})(\d)/, '($1) $2-$3');
+        return n.replace(/^(\d{2})(\d{5})(\d)/, '($1) $2-$3');
+      }
+
+      async function piBuscarCep() {
+        const campo = document.getElementById('igCep');
+        const cep = piSoDigitos(campo && campo.value);
+        if (cep.length !== 8) return;
+        try {
+          const resp = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+          const dados = await resp.json();
+          if (!dados || dados.erro) return;
+          const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+          set('igLogradouro', dados.logradouro);
+          set('igBairro', dados.bairro);
+          set('igCidade', dados.localidade);
+          set('igUf', dados.uf);
+          const numero = document.getElementById('igNumero');
+          if (numero) numero.focus();
+        } catch (e) { /* ignora falha de rede */ }
+      }
+
+      async function piCarregarIgrejaInfo() {
+        if (!igrejaAtual) return;
+        const status = document.getElementById('piIgStatus');
+        if (status) status.innerHTML = '<span style="color:#999;">Carregando...</span>';
+        try {
+          const { data, error } = await sb.rpc('igreja_info', { p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          piIgrejaInfoOriginal = {};
+          Object.keys(PI_IGREJA_CAMPOS).forEach(k => {
+            const el = document.getElementById(PI_IGREJA_CAMPOS[k]);
+            const valor = (data && data[k]) || '';
+            if (el) el.value = valor;
+            piIgrejaInfoOriginal[k] = valor;
+          });
+          if (status) status.innerHTML = '';
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Nao foi possivel carregar os dados da igreja.</span>';
+          console.error(e);
+        }
+      }
+
+      async function piSalvarIgrejaInfo() {
+        if (!igrejaAtual) return;
+        const btn = document.getElementById('piBtnSalvarIgreja');
+        const status = document.getElementById('piIgStatus');
+        const info = {};
+        Object.keys(PI_IGREJA_CAMPOS).forEach(k => {
+          const el = document.getElementById(PI_IGREJA_CAMPOS[k]);
+          if (el) info[k] = el.value.trim();
+        });
+        if (btn) btn.disabled = true;
+        if (status) status.innerHTML = '<span style="color:#999;">Salvando...</span>';
+        try {
+          const { error } = await sb.rpc('definir_igreja_info', { p_info: info, p_igreja_id: igrejaAtual.id });
+          if (error) throw error;
+          const alterados = Object.keys(info).filter(k => (info[k] || '') !== (piIgrejaInfoOriginal[k] || ''));
+          if (status) status.innerHTML = '<span style="color:#166534;"><i class="fas fa-check"></i> Dados salvos com sucesso.</span>';
+          UI.toast('Dados da igreja salvos!', { tipo: 'sucesso' });
+          piIgrejaInfoOriginal = Object.assign({}, info);
+          const resumo = alterados.map(k => PI_IGREJA_LABELS[k] || k).slice(0, 6).join(', ');
+          piRegistrarLogAcao('Atualizou os dados da igreja' + (resumo ? ': ' + resumo : ''));
+        } catch (e) {
+          if (status) status.innerHTML = '<span style="color:#b91c1c;">Erro ao salvar os dados da igreja.</span>';
+          UI.toast('Erro ao salvar os dados da igreja.', { tipo: 'erro' });
+          console.error(e);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
       /* ================= Modal da igreja ================= */
-      function abrirPainelIgreja(igrejaId) {
+      function abrirPainelIgreja(igrejaId, aba) {
         const ig = IGREJAS.find(x => x.id === igrejaId);
         if (!ig) return;
         igrejaAtual = ig;
@@ -483,7 +914,7 @@
         document.getElementById('painelIgreja').classList.remove('hidden');
         document.getElementById('piFiltroNome').value = '';
         document.getElementById('piFiltroCategoria').value = '';
-        piMudarAba('usuarios');
+        piMudarAba(aba || 'usuarios');
         piCarregarTudo();
       }
 
@@ -493,17 +924,24 @@
       }
 
       function piMudarAba(s) {
-        ['usuarios', 'form', 'logs', 'notificacoes'].forEach(k => {
+        ['usuarios', 'form', 'logs', 'notificacoes', 'igreja', 'plano'].forEach(k => {
           const el = document.getElementById('pi-secao-' + k);
           if (el) el.classList.add('hidden');
         });
         document.querySelectorAll('.pi-tab').forEach(b => b.classList.remove('active'));
 
-        const tab = (s === 'logs') ? 'logs' : (s === 'notificacoes') ? 'notificacoes' : 'usuarios';
+        let tab = 'usuarios';
+        if (s === 'logs') tab = 'logs';
+        else if (s === 'notificacoes') tab = 'notificacoes';
+        else if (s === 'igreja') tab = 'igreja';
+        else if (s === 'plano') tab = 'plano';
+
         const alvo = document.getElementById('pi-secao-' + s);
         if (alvo) alvo.classList.remove('hidden');
         const btn = document.getElementById('pi-tab-' + tab);
         if (btn) btn.classList.add('active');
+        if (s === 'igreja') piCarregarIgrejaInfo();
+        else if (s === 'plano') piCarregarPlano();
       }
 
       async function piCarregarTudo() {
@@ -679,7 +1117,7 @@
             document.getElementById('piFormTitulo').innerText = 'Usuário criado!';
             const pessoa = resultado.data[0];
             const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-            document.getElementById('piLinkConvite').value = base + 'completar-cadastro.html?token=' + pessoa.token_convite;
+            document.getElementById('piLinkConvite').value = base + 'completar-cadastro.html?token=' + pessoa.token_convite + '&igreja=' + igrejaAtual.id;
             document.getElementById('piConviteBox').classList.remove('hidden');
             await piCarregarTudo();
           }
